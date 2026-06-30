@@ -77,4 +77,13 @@ case 'profile':
     $controller->index();
 
     break;
+
+    case 'update-profile-image':
+
+    $controller = new ProfileController();
+
+    $controller->updateProfileImage();
+
+    break;
+    
     }

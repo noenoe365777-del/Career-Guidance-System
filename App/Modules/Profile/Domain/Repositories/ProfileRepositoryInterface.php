@@ -23,4 +23,6 @@ interface ProfileRepositoryInterface
         ?int $educationLevelId,
         ?string $profileImage
     ): bool;
+
+    public function updateProfileImage(int $userId, string $imageName): bool;
 }

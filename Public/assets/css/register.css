@@ -1,95 +1,182 @@
 /* =========================
    REGISTER PAGE ONLY
 ========================= */
-
-.register-page {
-    display: flex;
-    min-height: calc(100vh - 130px);
+.register-page{
+    display:flex;
+    width:100%;
+    max-width:1600px;
+    margin:0 auto;
+    align-items:stretch;
+}
+.register-page .login-left{
+   flex:1;
+    display:flex;
+    flex-direction:row;
+    justify-content:center;
+    align-items:center;
+    padding: 60px;
+    background:#eef4fc;
+    border-right:1px solid #e5e7eb;
 }
 
-/* Left Panel */
-.register-page .login-left {
-    flex: 1;
-    background-color: #eff4fc;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 50px 40px;
+.register-page .banner-content{
+      width:100%;
+    max-width:470px;
+     margin:auto;
 }
 
-.register-page .banner-content {
-    max-width: 430px;
-    width: 100%;
+.banner-content h2{
+    font-size:56px;
+    font-weight:700;
+    line-height:1.1;
+    color:#0f172a;
+    margin-bottom:18px;
 }
 
-.register-page .banner-content h2 {
-    font-size: 32px;
-    line-height: 1.3;
-    color: #0b2d73;
-    font-weight: 700;
-    margin-bottom: 18px;
+.banner-content p{
+    font-size:16px;
+    line-height:1.7;
+    color:#64748b;
+    max-width:440px;
+     margin-top:20px;
+    margin-bottom:45px;
 }
 
-.register-page .banner-content p {
-    font-size: 14px;
-    line-height: 1.8;
-    color: #5b6475;
-    margin-bottom: 28px;
+
+
+
+.feature-list{
+
+    margin:35px 0;
+
+}
+
+.feature-item{
+    display:flex;
+    align-items:center;
+
+    gap:14px;
+
+    padding:12px 0;
+
+    font-size:16px;
+
+    color:#334155;
+
+    font-weight:500;
+}
+.feature-item i{
+    width:30px;
+    height:30px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border-radius:50%;
+
+    background:#dbeafe;
+
+    color:#2563eb;
+
+    font-size:14px;
 }
 
 .register-page .vector-placeholder {
-    margin-top: 18px;
+    margin-top: 55px;
 }
 
-.register-page .vector-placeholder img {
-    width: 100%;
-    max-width: 360px;
-    height: auto;
-    object-fit: contain;
+.register-page .vector-placeholder img{
+    max-width:380px;
+    width:100%;
+    display:block;
+    margin:0 auto;
 }
+
+
+
 
 /* Right Panel */
-.register-page .login-right {
-    flex: 1.2;
-    background-color: #ffffff;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 50px 40px;
+.register-page .login-right{
+    flex:1;
+    display:flex;
+       flex-direction:row;
+    justify-content:center;
+    align-items:center;
+    background:#ffffff;
+    box-shadow:-8px 0 20px rgba(0,0,0,.04);
+    padding:60px;
+   
 }
 
-.register-page .form-container {
-    width: 100%;
-    max-width: 430px;
-    text-align: center;
+
+.register-page .form-container{
+    width:100%;
+    max-width:620px;
+    background:#fff;
+       padding: 48px;
+    border-radius:24px;
+    box-shadow:0 15px 45px rgba(15,23,42,.08);
+    border:1px solid #eef2f7;
+}
+.form-header{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    margin-bottom:28px;
 }
 
-.register-page .avatar-icon {
-    width: 58px;
-    height: 58px;
-    background-color: #eaf2ff;
-    color: #1a73e8;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    margin-bottom: 14px;
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    row-gap:30px;
+    column-gap:28px;
 }
 
-.register-page .register-title {
-    font-size: 32px;
-    color: #000;
-    font-weight: 700;
-    margin-bottom: 6px;
+.grid-item{
+    margin-bottom:0;
 }
 
-.register-page .form-subtitle {
-    font-size: 13px;
-    color: #7a7f8c;
-    margin-bottom: 24px;
+.full-width{
+    grid-column:1/-1;
 }
 
+.terms-wrap,
+.btn-submit,
+.divider,
+.btn-google,
+.switch-auth{
+    grid-column:1 / -1;
+}
+
+.register-page .avatar-icon{
+    width:64px;
+    height:64px;
+    background:#eaf2ff;
+    color:#2563eb;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 18px;
+    font-size:24px;
+}
+
+.register-title{
+    font-size:34px;
+    font-weight:700;
+    text-align:center;
+    margin-bottom:10px;
+}
+.form-subtitle{
+    text-align:center;
+    color:#64748b;
+    font-size:15px;
+    margin-top:8px;
+    margin-bottom:42px;
+}
 /* Inputs */
 .register-page .input-group {
     text-align: left;
@@ -97,42 +184,59 @@
 }
 
 .register-page .input-group label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 7px;
+    font-size:13px;
+    font-weight:600;
+    color:#374151;
+    margin-bottom:8px;
 }
 
 .register-page .input-field {
     position: relative;
-    display: flex;
-    align-items: center;
+   width:100%;
 }
 
 .register-page .input-field input,
-.register-page .input-field select {
-    width: 100%;
-    height: 44px;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    font-size: 14px;
-    outline: none;
-    background: #fff;
-    color: #333;
-    transition: 0.2s ease;
+.register-page .input-field select{
+    width:100%;
+    height:54px;
+
+    padding:0 18px;
+
+    border:1px solid #d6dce5;
+    border-radius:14px;
+
+    background:#ffffff;
+
+    font-size:15px;
+    color:#1e293b;
+
+    transition:all .25s ease;
+}
+
+.form-field.full-width{
+    grid-column:1/-1;
+}
+
+.form-field.full-width .input-field{
+    width:100%;
+}
+
+.form-field.full-width select{
+    width:100%;
 }
 
 /* Inputs with left icon */
 .register-page .input-field input[type="text"],
 .register-page .input-field input[type="email"],
-.register-page .input-field input[type="password"] {
-    padding: 0 42px 0 42px;
+.register-page .input-field input[type="password"]{
+    padding-left:52px;
+    padding-right:50px;
 }
 
 /* Date input */
-.register-page .input-field input[type="date"] {
-    padding: 0 14px;
+.register-page .input-field input[type="date"]{
+    padding-left:18px;
+    padding-right:52px;
 }
 
 /* Select */
@@ -143,40 +247,42 @@
     -moz-appearance: none;
     color: #666;
 }
-
 .register-page .input-field input:focus,
-.register-page .input-field select:focus {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 3px rgba(26,115,232,0.12);
+.register-page .input-field select:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 4px rgba(37,99,235,.10);
+    outline:none;
 }
 
-.register-page .field-icon {
-    position: absolute;
-    left: 14px;
-    color: #8c8c8c;
-    font-size: 14px;
+.register-page .field-icon{
+    position:absolute;
+    left:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#94a3b8;
+    font-size:18px;
+    z-index:2;
+    pointer-events:none;
 }
 
-.register-page .toggle-password {
-    position: absolute;
-    right: 14px;
-    color: #8c8c8c;
-    cursor: pointer;
-    font-size: 14px;
-}
 
-.register-page .select-icon {
-    position: absolute;
-    right: 14px;
-    color: #777;
-    font-size: 12px;
-    pointer-events: none;
+.register-page .toggle-password,
+.register-page .select-icon,
+.register-page .calendar-icon{
+    position:absolute;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#94a3b8;
+    font-size:18px;
 }
 
 /* Terms */
 .register-page .terms-wrap {
-    margin: 16px 0 20px;
-    text-align: left;
+    
+    margin-top:5px;
+
+    margin-bottom:5px;
 }
 
 .register-page .terms-label {
@@ -199,21 +305,30 @@
 }
 
 /* Button */
-.register-page .btn-submit {
-    width: 100%;
-    height: 44px;
-    background-color: #1a73e8;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.2s ease;
+.register-page .btn-submit{
+     width:100%;
+
+    height:56px;
+
+    background:#2563eb;
+
+    color:#fff;
+
+    border:none;
+
+    border-radius:12px;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+    margin-top:10px;
 }
 
 .register-page .btn-submit:hover {
-    background-color: #155ec0;
+    background-color: #1d4ed8;
 }
 
 /* Divider */
@@ -221,7 +336,7 @@
     display: flex;
     align-items: center;
     text-align: center;
-    margin: 22px 0;
+    margin: 30px 0;
     color: #9aa3b2;
     font-size: 12px;
 }
@@ -240,10 +355,10 @@
 /* Google button */
 .register-page .btn-google {
     width: 100%;
-    height: 48px;
+    height: 56px;
     background: #fff;
-    border: 1px solid #d9d9d9;
-    border-radius: 6px;
+    border: 1px solid #dbe2ea;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -252,13 +367,14 @@
     font-weight: 600;
     color: #222;
     cursor: pointer;
-    transition: 0.2s ease;
+    transition: .25s;
     margin-bottom: 22px;
     padding: 0 16px;
 }
 
 .register-page .btn-google:hover {
-    background: #f8f9fa;
+     transform:translateY(-2px);
+    box-shadow:0 8px 18px rgba(0,0,0,.08);
 }
 
 .register-page .google-icon {
@@ -274,15 +390,33 @@
 
 /* Switch auth */
 .register-page .switch-auth {
-    font-size: 13px;
+     grid-column: 1 / -1;
+ text-align: center;
+    font-size: 14px;
     color: #555;
+    margin-top: 20px;
 }
 
-.register-page .switch-auth a {
-    color: #1a73e8;
+.register-page .switch-auth a{
+    color: #2563eb;
     text-decoration: none;
-    font-weight: 700;
+    font-weight: 600;
+    margin-left: 4px;
+    transition: .3s ease;
 }
+
+.register-page .switch-auth a:hover{
+    color:#1d4ed8;
+    text-decoration: underline;
+}
+
+.login-footer{
+    grid-column:1/-1;
+    margin-top:30px;
+    padding-top:25px;
+    border-top:1px solid #e5e7eb;
+}
+
 
 /* Alerts */
 .register-page .alert {
@@ -330,29 +464,40 @@
     font-weight: 500;
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-    .register-page {
-        flex-direction: column;
+
+/*responsive*/
+
+@media (max-width:992px){
+
+    .register-page{
+        flex-direction:column;
     }
 
     .register-page .login-left,
-    .register-page .login-right {
-        width: 100%;
-        flex: unset;
-        padding: 35px 20px;
+    .register-page .login-right{
+        width:100%;
+        flex:unset;
+        padding:35px 20px;
     }
 
-    .register-page .banner-content,
-    .register-page .form-container {
-        max-width: 100%;
+    .form-grid{
+        grid-template-columns:1fr;
     }
 
-    .register-page .vector-placeholder {
-        text-align: center;
+    .full-width{
+        grid-column:auto;
     }
 
-    .register-page .vector-placeholder img {
-        max-width: 280px;
+    .form-container{
+        padding:30px;
+        max-width:100%;
+    }
+
+    .vector-placeholder{
+        text-align:center;
+    }
+
+    .vector-placeholder img{
+        max-width:280px;
     }
 }

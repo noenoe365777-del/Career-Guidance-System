@@ -33,14 +33,27 @@ class AuthService
         ];
     }
 
-    if ($this->authRepository->emailExists($data['email'])) {
-        return [
-            'success' => false,
-            'errors' => [
-                'email' => 'Email already exists.'
-            ]
-        ];
-    }
+    
+  
+if ($this->authRepository->usernameExists($data['username'])) {
+    return [
+        'success' => false,
+        'errors' => [
+            'username' => 'Username already exists.'
+        ]
+    ];
+}
+
+if ($this->authRepository->emailExists($data['email'])) {
+    return [
+        'success' => false,
+        'errors' => [
+            'email' => 'Email already exists.'
+        ]
+    ];
+}
+
+
 
     $username = trim($data['username']);
     $email = trim($data['email']);

@@ -58,6 +58,9 @@ class ProfileRepository implements ProfileRepositoryInterface
 
         $profile = $stmt->fetch(PDO::FETCH_ASSOC);
 
+
+
+
         return $profile ?: null;
     }
 
@@ -101,4 +104,62 @@ class ProfileRepository implements ProfileRepositoryInterface
             ':user_id' => $userId
         ]);
     }
+
+public function updateProfileImage(
+    int $userId,
+    string $imageName
+): bool
+{
+    // Check whether profile already exists
+    $check = $this->pdo->prepare("
+        SELECT user_id
+        FROM student_profiles
+        WHERE user_id = :user_id
+    ");
+
+    $check->execute([
+        ':user_id' => $userId
+    ]);
+
+    if ($check->fetch()) {
+
+        // Update existing profile
+        $sql = "
+            UPDATE student_profiles
+            SET profile_image = :image
+            WHERE user_id = :user_id
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        return $stmt->execute([
+            ':image' => $imageName,
+            ':user_id' => $userId
+        ]);
+
+    } else {
+
+        // Create profile
+        $sql = "
+            INSERT INTO student_profiles
+            (
+                user_id,
+                profile_image
+            )
+            VALUES
+            (
+                :user_id,
+                :image
+            )
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        return $stmt->execute([
+            ':user_id' => $userId,
+            ':image' => $imageName
+        ]);
+    }
+}
+
 }

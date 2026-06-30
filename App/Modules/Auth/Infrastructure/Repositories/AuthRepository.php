@@ -107,27 +107,53 @@ public function createStudentProfile(
     ]);
 }
 
-    public function findUserByEmail(string $email): ?array
-    {
-        $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':email' => $email]);
+  public function findUserByEmail(string $email): ?array
+{
+    $sql = "
+        SELECT
+            u.*,
+            md.label AS role_name
+        FROM users u
+        LEFT JOIN master_data md
+            ON md.id = u.user_role_id
+        WHERE u.email = :email
+        LIMIT 1
+    ";
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $this->pdo->prepare($sql);
 
-        return $user ?: null;
-    }
+    $stmt->execute([
+        ':email' => $email
+    ]);
 
-    public function findUserByGoogleId(string $googleId): ?array
-    {
-        $sql = "SELECT * FROM users WHERE google_id = :google_id LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':google_id' => $googleId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $user ?: null;
+}
 
-        return $user ?: null;
-    }
+ public function findUserByGoogleId(string $googleId): ?array
+{
+    $sql = "
+        SELECT
+            u.*,
+            md.label AS role_name
+        FROM users u
+        LEFT JOIN master_data md
+            ON md.id = u.user_role_id
+        WHERE u.google_id = :google_id
+        LIMIT 1
+    ";
+
+    $stmt = $this->pdo->prepare($sql);
+
+    $stmt->execute([
+        ':google_id' => $googleId
+    ]);
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $user ?: null;
+}
 
   public function createGoogleUser(
     string $username,
@@ -180,4 +206,20 @@ public function createStudentProfile(
 
     return (int) $stmt->fetchColumn() > 0;
 }
+
+
+public function usernameExists(string $username): bool
+{
+    $sql = "SELECT COUNT(*) FROM users WHERE username = :username";
+
+    $stmt = $this->pdo->prepare($sql);
+
+    $stmt->execute([
+        ':username' => $username
+    ]);
+
+    return (int)$stmt->fetchColumn() > 0;
+}
+
+
 }

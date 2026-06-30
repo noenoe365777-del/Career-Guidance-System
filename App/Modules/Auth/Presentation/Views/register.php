@@ -23,6 +23,10 @@ unset(
     <link rel="stylesheet" href="/career-guidance-system/Public/assets/css/style.css">
     <link rel="stylesheet" href="/career-guidance-system/Public/assets/css/register.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -55,8 +59,9 @@ unset(
     </div>
 </header>
 
-<main class="login-wrapper register-page">
+<main class="register-page">
     <div class="login-left">
+       
         <div class="banner-content">
             <h2>Build your future<br>with the right guidance</h2>
             <p>
@@ -64,21 +69,51 @@ unset(
                 that match your interests, skills, and strengths.
             </p>
 
+              <div class="feature-list">
+
+    <div class="feature-item">
+        <i class="fas fa-check-circle"></i>
+        Personalized Career Recommendations
+    </div>
+
+    <div class="feature-item">
+        <i class="fas fa-check-circle"></i>
+        Discover Your Strengths
+    </div>
+
+    <div class="feature-item">
+        <i class="fas fa-check-circle"></i>
+        Career Assessments
+    </div>
+
+</div>
+
             <div class="vector-placeholder">
                 <img src="/career-guidance-system/Public/assets/images/login.png" alt="Student studying">
             </div>
         </div>
     </div>
 
+  
+
     <div class="login-right">
         <div class="form-container">
 
-            <div class="avatar-icon">
-                <i class="far fa-user"></i>
-            </div>
+            <div class="form-header">
 
-            <h1 class="register-title">Create Your Account</h1>
-            <p class="form-subtitle">Join Career Guidance for Students</p>
+    <div class="avatar-icon">
+        <i class="far fa-user"></i>
+    </div>
+
+    <h1 class="register-title">
+        Create Your Account
+    </h1>
+
+    <p class="form-subtitle">
+        Join Career Guidance for Students
+    </p>
+
+</div>
 
             <?php if ($errors['register'] ?? false): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($errors['register']) ?></div>
@@ -88,14 +123,17 @@ unset(
                 <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
             <?php endif; ?>
 
+
+
            <form
     id="registerForm"
     action="index.php?page=register"
     method="POST"
     novalidate
 >
+<div class="form-grid">
 
-                <div class="input-group">
+                <div class="input-group grid-item">
                     <label for="fullname">Username</label>
                    <div class="input-field <?= FormHelper::hasError($errors, 'username') ?>">
                         <i class="far fa-user field-icon"></i>
@@ -111,7 +149,7 @@ unset(
                     <?= FormHelper::error($errors, 'username') ?>
                 </div>
 
-                <div class="input-group">
+               <div class="input-group grid-item">
                     <label for="email">Email Address</label>
                     <div class="input-field <?= FormHelper::hasError($errors, 'email') ?>">
                         <i class="far fa-envelope field-icon"></i>
@@ -127,8 +165,7 @@ unset(
                     </div>
                     <?= FormHelper::error($errors, 'email') ?>
                 </div>
-
-    <div class="input-group">
+<div class="input-group grid-item">
 
 <label>Password</label>
 
@@ -153,7 +190,7 @@ minlength="8"
 
 </div>
 
-<div class="input-group">
+<div class="input-group grid-item">
 
 <label>Confirm Password</label>
 
@@ -179,7 +216,7 @@ required
 
 
 
-           <div class="input-group">
+           <div class="input-group grid-item">
 
 <label>Education Level</label>
 
@@ -216,7 +253,7 @@ Graduate
 
 
 
-               <div class="input-group">
+               <div class="input-group grid-item">
 
 <label>Date of Birth</label>
 
@@ -237,8 +274,8 @@ required
 </div>
 
 
+<div class="input-group full-width">
 
-             <div class="input-group">
 
 <label>Gender</label>
 
@@ -275,6 +312,7 @@ Other
 <?= FormHelper::error($errors,'gender') ?>
 
 </div>
+</div> <!-- End of form-grid -->
 
                 <div class="terms-wrap">
                     <label class="terms-label">
@@ -300,105 +338,15 @@ Other
     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
     <span>Register with Google</span>
 </a>
-
-            <p class="switch-auth">
-                Already have an account?
-                <a href="index.php?page=login">Log in</a>
-            </p>
-        </div>
+<div class="login-footer">
+    <p class="switch-auth">
+        Already have an account?
+        <a href="index.php?page=login">Log in</a>
+    </p>
+</div>
     </div>
 </main>
 
-<footer class="footer-bar">
-    © 2026 Career Guidance System. All Rights Reserved.
-</footer>
 
-<script>
-document.querySelectorAll('.toggle-password').forEach(toggle => {
-    toggle.addEventListener('click', function () {
-        const targetId = this.getAttribute('data-target');
-        const input = document.getElementById(targetId);
-        if (!input) return;
-
-        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-        input.setAttribute('type', type);
-
-        this.classList.toggle('fa-eye');
-        this.classList.toggle('fa-eye-slash');
-    });
-});
-
-const registerForm = document.getElementById("registerForm");
-
-registerForm.addEventListener("submit", function(e){
-
-    const username = document.getElementById("username");
-    const email = document.getElementById("email");
-    const password = document.getElementById("password");
-    const confirmPassword = document.getElementById("confirm-password");
-    const education = document.getElementById("education");
-    const dob = document.getElementById("dob");
-    const gender = document.getElementById("gender");
-
-    // If EVERYTHING is empty,
-    // let PHP validate
-    if(
-        username.value.trim() === "" &&
-        email.value.trim() === "" &&
-        password.value.trim() === "" &&
-        confirmPassword.value.trim() === "" &&
-        education.value === "" &&
-        dob.value === "" &&
-        gender.value === ""
-    ){
-        return;
-    }
-
-    // Otherwise use browser validation
-
-    if(!username.checkValidity()){
-        username.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!email.checkValidity()){
-        email.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!password.checkValidity()){
-        password.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!confirmPassword.checkValidity()){
-        confirmPassword.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!education.checkValidity()){
-        education.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!dob.checkValidity()){
-        dob.reportValidity();
-        e.preventDefault();
-        return;
-    }
-
-    if(!gender.checkValidity()){
-        gender.reportValidity();
-        e.preventDefault();
-        return;
-    }
-});
-</script>
-
-</body>
-</html>
+<?php require BASE_PATH . "/App/Views/footer.php"; ?>
+<script src="/career-guidance-system/Public/assets/js/register.js"></script>

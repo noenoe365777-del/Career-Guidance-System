@@ -23,6 +23,7 @@ class ProfileService
         return $this->profileRepository->findByUserId($userId);
     }
 
+
     /**
      * Update profile
      */
@@ -46,4 +47,11 @@ class ProfileService
             $profileImage
         );
     }
+    public function updateProfileImage(int $userId, string $imageName): bool
+{
+    return $this->profileRepository->updateProfileImage(
+        $userId,
+        $imageName
+    );
+}
 }

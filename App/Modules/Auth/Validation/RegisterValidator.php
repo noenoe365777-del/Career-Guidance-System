@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Validation;
 
+
+use App\Modules\Auth\Validation\Rules\UsernameRule;
 use App\Modules\Auth\Validation\Rules\RequiredRule;
+use App\Modules\Auth\Validation\Rules\StrongPasswordRule;
 use App\Modules\Auth\Validation\Rules\EmailRule;
 use App\Modules\Auth\Validation\Rules\MinLengthRule;
 use App\Modules\Auth\Validation\Rules\MatchRule;
@@ -15,12 +18,19 @@ class RegisterValidator extends Validator
 {
     public function validate(array $data): bool
     {
-        $fullname = trim($data['fullname'] ?? '');
+        $username = trim($data['username'] ?? '');
 
         $this->addError(
-            'fullname',
-            (new RequiredRule($fullname, 'Full Name'))->validate()
+            'username',
+            (new RequiredRule($username, 'Username'))->validate()
         );
+
+        if (!isset($this->errors['username'])) {
+            $this->addError(
+                'username',
+                (new UsernameRule($username))->validate()
+            );
+        }
 
         $email = trim($data['email'] ?? '');
 
@@ -46,35 +56,50 @@ class RegisterValidator extends Validator
         if (!isset($this->errors['password'])) {
             $this->addError(
                 'password',
-                (new MinLengthRule($password, 8))->validate()
+                (new StrongPasswordRule($password))->validate()
             );
         }
 
-        $confirmPassword = $data['confirm_password'] ?? '';
+       $confirmPassword = $data['confirm_password'] ?? '';
 
-        $this->addError(
-            'confirm_password',
-            (new MatchRule($password, $confirmPassword))->validate()
-        );
+$this->addError(
+    'confirm_password',
+    (new RequiredRule(
+        $confirmPassword,
+        'Confirm Password'
+    ))->validate()
+);
 
+if (!isset($this->errors['confirm_password'])) {
+
+    $this->addError(
+        'confirm_password',
+        (new MatchRule(
+            $password,
+            $confirmPassword
+        ))->validate()
+    );
+
+}
         $education = $data['education'] ?? '';
 
         $this->addError(
             'education',
-            (new InRule(
-                $education,
-                ['high-school', 'undergraduate', 'graduate']
-            ))->validate()
+           (new InRule(
+    $education,
+    ['8', '9', '10']
+))->validate()
         );
 
         $gender = $data['gender'] ?? '';
 
         $this->addError(
             'gender',
+          
             (new InRule(
-                $gender,
-                ['male', 'female', 'other']
-            ))->validate()
+    $gender,
+    ['5', '6', '7']
+))->validate()
         );
 
         $dob = $data['dob'] ?? '';

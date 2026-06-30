@@ -33,6 +33,10 @@ public function login(): void
 
         $_SESSION['user'] = $result['user'];
 
+        echo "<pre>";
+print_r($_SESSION['user']);
+exit;
+
         header('Location: index.php?page=home');
         exit;
     }
@@ -133,6 +137,7 @@ $_SESSION['old'] = $_POST;
         }
 
         $_SESSION['user'] = $result['user'];
+     
 
         header('Location: index.php?page=home');
         exit;

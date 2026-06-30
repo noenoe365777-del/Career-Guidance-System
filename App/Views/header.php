@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -48,30 +49,61 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
 
     </nav>
 
-    <div class="auth-buttons">
+    <?php $user = $_SESSION['user'] ?? null; ?>
 
-<?php if(isset($_SESSION['user'])): ?>
+<div class="auth-buttons">
 
-        <a href="index.php?page=profile" class="btn-login">
-            <i class="fas fa-user"></i> Profile
+<?php if ($user): ?>
+
+<div class="user-dropdown" id="userDropdown">
+
+    <button type="button"
+            class="user-dropdown-btn"
+            id="userDropdownBtn">
+
+        <div class="user-info">
+            <span class="user-name">
+                <?= htmlspecialchars($user['username']) ?>
+            </span>
+
+            <span class="user-role">
+                <?= htmlspecialchars($user['role_name'] ?? 'Student') ?>
+            </span>
+        </div>
+
+        <i class="fas fa-chevron-down dropdown-arrow"></i>
+
+    </button>
+
+    <div class="dropdown-menu">
+
+        <a href="index.php?page=profile">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
         </a>
 
-        <a href="index.php?page=logout" class="btn-register">
-            <i class="fas fa-sign-out-alt"></i> Logout
+        <a href="index.php?page=logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
         </a>
+
+    </div>
+
+</div>
 
 <?php else: ?>
 
-        <a href="index.php?page=login" class="btn-login">
-            <i class="far fa-user"></i> Login
-        </a>
+<a href="index.php?page=login" class="btn-login">
+    <i class="far fa-user"></i> Login
+</a>
 
-        <a href="index.php?page=register" class="btn-register">
-            <i class="fas fa-user-plus"></i> Register
-        </a>
+<a href="index.php?page=register" class="btn-register">
+    <i class="fas fa-user-plus"></i> Register
+</a>
 
 <?php endif; ?>
 
-    </div>
+</div>
+    
 
 </header>
