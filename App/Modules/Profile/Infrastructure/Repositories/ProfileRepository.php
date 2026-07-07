@@ -67,43 +67,90 @@ class ProfileRepository implements ProfileRepositoryInterface
     /**
      * Update student profile
      */
-    public function updateProfile(
-        int $userId,
-        ?string $phone,
-        ?string $address,
-        ?string $dateOfBirth,
-        ?int $genderId,
-        ?int $educationLevelId,
-        ?string $profileImage
-    ): bool {
+public function updateProfile(int $userId, array $data): bool
+{
+    // Update users table
+    $userStmt = $this->pdo->prepare("
+        UPDATE users
+        SET username = :username,
+            updated_at = NOW()
+        WHERE user_id = :user_id
+    ");
 
-        $sql = "
+    $userStmt->execute([
+        ':username' => $data['username'],
+        ':user_id'  => $userId
+    ]);
+
+    $genderId = !empty($data['gender'])
+        ? $this->getGenderId($data['gender'])
+        : null;
+
+    $educationId = !empty($data['education_level'])
+        ? $this->getEducationLevelId($data['education_level'])
+        : null;
+
+    // Check whether profile exists
+    $check = $this->pdo->prepare("
+        SELECT COUNT(*)
+        FROM student_profiles
+        WHERE user_id = :user_id
+    ");
+
+    $check->execute([
+        ':user_id' => $userId
+    ]);
+
+    $exists = $check->fetchColumn();
+
+    if ($exists) {
+
+        $stmt = $this->pdo->prepare("
             UPDATE student_profiles
-
             SET
                 phone = :phone,
                 address = :address,
-                date_of_birth = :date_of_birth,
-                gender_id = :gender_id,
-                education_level_id = :education_level_id,
-                profile_image = :profile_image,
+                date_of_birth = :dob,
+                gender_id = :gender,
+                education_level_id = :education,
                 updated_at = NOW()
-
             WHERE user_id = :user_id
-        ";
+        ");
 
-        $stmt = $this->pdo->prepare($sql);
+    } else {
 
-        return $stmt->execute([
-            ':phone' => $phone,
-            ':address' => $address,
-            ':date_of_birth' => $dateOfBirth,
-            ':gender_id' => $genderId,
-            ':education_level_id' => $educationLevelId,
-            ':profile_image' => $profileImage,
-            ':user_id' => $userId
-        ]);
+        $stmt = $this->pdo->prepare("
+            INSERT INTO student_profiles
+            (
+                user_id,
+                phone,
+                address,
+                date_of_birth,
+                gender_id,
+                education_level_id
+            )
+            VALUES
+            (
+                :user_id,
+                :phone,
+                :address,
+                :dob,
+                :gender,
+                :education
+            )
+        ");
+
     }
+
+    return $stmt->execute([
+        ':user_id'   => $userId,
+        ':phone'     => $data['phone'] ?? null,
+        ':address'   => $data['address'] ?? null,
+        ':dob'       => $data['date_of_birth'] ?? null,
+        ':gender'    => $genderId,
+        ':education' => $educationId
+    ]);
+}
 
 public function updateProfileImage(
     int $userId,
@@ -160,6 +207,120 @@ public function updateProfileImage(
             ':image' => $imageName
         ]);
     }
+}
+
+
+private function getGenderId(string $gender): ?int
+{
+    $sql = "
+        SELECT id
+        FROM master_data
+        WHERE category = 'gender'
+        AND label = :label
+        LIMIT 1
+    ";
+
+    $stmt = $this->pdo->prepare($sql);
+
+    $stmt->execute([
+        ':label' => $gender
+    ]);
+
+    return $stmt->fetchColumn() ?: null;
+}
+
+private function getEducationLevelId(string $education): ?int
+{
+    $sql = "
+        SELECT id
+        FROM master_data
+        WHERE category = 'education_level'
+        AND label = :label
+        LIMIT 1
+    ";
+
+    $stmt = $this->pdo->prepare($sql);
+
+    $stmt->execute([
+        ':label' => $education
+    ]);
+
+    return $stmt->fetchColumn() ?: null;
+}
+
+public function updatePassword(
+    int $userId,
+    string $currentPassword,
+    string $newPassword
+): array {
+
+    // Get current password hash
+    $sql = "
+        SELECT password
+        FROM users
+        WHERE user_id = :user_id
+        LIMIT 1
+    ";
+
+    $stmt = $this->pdo->prepare($sql);
+
+    $stmt->execute([
+        ':user_id' => $userId
+    ]);
+
+    $hash = $stmt->fetchColumn();
+
+    if (!$hash) {
+        return [
+            'success' => false,
+            'errors' => [
+                'User not found.'
+            ]
+        ];
+    }
+
+    // Verify current password
+    if (!password_verify($currentPassword, $hash)) {
+
+        return [
+            'success' => false,
+            'errors' => [
+                'Current password is incorrect.'
+            ]
+        ];
+    }
+
+    // Hash new password
+    $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+
+    // Update password
+    $updateSql = "
+        UPDATE users
+        SET
+            password = :password,
+            updated_at = NOW()
+        WHERE user_id = :user_id
+    ";
+
+    $updateStmt = $this->pdo->prepare($updateSql);
+
+    $success = $updateStmt->execute([
+        ':password' => $newHash,
+        ':user_id'  => $userId
+    ]);
+
+    if (!$success) {
+        return [
+            'success' => false,
+            'errors' => [
+                'Failed to update password.'
+            ]
+        ];
+    }
+
+    return [
+        'success' => true
+    ];
 }
 
 }

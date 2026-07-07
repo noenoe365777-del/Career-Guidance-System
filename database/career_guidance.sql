@@ -55,6 +55,24 @@ CREATE TABLE student_profiles (
 );
 
 -- ============================================
+-- 2A. PASSWORD RESET REQUESTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code VARCHAR(32) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_password_resets_user_id (user_id),
+    INDEX idx_password_resets_code (code),
+    CONSTRAINT fk_password_resets_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- ============================================
 -- 3. ASSESSMENTS
 -- ============================================
 CREATE TABLE assessments (
@@ -67,6 +85,47 @@ CREATE TABLE assessments (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- ============================================
+-- 3A. DEFAULT ASSESSMENT SEED DATA
+-- ============================================
+INSERT INTO assessments (title, description, assessment_type, total_questions, status) VALUES
+('Personality Assessment', 'Understand your personality traits and work style.', 'personality', 10, 'active'),
+('Interest Assessment', 'Discover careers that match your interests and passions.', 'interest', 10, 'active'),
+('Aptitude Assessment', 'Measure your reasoning abilities and problem-solving skills.', 'aptitude', 5, 'active'),
+('Career Values Assessment', 'Identify what matters most to you in a future career.', 'values', 5, 'active');
+
+INSERT INTO questions (assessment_id, question_text, question_type, question_order) VALUES
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I enjoy meeting and talking with new people.', 'single_choice', 1),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I like taking responsibility and leading group work.', 'single_choice', 2),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I prefer planning tasks before I start working.', 'single_choice', 3),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I stay calm when I have to work under pressure.', 'single_choice', 4),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I enjoy working as part of a team.', 'single_choice', 5),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I make decisions based on logic rather than emotions.', 'single_choice', 6),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I enjoy trying new ideas and experiences.', 'single_choice', 7),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I finish my work before deadlines.', 'single_choice', 8),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I easily adapt to unexpected changes.', 'single_choice', 9),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'personality'), 'I like solving difficult problems.', 'single_choice', 10),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy helping other people solve their problems.', 'single_choice', 1),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I like creating artwork or designs.', 'single_choice', 2),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy programming or using computers.', 'single_choice', 3),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I like repairing machines or equipment.', 'single_choice', 4),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy organizing events or activities.', 'single_choice', 5),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy teaching others new skills.', 'single_choice', 6),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I like conducting science experiments.', 'single_choice', 7),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy writing stories or articles.', 'single_choice', 8),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I like managing money or budgets.', 'single_choice', 9),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'interest'), 'I enjoy working outdoors.', 'single_choice', 10),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'aptitude'), 'I enjoy solving logic puzzles and number challenges.', 'single_choice', 1),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'aptitude'), 'I like understanding how systems and processes work.', 'single_choice', 2),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'aptitude'), 'I am comfortable working with data and patterns.', 'single_choice', 3),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'aptitude'), 'I enjoy planning solutions before taking action.', 'single_choice', 4),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'aptitude'), 'I can focus on detailed tasks for long periods.', 'single_choice', 5),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'values'), 'I value stability and security in my career.', 'single_choice', 1),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'values'), 'I want a role that helps other people.', 'single_choice', 2),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'values'), 'I am motivated by creativity and innovation.', 'single_choice', 3),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'values'), 'I want flexibility and independence in my work.', 'single_choice', 4),
+((SELECT assessment_id FROM assessments WHERE assessment_type = 'values'), 'I care about earning a high income.', 'single_choice', 5);
 
 -- ============================================
 -- 4. QUESTIONS

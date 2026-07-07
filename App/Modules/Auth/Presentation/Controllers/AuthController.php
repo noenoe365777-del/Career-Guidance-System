@@ -4,81 +4,215 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Presentation\Controllers;
 
-use App\Config\Database;
-use App\Modules\Auth\Infrastructure\Repositories\AuthRepository;
+use App\Shared\Core\Controller;
 use App\Modules\Auth\Application\Services\AuthService;
+
 use Google\Client as GoogleClient;
 use Google\Service\Oauth2;
 
-class AuthController
+use Monolog\Logger;
+use Monolog\Handler\ErrorLogHandler;
+
+class AuthController extends Controller
 {
     private AuthService $authService;
     private array $googleConfig;
 
-    public function __construct()
+    public function __construct(AuthService $authService)
     {
-        $pdo = Database::getConnection();
-        $repository = new AuthRepository($pdo);
-        $this->authService = new AuthService($repository);
-
+        $this->authService = $authService;
         $this->googleConfig = require BASE_PATH . '/App/config/google.php';
     }
-public function login(): void
-{
-   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $result = $this->authService->login($_POST);
+    public function login(): void
+    {
+        if ($this->isAuthenticated()) {
+            $this->redirectToDashboard();
+        }
 
-    if ($result['success']) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $result = $this->authService->login($_POST);
 
-        $_SESSION['user'] = $result['user'];
+            if ($result['success']) {
+                $user = $result['user'] ?? [];
+                $this->loginUser($user);
+                $this->redirectToDashboard();
+            }
 
-        echo "<pre>";
-print_r($_SESSION['user']);
-exit;
+            $_SESSION['errors'] = $result['errors'] ?? [];
+            $_SESSION['old'] = $_POST;
+            $this->redirectToLogin();
+        }
 
-        header('Location: index.php?page=home');
+        $this->view(
+            'Auth/Presentation/Views/login',
+            ['pageTitle' => 'Login']
+        );
+    }
+
+    public function register(): void
+    {
+        if ($this->isAuthenticated()) {
+            $this->redirectToDashboard();
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $result = $this->authService->register($_POST);
+
+            if ($result['success']) {
+                $_SESSION['pending_verification_email'] = $result['email'] ?? ($_POST['email'] ?? null);
+                $_SESSION['pending_verification_user_id'] = (int)($result['user_id'] ?? 0);
+                $_SESSION['success'] = $result['message'];
+                header('Location: ' . BASE_URL . '/index.php?page=verify-email');
+                exit;
+            }
+
+            $_SESSION['errors'] = $result['errors'] ?? [];
+            if (isset($result['message']) && empty($_SESSION['errors'])) {
+                $_SESSION['error'] = $result['message'];
+            }
+            $_SESSION['old'] = $_POST;
+            header('Location: ' . BASE_URL . '/index.php?page=register');
+            exit;
+        }
+
+        $this->view(
+            'Auth/Presentation/Views/register',
+            ['pageTitle' => 'Register']
+        );
+    }
+
+    public function verifyEmail(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = trim($_POST['email'] ?? $_SESSION['pending_verification_email'] ?? '');
+            $code = trim($_POST['code'] ?? '');
+            $userId = (int)($_POST['user_id'] ?? $_SESSION['pending_verification_user_id'] ?? 0);
+
+            $result = $this->authService->verifyEmail($email, $code, $userId);
+
+            if ($result['success']) {
+                unset($_SESSION['pending_verification_email'], $_SESSION['pending_verification_user_id']);
+                $_SESSION['success'] = $result['message'];
+                header('Location: ' . BASE_URL . '/index.php?page=login');
+                exit;
+            }
+
+            $_SESSION['errors'] = ['verification' => $result['message']];
+            $_SESSION['old'] = ['email' => $email];
+            header('Location: ' . BASE_URL . '/index.php?page=verify-email');
+            exit;
+        }
+
+        $this->view(
+            'Auth/Presentation/Views/verify-email',
+            ['pageTitle' => 'Verify Email']
+        );
+    }
+
+    public function resendVerification(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '/index.php?page=verify-email');
+            exit;
+        }
+
+        $email = trim($_POST['email'] ?? $_SESSION['pending_verification_email'] ?? '');
+        $userId = (int)($_POST['user_id'] ?? $_SESSION['pending_verification_user_id'] ?? 0);
+
+        $result = $this->authService->resendVerification($email, $userId);
+
+        if ($result['success']) {
+            $_SESSION['success'] = $result['message'];
+        } else {
+            $_SESSION['errors'] = ['resend' => $result['message']];
+        }
+
+        header('Location: ' . BASE_URL . '/index.php?page=verify-email');
         exit;
     }
 
-    $_SESSION['errors'] = $result['errors'] ?? [];
-$_SESSION['old'] = $_POST;
+    public function forgotPassword(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $result = $this->authService->forgotPassword($_POST);
 
-    header('Location: index.php?page=login');
-    exit;
+            if ($result['success']) {
+                $_SESSION['pending_password_reset_email'] = $result['email'] ?? ($_POST['email'] ?? '');
+                $_SESSION['pending_password_reset_user_id'] = (int)($result['user_id'] ?? 0);
+                $_SESSION['success'] = 'Verification code sent to your email.';
+                header('Location: ' . BASE_URL . '/index.php?page=verify-reset-code');
+                exit;
+            }
 
-}
+            $_SESSION['errors'] = $result['errors'] ?? ['email' => $result['message'] ?? 'Unable to process request.'];
+            $_SESSION['old'] = $_POST;
+            header('Location: ' . BASE_URL . '/index.php?page=forgot-password');
+            exit;
+        }
 
-    require BASE_PATH . '/App/Modules/Auth/Presentation/Views/login.php';
-}
-
- public function register(): void
-{
-   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $result = $this->authService->register($_POST);
-
-    if ($result['success']) {
-
-        $_SESSION['success'] = $result['message'];
-
-        header('Location: index.php?page=login');
-        exit;
+        $this->view(
+            'Auth/Presentation/Views/forgot-password',
+            ['pageTitle' => 'Forgot Password']
+        );
     }
 
-    $_SESSION['errors'] = $result['errors'] ?? [];
-    $_SESSION['old'] = $_POST;
+    public function verifyResetCode(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = trim($_POST['email'] ?? $_SESSION['pending_password_reset_email'] ?? '');
+            $code = trim($_POST['code'] ?? '');
 
-    header('Location: index.php?page=register');
-    exit;
+            $result = $this->authService->verifyPasswordResetCode($email, $code);
 
-}
-    require BASE_PATH . '/App/Modules/Auth/Presentation/Views/register.php';
-}
+            if ($result['success']) {
+                $_SESSION['pending_password_reset_email'] = $email;
+                $_SESSION['pending_password_reset_user_id'] = (int)($result['user_id'] ?? $_SESSION['pending_password_reset_user_id'] ?? 0);
+                header('Location: ' . BASE_URL . '/index.php?page=reset-password');
+                exit;
+            }
+
+            $_SESSION['errors'] = ['verification' => $result['message']];
+            $_SESSION['old'] = ['email' => $email];
+            header('Location: ' . BASE_URL . '/index.php?page=verify-reset-code');
+            exit;
+        }
+
+        $this->view(
+            'Auth/Presentation/Views/verify-reset-code',
+            ['pageTitle' => 'Verify Reset Code']
+        );
+    }
+
+    public function resetPassword(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = (int)($_SESSION['pending_password_reset_user_id'] ?? 0);
+            $result = $this->authService->resetPassword($userId, $_POST);
+
+            if ($result['success']) {
+                unset($_SESSION['pending_password_reset_email'], $_SESSION['pending_password_reset_user_id']);
+                $_SESSION['success'] = $result['message'];
+                header('Location: ' . BASE_URL . '/index.php?page=login');
+                exit;
+            }
+
+            $_SESSION['errors'] = $result['errors'] ?? ['password' => $result['message'] ?? 'Unable to reset password.'];
+            $_SESSION['old'] = $_POST;
+            header('Location: ' . BASE_URL . '/index.php?page=reset-password');
+            exit;
+        }
+
+        $this->view(
+            'Auth/Presentation/Views/reset-password',
+            ['pageTitle' => 'Reset Password']
+        );
+    }
 
     public function googleLogin(): void
     {
         $client = new GoogleClient();
+
         $client->setClientId($this->googleConfig['client_id']);
         $client->setClientSecret($this->googleConfig['client_secret']);
         $client->setRedirectUri($this->googleConfig['redirect_uri']);
@@ -86,21 +220,25 @@ $_SESSION['old'] = $_POST;
         $client->addScope('email');
         $client->addScope('profile');
 
-        $authUrl = $client->createAuthUrl();
-
-        header('Location: ' . $authUrl);
+        header('Location: ' . $client->createAuthUrl());
         exit;
     }
 
     public function googleCallback(): void
     {
         if (!isset($_GET['code'])) {
-            $_SESSION['error'] = 'Google login failed: missing authorization code.';
-            header('Location: index.php?page=login');
+            $_SESSION['error'] = 'Google login failed.';
+            header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
         }
 
         $client = new GoogleClient();
+
+        $logger = new Logger('google');
+        $logger->pushHandler(new ErrorLogHandler());
+
+        $client->setLogger($logger);
+
         $client->setClientId($this->googleConfig['client_id']);
         $client->setClientSecret($this->googleConfig['client_secret']);
         $client->setRedirectUri($this->googleConfig['redirect_uri']);
@@ -109,7 +247,7 @@ $_SESSION['old'] = $_POST;
 
         if (isset($token['error'])) {
             $_SESSION['error'] = 'Google login failed.';
-            header('Location: index.php?page=login');
+            header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
         }
 
@@ -118,37 +256,27 @@ $_SESSION['old'] = $_POST;
         $oauth = new Oauth2($client);
         $googleUser = $oauth->userinfo->get();
 
-        $googleId = $googleUser->id ?? '';
-        $fullName = $googleUser->name ?? 'Google User';
-        $email = $googleUser->email ?? '';
+        $result = $this->authService->loginWithGoogle(
+            $googleUser->id,
+            $googleUser->name,
+            $googleUser->email
+        );
 
-        if ($googleId === '' || $email === '') {
-            $_SESSION['error'] = 'Google account data is incomplete.';
-            header('Location: index.php?page=login');
+        if (!$result['success']) {
+            $_SESSION['error'] = $result['message'];
+            header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
         }
 
-        $result = $this->authService->loginWithGoogle($googleId, $fullName, $email);
-
-        if ($result['success'] !== true) {
-            $_SESSION['error'] = $result['message'] ?? 'Google login failed.';
-            header('Location: index.php?page=login');
-            exit;
-        }
-
-        $_SESSION['user'] = $result['user'];
-     
-
-        header('Location: index.php?page=home');
-        exit;
+        $user = $result['user'] ?? [];
+        $this->loginUser($user);
+        $this->redirectToDashboard();
     }
 
     public function logout(): void
     {
-        session_unset();
-        session_destroy();
-
-        header('Location: index.php?page=home');
-        exit;
+        $this->logoutUser();
+        $_SESSION['success'] = 'You have been logged out.';
+        $this->redirectToLogin();
     }
 }

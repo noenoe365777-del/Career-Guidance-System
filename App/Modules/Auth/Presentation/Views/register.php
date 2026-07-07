@@ -1,5 +1,6 @@
 <?php
 use App\Helpers\FormHelper;
+
 $errors = $_SESSION['errors'] ?? [];
 $old = $_SESSION['old'] ?? [];
 
@@ -12,341 +13,403 @@ unset(
     $_SESSION['success'],
     $_SESSION['error']
 );
+
+
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Career Guidance System</title>
 
-    <link rel="stylesheet" href="/career-guidance-system/Public/assets/css/style.css">
-    <link rel="stylesheet" href="/career-guidance-system/Public/assets/css/register.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- ================= REGISTER PAGE ================= -->
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
+<main class="py-10">
 
-<header class="navbar">
-    <div class="logo" onclick="window.location.href='index.php?page=home'" style="cursor:pointer;">
-        <div class="logo-icon">
-            <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div class="logo-text">
-            <h2>Career Guidance System</h2>
-            <span>FOR STUDENTS</span>
-        </div>
-    </div>
+<div class="max-w-6xl mx-auto px-6">
 
-    <nav class="nav-links">
-        <a href="index.php?page=home">Home</a>
-        <a href="index.php?page=assessments">Assessments</a>
-        <a href="index.php?page=careers">Careers</a>
-        <a href="index.php?page=about">About Us</a>
-        <a href="index.php?page=contact">Contact Us</a>
-    </nav>
+<div class="grid lg:grid-cols-2 gap-10 items-center">
 
-    <div class="auth-buttons">
-        <a href="index.php?page=login" class="btn-login">
-            <i class="far fa-user"></i> Login
-        </a>
-        <a href="index.php?page=register" class="btn-register active-auth">
-            <i class="fas fa-user-plus"></i> Register
-        </a>
-    </div>
-</header>
+<!-- ================= LEFT PANEL ================= -->
 
-<main class="register-page">
-    <div class="login-left">
-       
-        <div class="banner-content">
-            <h2>Build your future<br>with the right guidance</h2>
-            <p>
-                Create your account and take assessments to discover careers
-                that match your interests, skills, and strengths.
-            </p>
+<div class="flex flex-col items-center lg:items-start justify-center animate-fadeUp">
 
-              <div class="feature-list">
+<img
+    src="<?= BASE_URL ?>/assets/images/login.png"
+    alt="Career Guidance"
+    class="w-full max-w-md animate-float">
 
-    <div class="feature-item">
-        <i class="fas fa-check-circle"></i>
-        Personalized Career Recommendations
-    </div>
+    <h1 class="mt-6 text-4xl lg:text-5xl font-bold text-[#15479A]">
 
-    <div class="feature-item">
-        <i class="fas fa-check-circle"></i>
-        Discover Your Strengths
-    </div>
+        Create Your Account
 
-    <div class="feature-item">
-        <i class="fas fa-check-circle"></i>
-        Career Assessments
-    </div>
+    </h1>
+
+    <p class="mt-3 text-gray-600 text-lg">
+
+        Start your career journey with us.
+
+    </p>
 
 </div>
 
-            <div class="vector-placeholder">
-                <img src="/career-guidance-system/Public/assets/images/login.png" alt="Student studying">
-            </div>
-        </div>
-    </div>
+<!-- ================= RIGHT PANEL ================= -->
+
+<div class="flex justify-center">
+
+<div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 w-full max-w-xl animate-fade">
 
   
 
-    <div class="login-right">
-        <div class="form-container">
+    <!-- Heading -->
 
-            <div class="form-header">
+    <h2 class="text-3xl font-bold text-center text-gray-800 mt-5">
 
-    <div class="avatar-icon">
-        <i class="far fa-user"></i>
-    </div>
+        Register
 
-    <h1 class="register-title">
-        Create Your Account
-    </h1>
+    </h2>
 
-    <p class="form-subtitle">
-        Join Career Guidance for Students
+    <p class="text-center text-gray-500 mt-2">
+
+        Create your account to continue
+
     </p>
 
-</div>
+    <?php if($success): ?>
 
-            <?php if ($errors['register'] ?? false): ?>
-                <div class="alert alert-error"><?= htmlspecialchars($errors['register']) ?></div>
-            <?php endif; ?>
+    <div class="mt-5 bg-green-100 border border-green-300 text-green-700 rounded-lg px-4 py-3">
 
-            <?php if ($success): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-            <?php endif; ?>
+        <?= htmlspecialchars($success) ?>
 
-
-
-           <form
-    id="registerForm"
-    action="index.php?page=register"
-    method="POST"
-    novalidate
->
-<div class="form-grid">
-
-                <div class="input-group grid-item">
-                    <label for="fullname">Username</label>
-                   <div class="input-field <?= FormHelper::hasError($errors, 'username') ?>">
-                        <i class="far fa-user field-icon"></i>
-                        <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            placeholder="Enter your  username"
-                        value="<?= FormHelper::old($old, 'username') ?>"
-                        required
-                        >
-                    </div>
-                    <?= FormHelper::error($errors, 'username') ?>
-                </div>
-
-               <div class="input-group grid-item">
-                    <label for="email">Email Address</label>
-                    <div class="input-field <?= FormHelper::hasError($errors, 'email') ?>">
-                        <i class="far fa-envelope field-icon"></i>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder="Enter your email address"
-                            value="<?= FormHelper::old($old, 'email') ?>"
-                            required
-                        
-                        >
-                    </div>
-                    <?= FormHelper::error($errors, 'email') ?>
-                </div>
-<div class="input-group grid-item">
-
-<label>Password</label>
-
-<div class="input-field <?= FormHelper::hasError($errors,'password') ?>">
-
-<i class="fas fa-lock field-icon"></i>
-
-<input
-type="password"
-id="password"
-name="password"
-placeholder="Create a password"
-required
-minlength="8"
->
-
-<i class="far fa-eye toggle-password" data-target="password"></i>
-
-</div>
-
-<?= FormHelper::error($errors,'password') ?>
-
-</div>
-
-<div class="input-group grid-item">
-
-<label>Confirm Password</label>
-
-<div class="input-field <?= FormHelper::hasError($errors,'confirm_password') ?>">
-
-<i class="fas fa-lock field-icon"></i>
-
-<input
-type="password"
-id="confirm-password"
-name="confirm_password"
-placeholder="Confirm your password"
-required
->
-
-<i class="far fa-eye toggle-password" data-target="confirm-password"></i>
-
-</div>
-
-<?= FormHelper::error($errors,'confirm_password') ?>
-
-</div>
-
-
-
-           <div class="input-group grid-item">
-
-<label>Education Level</label>
-
-<div class="input-field select-field <?= FormHelper::hasError($errors,'education') ?>">
-
-<select id="education" name="education" required>
-
-<option value="">Select your education level</option>
-
-<option value="8"
-<?= FormHelper::selected($old,'education','8') ?>>
-High School
-</option>
-
-<option value="9"
-<?= FormHelper::selected($old,'education','9') ?>>
-Undergraduate
-</option>
-
-<option value="10"
-<?= FormHelper::selected($old,'education','10') ?>>
-Graduate
-</option>
-
-</select>
-
-<i class="fas fa-chevron-down select-icon"></i>
-
-</div>
-
-<?= FormHelper::error($errors,'education') ?>
-
-</div>
-
-
-
-               <div class="input-group grid-item">
-
-<label>Date of Birth</label>
-
-<div class="input-field <?= FormHelper::hasError($errors,'dob') ?>">
-
-<input
-type="date"
-id="dob"
-name="dob"
-value="<?= FormHelper::old($old,'dob') ?>"
-required
->
-
-</div>
-
-<?= FormHelper::error($errors,'dob') ?>
-
-</div>
-
-
-<div class="input-group full-width">
-
-
-<label>Gender</label>
-
-<div class="input-field select-field <?= FormHelper::hasError($errors,'gender') ?>">
-
-<select
-id="gender"
-name="gender"
-required
->
-
-<option value="">Select Gender</option>
-
-<option value="5"
-<?= FormHelper::selected($old,'gender','5') ?>>
-Male
-</option>
-
-<option value="6"
-<?= FormHelper::selected($old,'gender','6') ?>>
-Female
-</option>
-
-<option value="7"
-<?= FormHelper::selected($old,'gender','7') ?>>
-Other
-</option>
-</select>
-
-<i class="fas fa-chevron-down select-icon"></i>
-
-</div>
-
-<?= FormHelper::error($errors,'gender') ?>
-
-</div>
-</div> <!-- End of form-grid -->
-
-                <div class="terms-wrap">
-                    <label class="terms-label">
-                        <input type="checkbox" required>
-                        <span>
-                            I agree to the
-                            <a href="#">Terms of Service</a>
-                            and
-                            <a href="#">Privacy Policy</a>.
-                        </span>
-                    </label>
-                </div>
-
-                <button type="submit" class="btn-submit">
-                    Create Account
-                </button>
-            </form>
-
-            <div class="divider">
-                <span>OR</span>
-            </div>
-<a href="/career-guidance-system/Public/index.php?page=google-login" class="btn-google">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
-    <span>Register with Google</span>
-</a>
-<div class="login-footer">
-    <p class="switch-auth">
-        Already have an account?
-        <a href="index.php?page=login">Log in</a>
-    </p>
-</div>
     </div>
+
+    <?php endif; ?>
+
+    <?php if($error): ?>
+
+    <div class="mt-5 bg-red-100 border border-red-300 text-red-700 rounded-lg px-4 py-3">
+
+        <?= htmlspecialchars($error) ?>
+
+    </div>
+
+    <?php endif; ?>
+
+    <!-- ================= REGISTER FORM ================= -->
+
+    <form
+        id="registerForm"
+        action="<?= BASE_URL ?>/index.php?page=register"
+        method="POST"
+        novalidate
+        class="grid md:grid-cols-2 gap-5 mt-8">
+
+        <!-- ================= Username ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Username
+    </label>
+
+    <input
+        type="text"
+        id="username"
+        name="username"
+        placeholder="Enter username"
+        value="<?= FormHelper::old($old,'username')?>"
+        class="w-full h-12 px-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['username'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Email ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Email
+    </label>
+
+    <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="Enter email"
+        value="<?= FormHelper::old($old,'email')?>"
+        class="w-full h-12 px-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['email'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Password ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Password
+    </label>
+
+    <div class="relative">
+
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter password"
+            class="w-full h-12 px-4 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
+
+        <i
+            class="fa fa-eye toggle-password absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+            data-target="password"></i>
+
+    </div>
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['password'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Confirm Password ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Confirm Password
+    </label>
+
+    <div class="relative">
+
+        <input
+            type="password"
+            id="confirm-password"
+            name="confirm_password"
+            placeholder="Confirm password"
+            class="w-full h-12 px-4 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
+
+        <i
+            class="fa fa-eye toggle-password absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+            data-target="confirm-password"></i>
+
+    </div>
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['confirm_password'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Education ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Education
+    </label>
+
+    <select
+        id="education"
+        name="education"
+        class="w-full h-12 px-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A]">
+
+        <option value="">Select Education</option>
+
+        <option value="8" <?= FormHelper::selected($old,'education','8')?>>
+            High School
+        </option>
+
+        <option value="9" <?= FormHelper::selected($old,'education','9')?>>
+            Undergraduate
+        </option>
+
+        <option value="10" <?= FormHelper::selected($old,'education','10')?>>
+            Graduate
+        </option>
+
+    </select>
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['education'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Date of Birth ================= -->
+
+<div>
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Date of Birth
+    </label>
+
+    <input
+        type="date"
+        id="dob"
+        name="dob"
+        value="<?= FormHelper::old($old,'dob')?>"
+        class="w-full h-12 px-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A]">
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['dob'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Gender ================= -->
+
+<div class="md:col-span-2">
+
+    <label class="block mb-2 font-medium text-gray-700">
+        Gender
+    </label>
+
+    <select
+        id="gender"
+        name="gender"
+        class="w-full h-12 px-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A]">
+
+        <option value="">Select Gender</option>
+
+        <option value="5" <?= FormHelper::selected($old,'gender','5')?>>
+            Male
+        </option>
+
+        <option value="6" <?= FormHelper::selected($old,'gender','6')?>>
+            Female
+        </option>
+
+        <option value="7" <?= FormHelper::selected($old,'gender','7')?>>
+            Other
+        </option>
+
+    </select>
+
+    <small class="text-red-500 text-sm">
+        <?= $errors['gender'] ?? '' ?>
+    </small>
+
+</div>
+
+<!-- ================= Terms ================= -->
+
+<div class="md:col-span-2">
+
+    <label class="flex items-start gap-3 cursor-pointer">
+
+        <input
+            type="checkbox"
+            id="terms"
+            name="terms"
+            value="1"
+            class="mt-1 rounded border-gray-300 text-[#15479A] focus:ring-[#15479A]">
+
+        <span class="text-sm text-gray-600">
+
+            I agree to the
+
+            <a href="#" class="text-[#15479A] font-medium hover:underline">
+                Terms
+            </a>
+
+            and
+
+            <a href="#" class="text-[#15479A] font-medium hover:underline">
+                Privacy Policy
+            </a>
+
+        </span>
+
+    </label>
+
+    <small
+        id="terms-error"
+        class="text-red-500 text-sm mt-2 block">
+    </small>
+
+</div>
+
+<!-- ================= Register Button ================= -->
+
+<div class="md:col-span-2">
+
+    <button
+        type="submit"
+        class="w-full h-12 rounded-xl bg-gradient-to-r from-[#15479A] to-blue-700 text-white font-semibold hover:opacity-90 transition duration-300">
+
+        <i class="fas fa-user-plus mr-2"></i>
+
+        Create Account
+
+    </button>
+
+</div>
+
+<!-- ================= Divider ================= -->
+
+<div class="md:col-span-2 flex items-center my-2">
+
+    <div class="flex-1 border-t border-gray-300"></div>
+
+    <span class="px-4 text-gray-500 text-sm">
+
+        OR
+
+    </span>
+
+    <div class="flex-1 border-t border-gray-300"></div>
+
+</div>
+
+<!-- ================= Google Login ================= -->
+
+<div class="md:col-span-2">
+
+    <a
+    href="<?= BASE_URL ?>/index.php?page=google-login"
+        class="w-full h-12 border border-gray-300 rounded-xl flex items-center justify-center gap-3 hover:border-[#15479A] hover:bg-gray-50 transition">
+
+        <img
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            class="w-5 h-5"
+            alt="Google">
+
+        <span class="font-medium text-gray-700">
+
+            Continue with Google
+
+        </span>
+
+    </a>
+
+</div>
+
+<!-- ================= Login ================= -->
+
+<div class="md:col-span-2 text-center mt-2 text-gray-600">
+
+    Already have an account?
+<a
+    href="<?= BASE_URL ?>/index.php?page=login"
+        class="font-semibold text-[#15479A] hover:underline">
+
+        Login
+
+    </a>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+</div>
+
 </main>
 
-
-<?php require BASE_PATH . "/App/Views/footer.php"; ?>
-<script src="/career-guidance-system/Public/assets/js/register.js"></script>
+<?php
+$extraJs = BASE_URL . "/assets/js/register.js";
+?>

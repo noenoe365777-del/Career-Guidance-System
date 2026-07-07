@@ -1,1 +1,230 @@
-// placeholder 
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Assessment\Application\Services;
+
+use App\Modules\Assessment\Infrastructure\Persistence\AssessmentRepository;
+use App\Modules\Assessment\Infrastructure\Persistence\QuestionRepository;
+use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
+use App\Modules\Recommendation\Application\Services\RecommendationService;
+
+class AssessmentService
+{
+    private AssessmentRepository $assessmentRepository;
+    private QuestionRepository $questionRepository;
+    private StudentAssessmentRepository $studentAssessmentRepository;
+    private RecommendationService $recommendationService;
+
+    public function __construct()
+    {
+        $this->assessmentRepository = new AssessmentRepository();
+        $this->questionRepository = new QuestionRepository();
+        $this->studentAssessmentRepository = new StudentAssessmentRepository();
+        $this->recommendationService = new RecommendationService();
+    }
+
+    public function getAssessments(?int $userId = null): array
+    {
+        $catalog = $this->assessmentRepository->getAll();
+        $progress = $userId ? $this->studentAssessmentRepository->getProgressSummary($userId) : [];
+
+        return array_map(function (array $assessment) use ($progress): array {
+            $slug = $assessment['slug'];
+            $userProgress = $progress[$slug] ?? null;
+
+            return [
+                'title' => $assessment['title'],
+                'description' => $assessment['description'],
+                'questions' => (($assessment['total_questions'] ?? 0) > 0 ? $assessment['total_questions'] . ' Questions' : 'Quick review'),
+                'icon' => $this->iconForAssessment($slug),
+                'iconBg' => $this->iconBgForAssessment($slug),
+                'iconColor' => $this->iconColorForAssessment($slug),
+                'button' => $this->buttonClassForAssessment($slug),
+                'page' => $slug,
+                'slug' => $slug,
+                'progress' => $userProgress,
+            ];
+        }, $catalog);
+    }
+
+    public function getAssessmentQuestions(string $slug): array
+    {
+        return $this->questionRepository->getQuestionsBySlug($slug);
+    }
+
+    public function startAssessment(string $slug, ?int $userId = null): array
+    {
+        $assessment = $this->assessmentRepository->getBySlug($slug);
+
+        if (!$assessment) {
+            return ['success' => false, 'message' => 'Assessment not found.'];
+        }
+
+        if ($userId) {
+            $existing = $this->studentAssessmentRepository->findForUser($userId, (int)$assessment['id']);
+            if (!$existing) {
+                $this->studentAssessmentRepository->create($userId, (int)$assessment['id']);
+            }
+        }
+
+        return ['success' => true, 'assessment' => $assessment, 'guest' => empty($userId)];
+    }
+
+    public function submitAssessment(string $slug, array $answers, ?int $userId = null, bool $guest = false): array
+    {
+        $assessment = $this->assessmentRepository->getBySlug($slug);
+
+        if (!$assessment) {
+            return ['success' => false, 'message' => 'Assessment is unavailable right now.'];
+        }
+
+        $normalizedAnswers = $this->normalizeAnswers($answers);
+        $score = $this->calculateScore($slug, $normalizedAnswers);
+        $summary = $this->buildSummary($assessment['title'], $score, count($normalizedAnswers));
+
+        if ($guest) {
+            $_SESSION['guest_assessment'][$slug] = [
+                'assessment_id' => $assessment['id'],
+                'title' => $assessment['title'],
+                'answers' => $normalizedAnswers,
+                'score' => $score,
+                'status' => 'completed',
+                'completed_at' => date('Y-m-d H:i:s'),
+                'summary' => $summary,
+            ];
+
+            return [
+                'success' => true,
+                'message' => 'Guest assessment saved. Sign in to keep your progress and unlock tailored recommendations.',
+                'guest' => true,
+                'score' => $score,
+                'summary' => $summary,
+            ];
+        }
+
+        if (!$userId) {
+            return ['success' => false, 'message' => 'You must be logged in to save assessment progress.'];
+        }
+
+        $result = $this->studentAssessmentRepository->createOrUpdate($userId, (int)$assessment['id'], $normalizedAnswers, $score, $summary);
+
+        $recommendation = null;
+        if ($this->studentAssessmentRepository->getCompletedCount($userId) >= 4) {
+            $recommendation = $this->recommendationService->generateForUser($userId);
+            $_SESSION['latest_recommendation'] = $recommendation ? [
+                'career_name' => $recommendation->careerName,
+                'match_percent' => $recommendation->matchPercent,
+                'description' => $recommendation->description,
+                'skills' => $recommendation->skills,
+                'recommended_majors' => $recommendation->recommendedMajors,
+                'resources' => $recommendation->resources,
+            ] : null;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Assessment submitted successfully. Your progress is now saved.',
+            'guest' => false,
+            'score' => $result['score'] ?? $score,
+            'summary' => $result['summary'] ?? $summary,
+            'recommendation' => $recommendation,
+        ];
+    }
+
+    public function getProgress(?int $userId = null): array
+    {
+        if (!$userId) {
+            return [];
+        }
+
+        return $this->studentAssessmentRepository->getProgressSummary($userId);
+    }
+
+    public function getGuestProgress(?string $slug = null): array
+    {
+        $progress = $_SESSION['guest_assessment'] ?? [];
+
+        if ($slug) {
+            return $progress[$slug] ?? [];
+        }
+
+        return $progress;
+    }
+
+    private function normalizeAnswers(array $answers): array
+    {
+        $normalized = [];
+        foreach ($answers as $questionId => $answerValue) {
+            if (!is_numeric($questionId) || !is_numeric($answerValue)) {
+                continue;
+            }
+
+            $normalized[(int)$questionId] = (int)$answerValue;
+        }
+
+        return $normalized;
+    }
+
+    private function calculateScore(string $slug, array $answers): int
+    {
+        if (empty($answers)) {
+            return 0;
+        }
+
+        $values = array_values($answers);
+        $average = array_sum($values) / count($values);
+        $percentage = (int)round(($average / 5) * 100, 0);
+
+        return max(0, min(100, $percentage));
+    }
+
+    private function buildSummary(string $title, int $score, int $questionCount): string
+    {
+        return sprintf('You completed %s with a score of %d/100.', $title, $score);
+    }
+
+    private function iconForAssessment(string $slug): string
+    {
+        return match ($slug) {
+            'personality' => 'fa-solid fa-brain',
+            'interest' => 'fa-solid fa-heart',
+            'aptitude' => 'fa-solid fa-chart-line',
+            'values' => 'fa-solid fa-bullseye',
+            default => 'fa-solid fa-file-lines',
+        };
+    }
+
+    private function iconBgForAssessment(string $slug): string
+    {
+        return match ($slug) {
+            'personality' => 'bg-blue-100',
+            'interest' => 'bg-pink-100',
+            'aptitude' => 'bg-green-100',
+            'values' => 'bg-orange-100',
+            default => 'bg-slate-100',
+        };
+    }
+
+    private function iconColorForAssessment(string $slug): string
+    {
+        return match ($slug) {
+            'personality' => 'text-blue-600',
+            'interest' => 'text-pink-600',
+            'aptitude' => 'text-green-600',
+            'values' => 'text-orange-500',
+            default => 'text-slate-600',
+        };
+    }
+
+    private function buttonClassForAssessment(string $slug): string
+    {
+        return match ($slug) {
+            'personality' => 'bg-blue-700 hover:bg-blue-800',
+            'interest' => 'bg-pink-600 hover:bg-pink-700',
+            'aptitude' => 'bg-green-600 hover:bg-green-700',
+            'values' => 'bg-orange-500 hover:bg-orange-600',
+            default => 'bg-slate-700 hover:bg-slate-800',
+        };
+    }
+}

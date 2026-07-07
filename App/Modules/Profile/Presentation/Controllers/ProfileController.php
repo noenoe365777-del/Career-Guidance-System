@@ -4,22 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Profile\Presentation\Controllers;
 
-use App\Config\Database;
+
 use App\Modules\Profile\Application\Services\ProfileService;
-use App\Modules\Profile\Infrastructure\Repositories\ProfileRepository;
+use App\Shared\Core\View;
 
 class ProfileController
 {
     private ProfileService $profileService;
 
-    public function __construct()
-    {
-        $pdo = Database::getConnection();
-
-        $repository = new ProfileRepository($pdo);
-
-        $this->profileService = new ProfileService($repository);
-    }
+   public function __construct(ProfileService $profileService)
+{
+    $this->profileService = $profileService;
+}
 
     /**
      * Display profile page
@@ -31,13 +27,122 @@ class ProfileController
             exit;
         }
 
-        $userId = (int) $_SESSION['user']['user_id'];
+        $userId = (int) ($_SESSION['user']['user_id'] ?? 0);
+        $profile = $this->profileService->getProfile($userId) ?? [];
 
-        $profile = $this->profileService->getProfile($userId);
-
-        require BASE_PATH .
-            '/App/Modules/Profile/Presentation/Views/profile.php';
+        View::render(
+            'Profile/Presentation/Views/profile',
+            [
+                'pageTitle' => 'My Profile',
+                'profile' => $profile,
+            ]
+        );
     }
+
+    public function edit(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    $userId = (int) ($_SESSION['user']['user_id'] ?? 0);
+    $profile = $this->profileService->getProfile($userId) ?? [];
+
+    View::render(
+        'Profile/Presentation/Views/edit-profile',
+        [
+            'pageTitle' => 'Edit Profile',
+            'profile' => $profile,
+        ]
+    );
+}
+
+
+public function update(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: index.php?page=edit-profile');
+        exit;
+    }
+
+    $userId = (int) $_SESSION['user']['user_id'];
+
+    $result = $this->profileService->updateProfile(
+        $userId,
+        $_POST
+    );
+
+    if ($result['success']) {
+
+        $_SESSION['user']['username'] = $_POST['username'];
+
+        header('Location: index.php?page=profile');
+        exit;
+    }
+
+    $_SESSION['errors'] = $result['errors'];
+
+    header('Location: index.php?page=edit-profile');
+    exit;
+}
+
+public function changePassword(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    View::render(
+        'Profile/Presentation/Views/change-password',
+        [
+            'pageTitle' => 'Change Password',
+            'extraJs' => 'assets/js/change-password.js',
+        ]
+    );
+}
+
+public function updatePassword(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: index.php?page=change-password');
+        exit;
+    }
+
+    $userId = (int) $_SESSION['user']['user_id'];
+
+    $result = $this->profileService->updatePassword(
+        $userId,
+        $_POST
+    );
+
+    if ($result['success']) {
+
+        $_SESSION['success'] = "Password changed successfully.";
+
+        header('Location: index.php?page=profile');
+        exit;
+    }
+
+    $_SESSION['errors'] = $result['errors'];
+
+    header('Location: index.php?page=change-password');
+    exit;
+}
+
+
+
 
     public function updateProfileImage(): void
 {

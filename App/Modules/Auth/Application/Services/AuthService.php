@@ -7,6 +7,9 @@ namespace App\Modules\Auth\Application\Services;
 use App\Modules\Auth\Domain\Repositories\AuthRepositoryInterface;
 use App\Modules\Auth\Validation\RegisterValidator;
 use App\Modules\Auth\Validation\LoginValidator;
+use App\Modules\Auth\Validation\ForgotPasswordValidator;
+use App\Modules\Auth\Validation\ResetPasswordValidator;
+use App\Shared\Services\Mailer;
 
 class AuthService
 {
@@ -17,148 +20,282 @@ class AuthService
         $this->authRepository = $authRepository;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Register
-    |--------------------------------------------------------------------------
-    */
     public function register(array $data): array
     {
-    $validator = new RegisterValidator();
+        $validator = new RegisterValidator();
 
-    if (!$validator->validate($data)) {
+        if (!$validator->validate($data)) {
+            return [
+                'success' => false,
+                'errors' => $validator->errors()
+            ];
+        }
+
+        $username = trim((string)($data['username'] ?? ''));
+        $email = trim((string)($data['email'] ?? ''));
+
+        if ($this->authRepository->usernameExists($username)) {
+            return [
+                'success' => false,
+                'errors' => ['username' => 'Username already exists.']
+            ];
+        }
+
+        if ($this->authRepository->emailExists($email)) {
+            return [
+                'success' => false,
+                'errors' => ['email' => 'Email already exists.']
+            ];
+        }
+
+        $password = password_hash((string)($data['password'] ?? ''), PASSWORD_DEFAULT);
+
+        $userRoleId = 2;
+        $statusId = 3;
+        $genderId = (int)($data['gender'] ?? 0);
+        $educationLevelId = (int)($data['education'] ?? 0);
+
+        $userId = $this->authRepository->createUser(
+            $username,
+            $email,
+            $password,
+            null,
+            $userRoleId,
+            $statusId
+        );
+
+        if ($userId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Registration failed.'
+            ];
+        }
+
+        $profile = $this->authRepository->createStudentProfile(
+            $userId,
+            $genderId,
+            $educationLevelId,
+            null,
+            null,
+            $data['dob'] ?? null
+        );
+
+        if (!$profile) {
+            return [
+                'success' => false,
+                'message' => 'Student profile creation failed.'
+            ];
+        }
+
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = date('Y-m-d H:i:s', time() + 60 * 60);
+
+        if (!$this->authRepository->createVerification($userId, $code, $expiresAt)) {
+            return [
+                'success' => false,
+                'message' => 'Failed to create verification record.'
+            ];
+        }
+
+        $subject = 'Verify your email';
+        $message = "Your verification code: {$code}\nThis code expires in 1 hour.";
+        $sent = Mailer::send($email, $subject, $message);
+
+        if (!$sent) {
+            error_log('Verification email failed to send to: ' . $email);
+            return [
+                'success' => false,
+                'message' => 'Registration was saved, but the verification email could not be sent. Please try again later or contact support.'
+            ];
+        }
+
         return [
-            'success' => false,
-            'errors' => $validator->errors()
+            'success' => true,
+            'message' => 'Registration successful. A verification code has been sent to your email.',
+            'email' => $email,
+            'user_id' => $userId
         ];
     }
 
-    
-  
-if ($this->authRepository->usernameExists($data['username'])) {
-    return [
-        'success' => false,
-        'errors' => [
-            'username' => 'Username already exists.'
-        ]
-    ];
-}
+    public function login(array $data): array
+    {
+        $validator = new LoginValidator();
 
-if ($this->authRepository->emailExists($data['email'])) {
-    return [
-        'success' => false,
-        'errors' => [
-            'email' => 'Email already exists.'
-        ]
-    ];
-}
+        if (!$validator->validate($data)) {
+            return [
+                'success' => false,
+                'errors' => $validator->errors()
+            ];
+        }
 
+        $email = trim((string)($data['email'] ?? ''));
+        $password = (string)($data['password'] ?? '');
 
+        $user = $this->authRepository->findUserByEmail($email);
+        if (!$user) {
+            return [
+                'success' => false,
+                'errors' => ['password' => 'Invalid email or password.']
+            ];
+        }
 
-    $username = trim($data['username']);
-    $email = trim($data['email']);
-    $password = password_hash($data['password'], PASSWORD_DEFAULT);
+        if (!password_verify($password, (string)($user['password'] ?? ''))) {
+            return [
+                'success' => false,
+                'errors' => ['password' => 'Invalid email or password.']
+            ];
+        }
 
-    // IDs from master_data
-    $userRoleId = 2;          // Student
-    $statusId = 3;            // Active
-    $genderId = (int)$data['gender'];
-    $educationLevelId = (int)$data['education'];
+        $userId = (int)($user['user_id'] ?? $user['id'] ?? 0);
 
-    // Create user
-    $userId = $this->authRepository->createUser(
-        $username,
-        $email,
-        $password,
-        null,
-        $userRoleId,
-        $statusId
-    );
+        if (!$this->authRepository->isUserVerifiedById($userId)) {
+            return [
+                'success' => false,
+                'errors' => ['email' => 'Please verify your email before logging in.']
+            ];
+        }
 
-    if ($userId <= 0) {
         return [
-            'success' => false,
-            'message' => 'Registration failed.'
+            'success' => true,
+            'user' => $user
         ];
     }
 
-    // Create student profile
-    $profile = $this->authRepository->createStudentProfile(
-        $userId,
-        $genderId,
-        $educationLevelId,
-        null,
-        null,
-        $data['dob']
-    );
+    public function forgotPassword(array $data): array
+    {
+        $validator = new ForgotPasswordValidator();
 
-    if (!$profile) {
+        if (!$validator->validate($data)) {
+            return [
+                'success' => false,
+                'errors' => $validator->errors()
+            ];
+        }
+
+        $email = trim((string)($data['email'] ?? ''));
+        $user = $this->authRepository->findUserByEmail($email);
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'errors' => ['email' => 'Email not found.']
+            ];
+        }
+
+        $userId = (int)($user['user_id'] ?? $user['id'] ?? 0);
+        if ($userId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Email not found.'
+            ];
+        }
+
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = date('Y-m-d H:i:s', time() + (15 * 60));
+
+        if (!$this->authRepository->createPasswordResetRequest($userId, $code, $expiresAt)) {
+            return [
+                'success' => false,
+                'message' => 'Unable to prepare password reset request. Please try again.'
+            ];
+        }
+
+        $subject = 'Password Reset Code';
+        $message = "Your password reset code is: {$code}\nThis code expires in 15 minutes.";
+        $sent = Mailer::send($email, $subject, $message);
+
+        if (!$sent) {
+            return [
+                'success' => false,
+                'message' => 'Unable to send email. Please try again.'
+            ];
+        }
+
         return [
-            'success' => false,
-            'message' => 'Student profile creation failed.'
+            'success' => true,
+            'message' => 'Verification code sent to your email.',
+            'email' => $email,
+            'user_id' => $userId
         ];
     }
 
-    return [
-        'success' => true,
-        'message' => 'Registration successful.'
-    ];
-}
-    /*
-    |--------------------------------------------------------------------------
-    | Login
-    |--------------------------------------------------------------------------
-    */
+    public function verifyPasswordResetCode(string $email, string $code): array
+    {
+        $email = trim($email);
+        $code = trim($code);
 
-   public function login(array $data): array
-{
-   $validator = new LoginValidator();
+        if ($email === '' || $code === '') {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired code.'
+            ];
+        }
 
-if (!$validator->validate($data)) {
+        $user = $this->authRepository->findUserByEmail($email);
 
-    return [
-        'success' => false,
-        'errors' => $validator->errors()
-    ];
-}
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired code.'
+            ];
+        }
 
-    $email = trim($data['email']);
-    $password = $data['password'];
+        $resetRequest = $this->authRepository->findPasswordResetRequestByEmailAndCode($email, $code);
 
-    $user = $this->authRepository->findUserByEmail($email);
+        if (!$resetRequest) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired code.'
+            ];
+        }
 
-    if (!$user) {
+        $userId = (int)($user['user_id'] ?? $user['id'] ?? 0);
+
         return [
-            'success' => false,
-            'message' => 'Invalid email or password.'
+            'success' => true,
+            'message' => 'Code verified.',
+            'user_id' => $userId
         ];
     }
 
-    if (!password_verify($password, $user['password'])) {
+    public function resetPassword(int $userId, array $data): array
+    {
+        if ($userId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Unable to reset password. Please try again.'
+            ];
+        }
+
+        $validator = new ResetPasswordValidator();
+
+        if (!$validator->validate($data)) {
+            return [
+                'success' => false,
+                'errors' => $validator->errors()
+            ];
+        }
+
+        $password = $data['password'] ?? '';
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+        if (!$this->authRepository->updatePassword($userId, $passwordHash)) {
+            return [
+                'success' => false,
+                'message' => 'Unable to update password. Please try again.'
+            ];
+        }
+
+        $this->authRepository->deletePasswordResetRequestsForUser($userId);
+
         return [
-            'success' => false,
-            'message' => 'Invalid email or password.'
+            'success' => true,
+            'message' => 'Password reset successfully.'
         ];
     }
 
-    return [
-        'success' => true,
-        'user' => $user
-    ];
-}
-    /*
-    |--------------------------------------------------------------------------
-    | Google Login
-    |--------------------------------------------------------------------------
-    */
-
-    public function loginWithGoogle(
-        string $googleId,
-        string $fullName,
-        string $email
-    ): array {
-
-        // Find by Google ID
+    public function loginWithGoogle(string $googleId, string $fullName, string $email): array
+    {
         $user = $this->authRepository->findUserByGoogleId($googleId);
 
         if ($user) {
@@ -169,16 +306,9 @@ if (!$validator->validate($data)) {
             ];
         }
 
-        // Find by email
         $existingUser = $this->authRepository->findUserByEmail($email);
 
         if ($existingUser) {
-
-            /*
-             * Optional:
-             * Update google_id here if your repository supports it.
-             */
-
             return [
                 'success' => true,
                 'message' => 'Google login successful.',
@@ -186,12 +316,7 @@ if (!$validator->validate($data)) {
             ];
         }
 
-        // Create new Google account
-        $created = $this->authRepository->createGoogleUser(
-            $fullName,
-            $email,
-            $googleId
-        );
+        $created = $this->authRepository->createGoogleUser($fullName, $email, $googleId);
 
         if (!$created) {
             return [
@@ -213,6 +338,69 @@ if (!$validator->validate($data)) {
             'success' => true,
             'message' => 'Google login successful.',
             'user' => $newUser
+        ];
+    }
+
+    public function verifyEmail(string $email, string $code, int $userId = 0): array
+    {
+        $ok = $this->authRepository->verifyCode($email, $code, $userId);
+        echo $ok;
+
+        if (!$ok) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired verification code.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Email verified successfully.'
+        ];
+    }
+
+    public function resendVerification(string $email, int $userId = 0): array
+    {
+        $user = null;
+        if ($userId > 0) {
+            $user = $this->authRepository->findUserByEmail($email);
+        } else {
+            $user = $this->authRepository->findUserByEmail($email);
+        }
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'Email not found.'
+            ];
+        }
+
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = date('Y-m-d H:i:s', time() + 60 * 60);
+        $targetUserId = $userId > 0 ? $userId : (int)($user['user_id'] ?? $user['id'] ?? 0);
+
+        if (!$this->authRepository->createVerification($targetUserId, $code, $expiresAt)) {
+            return [
+                'success' => false,
+                'message' => 'Failed to create verification record.'
+            ];
+        }
+
+        $subject = 'Your verification code';
+        $message = "Your verification code: {$code}\nThis code expires in 1 hour.";
+        $sent = Mailer::send($email, $subject, $message);
+
+        if (!$sent) {
+            error_log('Resend verification email failed to send to: ' . $email);
+            return [
+                'success' => false,
+                'message' => 'Could not resend verification email. Please try again later.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'A new verification code has been sent.'
         ];
     }
 }

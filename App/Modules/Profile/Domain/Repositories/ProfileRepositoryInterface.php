@@ -16,13 +16,17 @@ interface ProfileRepositoryInterface
      */
     public function updateProfile(
         int $userId,
-        ?string $phone,
-        ?string $address,
-        ?string $dateOfBirth,
-        ?int $genderId,
-        ?int $educationLevelId,
-        ?string $profileImage
+        array $data
     ): bool;
+       
+public function updatePassword(
+    int $userId,
+    string $currentPassword,
+    string $newPassword
+): array;
+
 
     public function updateProfileImage(int $userId, string $imageName): bool;
+
+    
 }
