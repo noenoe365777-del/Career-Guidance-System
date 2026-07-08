@@ -30,9 +30,12 @@ class UserModel
             $params[':search'] = '%' . strtolower($search) . '%';
         }
 
-        $sql = "SELECT u.user_id, u.username, u.email, u.user_role_id, u.status_id, u.created_at, sp.education_level_id, r.role_name
+        $sql = "SELECT u.user_id, u.username, u.email, u.user_role_id, u.status_id, u.created_at, sp.education_level_id,
+                CASE
+                    WHEN u.user_role_id = 1 THEN 'Admin'
+                    ELSE 'Student'
+                END AS role_name
                 FROM users u
-                LEFT JOIN roles r ON r.role_id = u.user_role_id
                 LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
                 {$where}
                 ORDER BY u.user_id DESC
@@ -72,9 +75,12 @@ class UserModel
     public function getUserById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT u.user_id, u.username, u.email, u.user_role_id, u.status_id, u.created_at, sp.education_level_id, sp.phone, sp.address, sp.date_of_birth, r.role_name
+            'SELECT u.user_id, u.username, u.email, u.user_role_id, u.status_id, u.created_at, sp.education_level_id, sp.phone, sp.address, sp.date_of_birth,
+             CASE
+                 WHEN u.user_role_id = 1 THEN "Admin"
+                 ELSE "Student"
+             END AS role_name
              FROM users u
-             LEFT JOIN roles r ON r.role_id = u.user_role_id
              LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
              WHERE u.user_id = :id
              LIMIT 1'

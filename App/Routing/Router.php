@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Routing;
 
+use App\Modules\Student\Support\StudentFeaturePermissionHelper;
 use App\Shared\Core\Container;
 
 class Router
@@ -46,6 +47,10 @@ class Router
         if (in_array($page, $this->protectedRoutes, true) && empty($_SESSION['user_id'])) {
             header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
+        }
+
+        if (StudentFeaturePermissionHelper::isStudentFeatureRestricted($page)) {
+            StudentFeaturePermissionHelper::ensureStudentPageAccess($page);
         }
 
         [$controllerClass, $method] = $this->routes[$page];

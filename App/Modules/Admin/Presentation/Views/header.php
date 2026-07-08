@@ -2,42 +2,72 @@
 $admin = $admin ?? ($_SESSION['admin'] ?? []);
 $adminName = trim((string)($admin['full_name'] ?? $admin['username'] ?? 'Admin'));
 $adminInitial = strtoupper(substr($adminName ?: 'A', 0, 1));
+$headerTitle = $headerTitle ?? ($pageTitle ?? 'Dashboard');
 ?>
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm border-bottom fixed-top">
-    <div class="container-fluid px-3 px-lg-4">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="<?= BASE_URL ?>/index.php?page=admin-dashboard">
-            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white" style="width: 42px; height: 42px;">
-                <i class="bi bi-mortarboard-fill"></i>
-            </span>
-            <span class="d-none d-sm-inline">Career Guidance Admin</span>
-        </a>
 
-        <div class="d-flex align-items-center gap-2 ms-auto">
-            <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebarMobile" aria-controls="adminSidebarMobile">
-                <i class="bi bi-list"></i>
+<nav class="bg-white border-b border-slate-100 w-full z-30 shrink-0">
+    <div class="px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        <div class="flex items-center gap-3">
+            <button class="md:hidden inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-slate-50 border-0 bg-transparent transition-colors duration-200 outline-none" 
+                    type="button" 
+                    data-bs-toggle="offcanvas" 
+                    data-bs-target="#adminSidebarMobile" 
+                    aria-controls="adminSidebarMobile">
+                <i class="bi bi-list text-xl"></i>
+            </button>
+            
+            <h1 class="text-base font-bold text-slate-800 tracking-tight m-0 hidden md:block"><?= htmlspecialchars($headerTitle) ?></h1>
+        </div>
+
+        <div class="flex items-center gap-4">
+            
+            <button class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200 border-0 bg-transparent outline-none group" 
+                    type="button" 
+                    aria-label="Notifications">
+                <i class="bi bi-bell text-xl transition-transform duration-200 group-hover:scale-102"></i>
+                <span class="absolute top-2 right-2 flex h-2 w-2 items-center justify-center rounded-full bg-blue-500 ring-2 ring-white"></span>
             </button>
 
-            <button class="btn btn-light position-relative border-0" type="button" aria-label="Notifications">
-                <i class="bi bi-bell fs-5"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
-            </button>
-
-            <div class="dropdown">
-                <button class="btn d-flex align-items-center gap-2 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-semibold" style="width: 38px; height: 38px;">
-                        <?= htmlspecialchars($adminInitial) ?>
-                    </span>
-                    <span class="d-none d-lg-block text-start">
-                        <span class="d-block fw-semibold text-dark"><?= htmlspecialchars($adminName ?: 'Admin') ?></span>
-                        <small class="text-muted">Administrator</small>
-                    </span>
+            <div class="relative dropdown">
+                <button class="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50/80 transition-all duration-200 border-0 bg-transparent text-left outline-none" 
+                        type="button" 
+                        id="userProfileDropdown" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false">
+                    
+                    <div class="flex items-center justify-center rounded-full bg-blue-50 text-blue-600 font-semibold shrink-0 w-8 h-8">
+                        <i class="bi bi-person text-base"></i>
+                    </div>
+                    
+                    <div class="flex items-center gap-1 select-none">
+                        <span class="text-xs font-semibold text-slate-700 max-w-[120px] truncate">
+                            <?= htmlspecialchars($adminName ?: 'Admin') ?>
+                        </span>
+                        <i class="bi bi-chevron-down text-[9px] text-slate-400 transition-transform duration-200"></i>
+                    </div>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                    <li><a class="dropdown-item" href="#profile"><i class="bi bi-person-circle me-2"></i>Profile</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="<?= BASE_URL ?>/index.php?page=admin-logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+
+                <ul class="dropdown-menu dropdown-menu-end absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl p-1.5 space-y-0.5 list-none m-0" 
+                    aria-labelledby="userProfileDropdown">
+                    <li>
+                        <a class="dropdown-item flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors duration-150 no-underline" 
+                           href="#profile">
+                            <i class="bi bi-person text-sm text-slate-400"></i>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="border-t border-slate-50 my-1"></li>
+                    <li>
+                        <a class="dropdown-item flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50/50 transition-colors duration-150 no-underline" 
+                           href="<?= BASE_URL ?>/index.php?page=admin-logout">
+                            <i class="bi bi-box-arrow-right text-sm opacity-80"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
+
         </div>
     </div>
 </nav>

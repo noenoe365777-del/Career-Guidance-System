@@ -7,6 +7,7 @@ use App\Modules\Admin\Presentation\Controllers\AdminController;
 use App\Modules\Admin\Presentation\Controllers\RoleController;
 use App\Modules\Admin\Presentation\Controllers\PermissionController;
 use App\Modules\Admin\Presentation\Controllers\RolePermissionController;
+use App\Modules\Admin\Presentation\Controllers\StudentFeaturePermissionController;
 use App\Modules\Admin\Presentation\Controllers\UserController;
 use App\Modules\Profile\Presentation\Controllers\ProfileController;
 use App\Modules\Assessment\Presentation\Controllers\AssessmentController;
@@ -26,6 +27,11 @@ return [
     'admin-users-update' => [UserController::class, 'update'],
     'admin-users-view' => [UserController::class, 'show'],
     'admin-users-delete' => [UserController::class, 'delete'],
+    'admin-settings-student-permissions' => [StudentFeaturePermissionController::class, 'index'],
+    'admin-settings-student-permissions-manage' => [StudentFeaturePermissionController::class, 'manage'],
+    'admin-settings-student-permissions-save' => [StudentFeaturePermissionController::class, 'save'],
+    'student-feature-permissions' => [StudentFeaturePermissionController::class, 'index'],
+    'student-feature-permissions-save' => [StudentFeaturePermissionController::class, 'save'],
     'admin-roles' => [RoleController::class, 'index'],
     'admin-roles-create' => [RoleController::class, 'create'],
     'admin-roles-store' => [RoleController::class, 'store'],

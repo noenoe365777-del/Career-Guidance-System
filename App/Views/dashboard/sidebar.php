@@ -26,16 +26,23 @@
         <?php 
         $currentPage = $currentPage ?? ($_GET['page'] ?? 'dashboard');
         $activePage = $currentPage === 'change-password' ? 'settings' : $currentPage;
+        $currentStudentUserId = \App\Modules\Student\Support\StudentFeaturePermissionHelper::currentStudentUserId();
 
         $navItems = [
-            ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
-            ['id' => 'assessments', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
-            ['id' => 'recommendation', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
-            ['id' => 'profile', 'label' => 'Profile', 'icon' => 'fa-user-circle'],
-            ['id' => 'settings', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
+            ['id' => 'dashboard', 'feature_key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
+            ['id' => 'assessments', 'feature_key' => 'assessments', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
+            ['id' => 'recommendation', 'feature_key' => 'career_maps', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
+            ['id' => 'profile', 'feature_key' => 'profile', 'label' => 'Profile', 'icon' => 'fa-user-circle'],
+            ['id' => 'settings', 'feature_key' => 'settings', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
         ];
 
         foreach($navItems as $item): 
+            $featureKey = (string)($item['feature_key'] ?? '');
+            $shouldShow = $featureKey === '' || \App\Modules\Student\Support\StudentFeaturePermissionHelper::canStudentAccessFeature($currentStudentUserId, $featureKey);
+            if (!$shouldShow) {
+                continue;
+            }
+
             $isActive = ($activePage === $item['id']);
             $href = $item['id'] === 'settings' ? BASE_URL . '/index.php?page=change-password' : BASE_URL . '/index.php?page=' . $item['id'];
         ?>

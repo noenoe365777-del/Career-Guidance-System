@@ -16,14 +16,22 @@ $permission = $permission ?? [];
         .card-soft { border: 0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
     </style>
 </head>
-<body>
-    <?php include __DIR__ . '/../header.php'; ?>
-
-    <div class="d-flex">
-        <?php include __DIR__ . '/../sidebar.php'; ?>
-
-        <main class="admin-content flex-grow-1 p-3 p-lg-4">
-            <div class="container-fluid">
+<body class="h-full text-slate-700 antialiased font-sans m-0 p-0">
+    <?php
+    $sidebarPath = file_exists(__DIR__ . '/sidebar.php') ? __DIR__ . '/sidebar.php' : __DIR__ . '/../sidebar.php';
+    $headerPath = file_exists(__DIR__ . '/header.php') ? __DIR__ . '/header.php' : __DIR__ . '/../header.php';
+    ?>
+    <!-- admin-shell-wrapper -->
+    <div class="flex h-screen overflow-hidden">
+        <div class="hidden md:flex md:shrink-0 h-full">
+            <?php include $sidebarPath; ?>
+        </div>
+        <div class="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+            <?php include $headerPath; ?>
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f4f7fc]">
+                <div class="max-w-[1400px] mx-auto space-y-6">
+                    <main class="admin-content flex-grow-1 p-3 p-lg-4">
+                        <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="fw-bold mb-1">Permission Details</h2>
@@ -55,8 +63,12 @@ $permission = $permission ?? [];
                     </div>
                 </div>
             </div>
-        </main>
+                    </main>
+                </div>
+            </div>
+        </div>
     </div>
+    <!-- /admin-shell-wrapper -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -29,4 +29,9 @@ class AdminDashboardService
     {
         return $this->adminDashboardRepository->getRecentSubmissions($limit);
     }
+
+    public function getNotifications(int $limit = 4): array
+    {
+        return $this->adminDashboardRepository->getNotifications($limit);
+    }
 }

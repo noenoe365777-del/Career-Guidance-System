@@ -1,0 +1,88 @@
+<?php
+$user = $user ?? [];
+$features = $features ?? [];
+$permissions = $permissions ?? [];
+?>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($pageTitle ?? 'Manage Student Permissions') ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f5f7fb; padding-top: 72px; }
+        .admin-sidebar { width: 260px; min-height: calc(100vh - 72px); background: #fff; border-right: 1px solid #e7ebf3; position: sticky; top: 72px; }
+        .admin-content { min-height: calc(100vh - 72px); }
+        .card-soft { border: 0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
+    </style>
+</head>
+<body class="h-full text-slate-700 antialiased font-sans m-0 p-0">
+    <?php
+    $sidebarPath = file_exists(__DIR__ . '/sidebar.php') ? __DIR__ . '/sidebar.php' : __DIR__ . '/../sidebar.php';
+    $headerPath = file_exists(__DIR__ . '/header.php') ? __DIR__ . '/header.php' : __DIR__ . '/../header.php';
+    ?>
+    <!-- admin-shell-wrapper -->
+    <div class="flex h-screen overflow-hidden">
+        <div class="hidden md:flex md:shrink-0 h-full">
+            <?php include $sidebarPath; ?>
+        </div>
+        <div class="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+            <?php include $headerPath; ?>
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f4f7fc]">
+                <div class="max-w-[1400px] mx-auto space-y-6">
+                    <main class="admin-content flex-grow-1 p-3 p-lg-4">
+                        <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-1">Manage Student Permissions</h2>
+                        <p class="text-muted mb-0">Control the student portal features available to <?= htmlspecialchars((string)($user['username'] ?? 'this student')) ?>.</p>
+                    </div>
+                    <a href="<?= BASE_URL ?>/index.php?page=admin-settings-student-permissions" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+
+                <div class="card card-soft">
+                    <div class="card-body p-4">
+                        <div class="alert alert-info mb-4">
+                            Enable or disable the student portal modules for this account. Disabled features will be hidden from the student sidebar and blocked from direct access.
+                        </div>
+
+                        <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-settings-student-permissions-save">
+                            <input type="hidden" name="user_id" value="<?= (int)($user['user_id'] ?? 0) ?>">
+
+                            <div class="list-group">
+                                <?php foreach ($features as $feature):
+                                    $featureKey = (string)($feature['key'] ?? '');
+                                    $isEnabled = !empty($permissions[$featureKey]) || !array_key_exists($featureKey, $permissions);
+                                ?>
+                                    <label class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <span class="fw-semibold d-block"><?= htmlspecialchars((string)($feature['label'] ?? $featureKey)) ?></span>
+                                            <small class="text-muted">Route: <?= htmlspecialchars((string)($feature['route'] ?? '')) ?></small>
+                                        </span>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="features[<?= htmlspecialchars($featureKey) ?>]" value="1" <?= $isEnabled ? 'checked' : '' ?>>
+                                        </div>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="mt-4 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save Permissions</button>
+                                <a href="<?= BASE_URL ?>/index.php?page=admin-settings-student-permissions" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /admin-shell-wrapper -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
