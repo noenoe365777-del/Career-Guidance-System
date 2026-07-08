@@ -24,13 +24,21 @@ class View
 
         $content = ob_get_clean();
 
+        $layout = $data['layout'] ?? null;
+        $useDashboardLayout = str_starts_with($view, 'Dashboard/') || $layout === 'dashboard';
+
+        if ($layout === 'none' || $layout === false) {
+            echo $content;
+            return;
+        }
+
 /*
 |--------------------------------------------------------------------------
 | Dashboard pages
 |--------------------------------------------------------------------------
 */
 
-if (str_starts_with($view, 'Dashboard/')) {
+if ($useDashboardLayout) {
 
     require BASE_PATH . '/App/Views/layouts/dashboard.php';
 

@@ -106,6 +106,8 @@ $navItems = [
 
         <!-- Right Action Interface -->
         <div class="flex items-center gap-3">
+            <!-- Admin Login link removed from public header (admin portal will be on separate subdomain) -->
+
             <?php if($user): ?>
                 <!-- Authed Profile Container Wrapper -->
                 <div class="relative hidden lg:block" id="userDropdownWrapper">
@@ -142,7 +144,7 @@ $navItems = [
                     </div>
                 </div>
             <?php else: ?>
-                <!-- Guest View Actions -->
+                <!-- Guest View Actions (Admin access intentionally omitted from public header) -->
                 <a href="<?= BASE_URL ?>/index.php?page=login" class="hidden lg:inline-flex items-center text-slate-600 px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors">
                     Log In
                 </a>
@@ -199,13 +201,16 @@ $navItems = [
             <span>Log Out</span>
         </a>
     <?php else: ?>
-        <div class="grid grid-cols-2 gap-3 pt-2">
-            <a href="<?= BASE_URL ?>/index.php?page=login" class="w-full text-center border border-slate-200 text-slate-700 font-semibold rounded-xl py-3 text-sm hover:bg-slate-50 transition-all">
-                Log In
-            </a>
-            <a href="<?= BASE_URL ?>/index.php?page=register" class="w-full text-center bg-gradient-to-r from-brand-start to-brand-mid text-white font-semibold rounded-xl py-3 text-sm shadow-md transition-all">
-                Register
-            </a>
+        <div class="space-y-2 pt-2">
+            <!-- Admin Login intentionally omitted from public mobile menu (admin portal is separate) -->
+            <div class="grid grid-cols-2 gap-3">
+                <a href="<?= BASE_URL ?>/index.php?page=login" class="w-full text-center border border-slate-200 text-slate-700 font-semibold rounded-xl py-3 text-sm hover:bg-slate-50 transition-all">
+                    Log In
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=register" class="w-full text-center bg-gradient-to-r from-brand-start to-brand-mid text-white font-semibold rounded-xl py-3 text-sm shadow-md transition-all">
+                    Register
+                </a>
+            </div>
         </div>
     <?php endif; ?>
 </div>

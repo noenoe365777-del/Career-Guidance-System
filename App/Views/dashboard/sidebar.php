@@ -24,20 +24,22 @@
     <!-- Central Navigation Links -->
     <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
         <?php 
-        $currentPage = $_GET['page'] ?? 'dashboard'; 
-        
-        // Navigation Mapping Matrix
+        $currentPage = $currentPage ?? ($_GET['page'] ?? 'dashboard');
+        $activePage = $currentPage === 'change-password' ? 'settings' : $currentPage;
+
         $navItems = [
             ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
             ['id' => 'assessments', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
             ['id' => 'recommendation', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
-            ['id' => 'faq', 'label' => 'Guide Matrix', 'icon' => 'fa-question-circle']
+            ['id' => 'profile', 'label' => 'Profile', 'icon' => 'fa-user-circle'],
+            ['id' => 'settings', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
         ];
 
         foreach($navItems as $item): 
-            $isActive = ($currentPage === $item['id']);
+            $isActive = ($activePage === $item['id']);
+            $href = $item['id'] === 'settings' ? BASE_URL . '/index.php?page=change-password' : BASE_URL . '/index.php?page=' . $item['id'];
         ?>
-            <a href="<?= BASE_URL ?>/index.php?page=<?= $item['id'] ?>" 
+            <a href="<?= $href ?>" 
                class="flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group <?= $isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/15' : 'hover:bg-slate-800/60 hover:text-slate-200' ?>">
                 <i class="fas <?= $item['icon'] ?> text-base transition-transform group-hover:scale-105 <?= $isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300' ?>"></i>
                 <?= $item['label'] ?>

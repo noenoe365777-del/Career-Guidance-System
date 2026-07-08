@@ -2,10 +2,11 @@
 
 namespace App\Modules\Recommendation\Presentation\Controllers;
 
+use App\Shared\Core\Controller;
 use App\Shared\Core\View;
 use App\Modules\Recommendation\Application\Services\RecommendationService;
 
-class RecommendationController
+class RecommendationController extends Controller
 {
     public function index(): void
     {
@@ -22,6 +23,7 @@ class RecommendationController
         View::render('Recommendation/Presentation/Views/recommendations', [
             'pageTitle' => 'Career Recommendation',
             'recommendation' => $recommendation,
+            'layout' => 'dashboard',
         ]);
     }
 }

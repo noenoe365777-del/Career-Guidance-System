@@ -35,6 +35,7 @@ class ProfileController
             [
                 'pageTitle' => 'My Profile',
                 'profile' => $profile,
+                'layout' => 'dashboard',
             ]
         );
     }
@@ -54,6 +55,7 @@ class ProfileController
         [
             'pageTitle' => 'Edit Profile',
             'profile' => $profile,
+            'layout' => 'dashboard',
         ]
     );
 }
@@ -104,6 +106,7 @@ public function changePassword(): void
         [
             'pageTitle' => 'Change Password',
             'extraJs' => 'assets/js/change-password.js',
+            'layout' => 'dashboard',
         ]
     );
 }

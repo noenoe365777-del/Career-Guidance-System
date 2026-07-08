@@ -1,12 +1,25 @@
 <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200">
 
+    <?php
+    $currentPage = $currentPage ?? ($_GET['page'] ?? 'dashboard');
+    $pageTitles = [
+        'dashboard' => 'Dashboard',
+        'assessments' => 'Assessments',
+        'recommendation' => 'Career Maps',
+        'profile' => 'Profile',
+        'change-password' => 'Settings',
+        'edit-profile' => 'Edit Profile'
+    ];
+    $currentPageLabel = $pageTitles[$currentPage] ?? ($pageTitle ?? 'Dashboard');
+    ?>
+
     <div class="flex items-center justify-between h-24 px-8">
 
         <!-- Left -->
         <div>
 
             <h1 class="text-3xl font-bold text-gray-900">
-                Dashboard
+                <?= htmlspecialchars($currentPageLabel) ?>
             </h1>
 
         </div>

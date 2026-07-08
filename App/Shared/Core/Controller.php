@@ -4,11 +4,34 @@ declare(strict_types=1);
 
 namespace App\Shared\Core;
 
+use App\Modules\Admin\Support\AuthorizationHelper;
+
 abstract class Controller
 {
     protected function view(string $view, array $data = []): void
     {
         View::render($view, $data);
+    }
+
+    protected function hasPermission(string $permissionName): bool
+    {
+        return AuthorizationHelper::hasPermission($permissionName);
+    }
+
+    protected function requirePermission(string $permissionName): void
+    {
+        if ($this->hasPermission($permissionName)) {
+            return;
+        }
+
+        $this->view(
+            'Admin/Presentation/Views/403',
+            [
+                'layout' => 'none',
+                'pageTitle' => 'Access Denied',
+            ]
+        );
+        exit;
     }
 
     protected function getAuthenticatedUser(): ?array

@@ -146,6 +146,17 @@ class AuthService
             ];
         }
 
+        // Prevent admins from logging in via the student login page
+        $userRoleId = (int)($user['user_role_id'] ?? $user['role_id'] ?? 0);
+        $roleName = strtolower((string)($user['role'] ?? $user['role_name'] ?? ''));
+
+        if ($userRoleId === 1 || $roleName === 'admin') {
+            return [
+                'success' => false,
+                'errors' => ['general' => 'Please use the Admin Login page.']
+            ];
+        }
+
         $userId = (int)($user['user_id'] ?? $user['id'] ?? 0);
 
         if (!$this->authRepository->isUserVerifiedById($userId)) {

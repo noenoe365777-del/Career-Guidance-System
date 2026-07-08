@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Shared\Core;
 
 use App\Modules\Auth\Presentation\Controllers\AuthController;
+use App\Modules\Admin\Presentation\Controllers\AdminController;
+use App\Modules\Admin\Infrastructure\AdminModel;
 use App\Shared\Providers\AuthServiceProvider;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 use App\Modules\Profile\Presentation\Controllers\ProfileController;
@@ -24,6 +26,10 @@ class Container
             return new ProfileController(
                 ProfileServiceProvider::make()
             );
+        }
+
+        if ($class === AdminController::class) {
+            return new AdminController(new AdminModel());
         }
 
         if ($class === DashboardController::class) {

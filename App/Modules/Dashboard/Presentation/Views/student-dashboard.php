@@ -28,19 +28,7 @@ $studentId = $user['id'] ?? $_SESSION['user']['id'] ?? 'STU-9482';
 }
 </style>
 
-<div class="flex bg-slate-50/60 min-h-screen text-slate-800 antialiased font-sans overflow-x-hidden">
-
-    <!-- 1. Sidebar Navigation Module -->
-    <?php include 'sidebar.php'; ?>
-
-    <!-- Main Content Presentation Wrapper Shell View Layout -->
-    <div class="flex-1 lg:ml-72 flex flex-col min-w-0 transition-all duration-300">
-
-        <!-- 2. Dynamic Topbar Platform Utility Module -->
-        <?php include 'topbar.php'; ?>
-
-        <!-- Content Area View Container Window -->
-        <main class="px-4 sm:px-8 lg:px-10 py-8 space-y-8 flex-1 max-w-[1600px] w-full mx-auto">
+<div class="px-4 sm:px-8 lg:px-10 py-8 space-y-8 flex-1 max-w-[1600px] w-full mx-auto">
 
             <!-- ===================================== -->
             <!-- Section Component: Welcome Header Banner -->

@@ -29,6 +29,7 @@ class AssessmentController extends Controller
                 'pageTitle' => 'My Assessments',
                 'assessments' => $assessments,
                 'user' => $user,
+                'layout' => 'dashboard',
             ]
         );
     }
@@ -65,6 +66,7 @@ class AssessmentController extends Controller
                 'progress' => $this->assessmentService->getProgress($userId),
                 'guestProgress' => $this->assessmentService->getGuestProgress(),
                 'user' => $user,
+                'layout' => 'dashboard',
             ]
         );
     }
@@ -100,6 +102,7 @@ class AssessmentController extends Controller
                 'accentClass' => $accentClass,
                 'buttonClass' => $buttonClass,
                 'user' => $user,
+                'layout' => 'dashboard',
             ]
         );
     }
