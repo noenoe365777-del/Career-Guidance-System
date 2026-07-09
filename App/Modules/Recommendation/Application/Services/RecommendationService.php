@@ -4,239 +4,189 @@ declare(strict_types=1);
 
 namespace App\Modules\Recommendation\Application\Services;
 
-use App\Config\Database;
-use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
-use App\Modules\Profile\Infrastructure\Repositories\ProfileRepository;
-use App\Modules\Recommendation\Infrastructure\Persistence\RecommendationRepository;
 use App\Modules\Recommendation\Domain\Entities\CareerRecommendation;
+use App\Modules\Recommendation\Infrastructure\Persistence\RecommendationRepository;
 
 class RecommendationService
 {
-    private StudentAssessmentRepository $studentAssessmentRepo;
-    private ProfileRepository $profileRepo;
     private RecommendationRepository $recommendationRepo;
-
-    /**
-     * Static career catalog used for matching. In a production app this would live in the DB.
-     */
-    private array $careers = [];
 
     public function __construct()
     {
-        $this->studentAssessmentRepo = new StudentAssessmentRepository();
-        $this->profileRepo = new ProfileRepository(Database::getConnection());
         $this->recommendationRepo = new RecommendationRepository();
-
-        $this->initCareers();
     }
 
-    private function initCareers(): void
+    public function generateForUser(int $userId): array
     {
-        $this->careers = [
-            [
-                'id' => 'career_software_dev',
-                'name' => 'Software Developer',
-                'description' => 'Designs, develops and maintains software applications.',
-                'skill_vector' => [
-                    'personality' => 0.7,
-                    'interest' => 0.8,
-                    'aptitude' => 0.9,
-                    'values' => 0.6,
-                ],
-                'required_min_education' => 'Bachelors',
-                'recommended_majors' => ['Computer Science', 'Software Engineering'],
-                'resources' => ['https://www.freecodecamp.org', 'https://www.coursera.org'],
-            ],
-            [
-                'id' => 'career_data_scientist',
-                'name' => 'Data Scientist',
-                'description' => 'Analyzes data to derive insights and build models.',
-                'skill_vector' => [
-                    'personality' => 0.6,
-                    'interest' => 0.7,
-                    'aptitude' => 0.95,
-                    'values' => 0.5,
-                ],
-                'required_min_education' => 'Bachelors',
-                'recommended_majors' => ['Data Science', 'Statistics', 'Computer Science'],
-                'resources' => ['https://www.kaggle.com', 'https://www.coursera.org'],
-            ],
-            [
-                'id' => 'career_graphic_designer',
-                'name' => 'Graphic Designer',
-                'description' => 'Creates visual concepts to communicate ideas.',
-                'skill_vector' => [
-                    'personality' => 0.6,
-                    'interest' => 0.9,
-                    'aptitude' => 0.6,
-                    'values' => 0.7,
-                ],
-                'required_min_education' => 'Diploma',
-                'recommended_majors' => ['Graphic Design', 'Visual Arts'],
-                'resources' => ['https://www.behance.net', 'https://www.udemy.com'],
-            ],
-            [
-                'id' => 'career_teacher',
-                'name' => 'Teacher',
-                'description' => 'Educates students and facilitates learning.',
-                'skill_vector' => [
-                    'personality' => 0.8,
-                    'interest' => 0.7,
-                    'aptitude' => 0.5,
-                    'values' => 0.9,
-                ],
-                'required_min_education' => 'Bachelors',
-                'recommended_majors' => ['Education', 'Subject Specialization'],
-                'resources' => ['https://www.edx.org', 'https://www.coursera.org'],
-            ],
-        ];
-    }
-
-    public function generateForUser(int $userId): ?CareerRecommendation
-    {
-        // Get progress/scores
-        $progress = $this->studentAssessmentRepo->getProgressSummary($userId);
-
-        // Build user skill vector (normalize scores)
-        $maxScores = [
-            'personality' => 100,
-            'interest' => 100,
-            'aptitude' => 100,
-            'values' => 100,
-        ];
-
-        $userVector = [];
-        foreach ($maxScores as $key => $max) {
-            $score = isset($progress[$key]['score']) ? (float)$progress[$key]['score'] : 0.0;
-            $userVector[$key] = $max > 0 ? min(1.0, $score / $max) : 0.0;
+        $scores = $this->recommendationRepo->getStudentScores($userId);
+        if (!$scores) {
+            return [];
         }
 
-        // Fetch profile for education level
-        $profile = $this->profileRepo->findByUserId($userId);
-        $educationLabel = $profile['education_level'] ?? '';
-        $educationLevel = $this->educationLevelToInt($educationLabel);
+        $educationLevel = $this->recommendationRepo->getEducationLevel($userId);
+        $careers = $this->recommendationRepo->getAllCareers();
 
-        // Evaluate careers
+        if (empty($careers)) {
+            return [];
+        }
+
         $results = [];
-        foreach ($this->careers as $career) {
-            $careerVector = $career['skill_vector'];
-            $similarity = $this->cosineSimilarity($userVector, $careerVector);
-            $educationMultiplier = $this->educationMultiplier($educationLevel, $career['required_min_education']);
-            $finalScore = $similarity * $educationMultiplier;
+        foreach ($careers as $career) {
+            $typeScore = $this->calculateTypeMatch($scores, $career);
+            $scoreBonus = $this->calculateScoreBonus($scores);
+            $educationScore = $this->calculateEducationMatch($educationLevel, $career['education_required']);
+            $total = $typeScore + $scoreBonus + $educationScore;
 
             $results[] = [
                 'career' => $career,
-                'base_similarity' => $similarity,
-                'education_multiplier' => $educationMultiplier,
-                'final_score' => $finalScore,
+                'type_score' => $typeScore,
+                'score_bonus' => $scoreBonus,
+                'education_score' => $educationScore,
+                'total_score' => round($total, 2),
             ];
         }
 
-        usort($results, function ($a, $b) {
-            return $b['final_score'] <=> $a['final_score'];
-        });
+        usort($results, fn(array $a, array $b): int => $b['total_score'] <=> $a['total_score']);
 
-        $top = $results[0] ?? null;
+        $top5 = array_slice($results, 0, 5);
 
-        if (!$top) {
-            return null;
+        $this->recommendationRepo->deleteUserRecommendations($userId);
+
+        $recommendations = [];
+        foreach ($top5 as $r) {
+            $career = $r['career'];
+            $reason = $this->buildReason($scores, $career, $educationLevel);
+            $this->recommendationRepo->saveRecommendation($userId, $career['career_id'], $r['total_score'], $reason);
+
+            $recommendations[] = new CareerRecommendation([
+                'user_id' => $userId,
+                'career_id' => $career['career_id'],
+                'career_name' => $career['career_name'],
+                'match_percent' => $r['total_score'],
+                'description' => $career['description'],
+                'required_skills' => $career['required_skills'],
+                'average_salary' => $career['average_salary'],
+                'growth_rate' => $career['growth_rate'],
+                'education_required' => $career['education_required'],
+                'reason' => $reason,
+            ]);
         }
 
-        $matchPercent = round(($top['final_score'] * 100), 1);
-
-        // Build report
-        $career = $top['career'];
-        $report = [
-            'career_id' => $career['id'],
-            'career_name' => $career['name'],
-            'description' => $career['description'],
-            'match_percent' => $matchPercent,
-            'skills' => $this->topSkills($career['skill_vector']),
-            'recommended_majors' => $career['recommended_majors'],
-            'resources' => $career['resources'],
-            'education_level' => $educationLabel,
-            'generated_at' => date('Y-m-d H:i:s'),
-        ];
-
-        // Attempt to persist
-        $this->recommendationRepo->saveRecommendation($userId, $career['id'], $career['name'], $matchPercent, $report);
-
-        return new CareerRecommendation(array_merge($report, ['user_id' => $userId]));
+        return $recommendations;
     }
 
-    private function topSkills(array $vector): array
+    private function calculateTypeMatch(array $scores, array $career): int
     {
-        arsort($vector);
-        return array_keys(array_filter($vector, function ($v) {
-            return $v >= 0.6;
-        }));
+        $dimensions = ['personality_type', 'interest_type', 'aptitude_type', 'values_type'];
+        $matched = 0;
+
+        foreach ($dimensions as $dim) {
+            $studentType = trim($scores[$dim] ?? '');
+            $careerType = trim($career[$dim] ?? '');
+
+            if ($studentType !== '' && $careerType !== '' && strcasecmp($studentType, $careerType) === 0) {
+                $matched++;
+            }
+        }
+
+        return $matched * 15;
     }
 
-    private function cosineSimilarity(array $v1, array $v2): float
+    private function calculateScoreBonus(array $scores): float
     {
-        $dot = 0.0;
-        $norm1 = 0.0;
-        $norm2 = 0.0;
+        $scoreKeys = ['personality_score', 'interest_score', 'aptitude_score', 'values_score'];
+        $total = 0;
+        $count = 0;
 
-        $keys = array_unique(array_merge(array_keys($v1), array_keys($v2)));
-        foreach ($keys as $k) {
-            $a = $v1[$k] ?? 0.0;
-            $b = $v2[$k] ?? 0.0;
-            $dot += $a * $b;
-            $norm1 += $a * $a;
-            $norm2 += $b * $b;
+        foreach ($scoreKeys as $key) {
+            $val = (int)($scores[$key] ?? 0);
+            $total += $val;
+            $count++;
         }
 
-        if ($norm1 == 0.0 || $norm2 == 0.0) {
-            return 0.0;
-        }
-
-        return $dot / (sqrt($norm1) * sqrt($norm2));
+        $average = $count > 0 ? $total / $count : 0;
+        return round(($average / 100) * 20, 2);
     }
 
-    private function educationLevelToInt(?string $label): int
+    private function calculateEducationMatch(?string $studentEducation, ?string $careerEducation): int
     {
-        if (!$label) {
-            return 0;
+        if ($studentEducation === null || $careerEducation === null || $careerEducation === '') {
+            return 10;
         }
 
+        $studentLevel = $this->educationToLevel($studentEducation);
+        $careerLevel = $this->educationToLevel($careerEducation);
+
+        if ($studentLevel === 0 || $careerLevel === 0) {
+            return 10;
+        }
+
+        $delta = $studentLevel - $careerLevel;
+
+        if ($delta === 0) {
+            return 20;
+        }
+        if ($delta > 0) {
+            return 15;
+        }
+        if ($delta === -1) {
+            return 10;
+        }
+
+        return 5;
+    }
+
+    private function educationToLevel(string $label): int
+    {
         $map = [
             'high school' => 1,
             'secondary' => 1,
-            'hs' => 1,
             'diploma' => 2,
             'associate' => 2,
+            'undergraduate' => 3,
             'bachelor' => 3,
             'bachelors' => 3,
-            'bachelor\'s' => 3,
-            'bachelor\'s degree' => 3,
+            "bachelor's" => 3,
+            "bachelor's degree" => 3,
+            'graduate' => 4,
             'master' => 4,
             'masters' => 4,
-            'master\'s' => 4,
+            "master's" => 4,
             'phd' => 5,
             'doctorate' => 5,
         ];
 
-        $labelLower = strtolower(trim($label));
-
-        return $map[$labelLower] ?? 0;
+        return $map[strtolower(trim($label))] ?? 0;
     }
 
-    private function educationMultiplier(int $userLevel, string $requiredLabel): float
+    private function buildReason(array $scores, array $career, ?string $educationLevel): string
     {
-        $required = $this->educationLevelToInt($requiredLabel);
-        $delta = $userLevel - $required;
+        $matchedTypes = [];
 
-        if ($delta >= 0) {
-            // small boost for meeting or exceeding requirement
-            return 1.0 + min(0.1, $delta * 0.02);
+        $dims = [
+            'personality_type' => 'Personality',
+            'interest_type' => 'Interest',
+            'aptitude_type' => 'Aptitude',
+            'values_type' => 'Values',
+        ];
+
+        foreach ($dims as $key => $label) {
+            $studentType = trim($scores[$key] ?? '');
+            $careerType = trim($career[$key] ?? '');
+            if ($studentType !== '' && $careerType !== '' && strcasecmp($studentType, $careerType) === 0) {
+                $matchedTypes[] = $label . ' (' . $studentType . ')';
+            }
         }
 
-        if ($delta === -1) {
-            return 0.8; // slightly reduce if only one level below
+        $parts = [];
+        if (!empty($matchedTypes)) {
+            $parts[] = 'Matches ' . implode(', ', $matchedTypes);
         }
 
-        return 0.5; // de-prioritize when substantially below
+        if ($educationLevel) {
+            $parts[] = 'Education: ' . $educationLevel;
+        }
+
+        return !empty($parts) ? implode('. ', $parts) . '.' : 'General career match based on assessment results.';
     }
 }
-

@@ -20,12 +20,14 @@ class Router
         'update-profile',
         'change-password',
         'update-password',
-        'assessments',
+        'student-assessments',
         'personality',
         'interest',
         'aptitude',
         'values',
         'assessment-progress',
+        'assessment-result',
+        'assessment-detailed-answers',
         'recommendation',
     ];
 

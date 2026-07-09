@@ -111,6 +111,22 @@ public function changePassword(): void
     );
 }
 
+public function studentChangePassword(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    View::render(
+        'Profile/Presentation/Views/student-change-password',
+        [
+            'pageTitle' => 'Change Password',
+            'layout' => 'dashboard',
+        ]
+    );
+}
+
 public function updatePassword(): void
 {
     if (!isset($_SESSION['user'])) {
@@ -124,6 +140,7 @@ public function updatePassword(): void
     }
 
     $userId = (int) $_SESSION['user']['user_id'];
+    $redirectOnError = $_POST['_redirect'] ?? 'change-password';
 
     $result = $this->profileService->updatePassword(
         $userId,
@@ -131,16 +148,13 @@ public function updatePassword(): void
     );
 
     if ($result['success']) {
-
         $_SESSION['success'] = "Password changed successfully.";
-
         header('Location: index.php?page=profile');
         exit;
     }
 
     $_SESSION['errors'] = $result['errors'];
-
-    header('Location: index.php?page=change-password');
+    header('Location: index.php?page=' . $redirectOnError);
     exit;
 }
 

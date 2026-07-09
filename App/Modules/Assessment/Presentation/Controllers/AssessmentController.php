@@ -34,6 +34,19 @@ class AssessmentController extends Controller
         );
     }
 
+    public function publicIndex(): void
+    {
+        $assessments = $this->assessmentService->getAssessments(null);
+
+        $this->view(
+            'Assessment/Presentation/Views/assessments',
+            [
+                'pageTitle' => 'Assessments',
+                'assessments' => $assessments,
+            ]
+        );
+    }
+
     public function personality(): void
     {
         $this->renderAssessmentPage('personality', 'Personality Assessment', 'Assessment/Presentation/Views/student/personality', 'text-blue-600', 'bg-[#0052ff] hover:bg-blue-700');

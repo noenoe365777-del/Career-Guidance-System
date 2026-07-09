@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Assessment\Application\Services;
 
 use App\Modules\Assessment\Infrastructure\Persistence\AssessmentRepository;
+use App\Modules\Assessment\Infrastructure\Persistence\AssessmentResultTypeRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\QuestionRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
 use App\Modules\Recommendation\Application\Services\RecommendationService;
@@ -14,6 +15,7 @@ class AssessmentService
     private AssessmentRepository $assessmentRepository;
     private QuestionRepository $questionRepository;
     private StudentAssessmentRepository $studentAssessmentRepository;
+    private AssessmentResultTypeRepository $resultTypeRepository;
     private RecommendationService $recommendationService;
 
     public function __construct()
@@ -21,6 +23,7 @@ class AssessmentService
         $this->assessmentRepository = new AssessmentRepository();
         $this->questionRepository = new QuestionRepository();
         $this->studentAssessmentRepository = new StudentAssessmentRepository();
+        $this->resultTypeRepository = new AssessmentResultTypeRepository();
         $this->recommendationService = new RecommendationService();
     }
 
@@ -82,6 +85,8 @@ class AssessmentService
         $normalizedAnswers = $this->normalizeAnswers($answers);
         $score = $this->calculateScore($slug, $normalizedAnswers);
         $summary = $this->buildSummary($assessment['title'], $score, count($normalizedAnswers));
+        $type = $this->resultTypeRepository->findType($slug, $score);
+        $typeLabel = $type['type_label'] ?? null;
 
         if ($guest) {
             $_SESSION['guest_assessment'][$slug] = [
@@ -107,19 +112,20 @@ class AssessmentService
             return ['success' => false, 'message' => 'You must be logged in to save assessment progress.'];
         }
 
-        $result = $this->studentAssessmentRepository->createOrUpdate($userId, (int)$assessment['id'], $normalizedAnswers, $score, $summary);
+        $result = $this->studentAssessmentRepository->createOrUpdate($userId, (int)$assessment['id'], $normalizedAnswers, $score, $summary, $slug, $typeLabel);
 
         $recommendation = null;
         if ($this->studentAssessmentRepository->getCompletedCount($userId) >= 4) {
-            $recommendation = $this->recommendationService->generateForUser($userId);
-            $_SESSION['latest_recommendation'] = $recommendation ? [
-                'career_name' => $recommendation->careerName,
-                'match_percent' => $recommendation->matchPercent,
-                'description' => $recommendation->description,
-                'skills' => $recommendation->skills,
-                'recommended_majors' => $recommendation->recommendedMajors,
-                'resources' => $recommendation->resources,
-            ] : null;
+            $recommendations = $this->recommendationService->generateForUser($userId);
+            $recommendation = !empty($recommendations);
+            if ($recommendation) {
+                $top = $recommendations[0];
+                $_SESSION['latest_recommendation'] = [
+                    'career_name' => $top->careerName,
+                    'match_percent' => $top->matchPercent,
+                    'description' => $top->description,
+                ];
+            }
         }
 
         return [

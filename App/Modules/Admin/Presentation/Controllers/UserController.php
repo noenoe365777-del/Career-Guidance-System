@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presentation\Controllers;
 
+use App\Modules\Admin\Application\Services\UserService;
 use App\Modules\Admin\Infrastructure\UserModel;
 use App\Shared\Core\Controller;
 
 class UserController extends Controller
 {
     private UserModel $userModel;
+    private UserService $userService;
 
-    public function __construct(?UserModel $userModel = null)
+    public function __construct(?UserModel $userModel = null, ?UserService $userService = null)
     {
         $this->userModel = $userModel ?? new UserModel();
+        $this->userService = $userService ?? new UserService();
     }
 
     public function index(): void
@@ -21,9 +24,10 @@ class UserController extends Controller
         AdminAuthMiddleware::requireAdmin();
         $this->requirePermission('view_users');
 
-        $page = max(1, (int)($_GET['page_number'] ?? $_GET['page'] ?? 1));
+        $page = max(1, (int)($_GET['page_number'] ?? 1));
         $search = trim((string)($_GET['search'] ?? ''));
-        $result = $this->userModel->listUsers($page, 10, $search);
+        $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
+        $result = $this->userService->listUsers($page, 10, $search, $statusFilter);
 
         $this->view(
             'Admin/Presentation/Views/users/index',
@@ -36,8 +40,48 @@ class UserController extends Controller
                 'totalPages' => $result['totalPages'],
                 'totalUsers' => $result['total'],
                 'search' => $search,
+                'statusFilter' => $statusFilter ?? '',
                 'message' => $_GET['message'] ?? null,
-                'userModel' => $this->userModel,
+            ]
+        );
+    }
+
+    public function toggleStatus(): void
+    {
+        AdminAuthMiddleware::requireAdmin();
+        $this->requirePermission('edit_users');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirectTo('admin-users');
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $this->userService->toggleUserStatus($id);
+        }
+
+        $this->redirectTo('admin-users');
+    }
+
+    public function show(): void
+    {
+        AdminAuthMiddleware::requireAdmin();
+        $this->requirePermission('view_users');
+
+        $id = (int)($_GET['id'] ?? 0);
+        $user = $this->userService->getUserById($id);
+
+        if (!$user) {
+            $this->redirectTo('admin-users', ['message' => 'not_found']);
+        }
+
+        $this->view(
+            'Admin/Presentation/Views/users/view',
+            [
+                'layout' => 'none',
+                'pageTitle' => 'User Details',
+                'activeMenu' => 'users',
+                'user' => $user,
             ]
         );
     }
@@ -106,14 +150,6 @@ class UserController extends Controller
 
         if ($data['password'] !== $data['confirm_password']) {
             $errors['confirm_password'] = 'Passwords do not match.';
-        }
-
-        if (!in_array($data['user_role_id'], [1, 2], true)) {
-            $errors['user_role_id'] = 'Select a valid role.';
-        }
-
-        if (!in_array($data['status_id'], [1, 2, 3], true)) {
-            $errors['status_id'] = 'Select a valid status.';
         }
 
         if ($errors !== []) {
@@ -238,30 +274,6 @@ class UserController extends Controller
         $this->redirectTo('admin-users', ['message' => 'updated']);
     }
 
-    public function show(): void
-    {
-        AdminAuthMiddleware::requireAdmin();
-        $this->requirePermission('view_users');
-
-        $id = (int)($_GET['id'] ?? 0);
-        $user = $this->userModel->getUserById($id);
-
-        if (!$user) {
-            $this->redirectTo('admin-users', ['message' => 'not_found']);
-        }
-
-        $this->view(
-            'Admin/Presentation/Views/users/view',
-            [
-                'layout' => 'none',
-                'pageTitle' => 'User Details',
-                'activeMenu' => 'users',
-                'user' => $user,
-                'userModel' => $this->userModel,
-            ]
-        );
-    }
-
     public function delete(): void
     {
         AdminAuthMiddleware::requireAdmin();
@@ -270,7 +282,7 @@ class UserController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
-                $this->userModel->deleteUser($id);
+                $this->userService->deleteUser($id);
             }
         }
 

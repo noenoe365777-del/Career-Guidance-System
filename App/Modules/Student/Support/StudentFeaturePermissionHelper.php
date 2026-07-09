@@ -18,12 +18,14 @@ class StudentFeaturePermissionHelper
     {
         $map = [
             'dashboard' => 'dashboard',
-            'assessments' => 'assessments',
+            'student-assessments' => 'assessments',
             'personality' => 'assessments',
             'interest' => 'assessments',
             'aptitude' => 'assessments',
             'values' => 'assessments',
             'assessment-progress' => 'assessments',
+            'assessment-result' => 'assessments',
+            'assessment-detailed-answers' => 'assessments',
             'recommendation' => 'career_maps',
             'profile' => 'profile',
             'edit-profile' => 'profile',

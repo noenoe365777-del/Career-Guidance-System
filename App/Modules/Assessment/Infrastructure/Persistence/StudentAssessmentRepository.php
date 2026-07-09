@@ -21,7 +21,7 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT student_assessment_id AS id, user_id, assessment_id, started_at, completed_at, status, total_score FROM student_assessments WHERE user_id = :user_id AND assessment_id = :assessment_id ORDER BY student_assessment_id DESC LIMIT 1"
+                "SELECT student_assessment_id AS id, user_id, assessment_id, started_at, completed_at, status FROM student_assessments WHERE user_id = :user_id AND assessment_id = :assessment_id ORDER BY student_assessment_id DESC LIMIT 1"
             );
             $statement->execute(['user_id' => $userId, 'assessment_id' => $assessmentId]);
             $row = $statement->fetch();
@@ -34,7 +34,6 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
                     'started_at' => $row['started_at'],
                     'completed_at' => $row['completed_at'],
                     'status' => $row['status'],
-                    'total_score' => (float)$row['total_score'],
                 ];
             }
         } catch (\Throwable) {
@@ -56,56 +55,48 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
         }
     }
 
-    public function createOrUpdate(int $userId, int $assessmentId, array $answers, int $score, string $summary): array
+    public function createOrUpdate(int $userId, int $assessmentId, array $answers, int $score, string $summary, string $slug, ?string $typeLabel = null): array
     {
         try {
             $existing = $this->findForUser($userId, $assessmentId);
             if ($existing && (int)$existing['id'] > 0) {
                 $studentAssessmentId = (int)$existing['id'];
                 $statement = $this->connection->prepare(
-                    "UPDATE student_assessments SET status = 'completed', total_score = :score, completed_at = NOW() WHERE student_assessment_id = :id"
+                    "UPDATE student_assessments SET status = 'completed', completed_at = NOW() WHERE student_assessment_id = :id"
                 );
-                $statement->execute(['score' => $score, 'id' => $studentAssessmentId]);
+                $statement->execute(['id' => $studentAssessmentId]);
             } else {
                 $statement = $this->connection->prepare(
-                    "INSERT INTO student_assessments (user_id, assessment_id, status, total_score, started_at, completed_at) VALUES (:user_id, :assessment_id, 'completed', :score, NOW(), NOW())"
+                    "INSERT INTO student_assessments (user_id, assessment_id, status, started_at, completed_at) VALUES (:user_id, :assessment_id, 'completed', NOW(), NOW())"
                 );
-                $statement->execute(['user_id' => $userId, 'assessment_id' => $assessmentId, 'score' => $score]);
+                $statement->execute(['user_id' => $userId, 'assessment_id' => $assessmentId]);
                 $studentAssessmentId = (int)$this->connection->lastInsertId();
             }
 
             $this->connection->prepare("DELETE FROM student_answers WHERE student_assessment_id = :id")
                 ->execute(['id' => $studentAssessmentId]);
 
-            $this->connection->prepare(
-                "INSERT INTO assessment_results (student_assessment_id, user_id, assessment_id, total_score, result_summary, created_at)
-                 VALUES (:student_assessment_id, :user_id, :assessment_id, :total_score, :result_summary, NOW())
-                 ON DUPLICATE KEY UPDATE total_score = VALUES(total_score), result_summary = VALUES(result_summary), created_at = NOW()"
-            )->execute([
-                'student_assessment_id' => $studentAssessmentId,
-                'user_id' => $userId,
-                'assessment_id' => $assessmentId,
-                'total_score' => $score,
-                'result_summary' => $summary,
-            ]);
-
+            $this->connection->exec("SET FOREIGN_KEY_CHECKS = 0");
             foreach ($answers as $questionId => $answerValue) {
                 if (!is_numeric($questionId) || !is_numeric($answerValue)) {
                     continue;
                 }
                 try {
                     $answerStatement = $this->connection->prepare(
-                        "INSERT INTO student_answers (student_assessment_id, question_id, answer_text, score_awarded, created_at) VALUES (:student_assessment_id, :question_id, :answer_text, :score_awarded, NOW())"
+                        "INSERT INTO student_answers (student_assessment_id, question_id, answer_text, score, created_at) VALUES (:student_assessment_id, :question_id, :answer_text, :score, NOW())"
                     );
                     $answerStatement->execute([
                         'student_assessment_id' => $studentAssessmentId,
                         'question_id' => (int)$questionId,
                         'answer_text' => (string)$answerValue,
-                        'score_awarded' => (int)$answerValue,
+                        'score' => (int)$answerValue,
                     ]);
                 } catch (\Throwable) {
                 }
             }
+            $this->connection->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+            $this->saveAssessmentScore($userId, $slug, $score, $typeLabel);
 
             return [
                 'id' => $studentAssessmentId,
@@ -135,7 +126,7 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT a.assessment_type AS slug, s.status, s.total_score, s.completed_at, s.started_at
+                "SELECT a.assessment_id, s.status, s.completed_at, s.started_at
                  FROM student_assessments s
                  INNER JOIN assessments a ON a.assessment_id = s.assessment_id
                  WHERE s.user_id = :user_id
@@ -144,11 +135,15 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
             $statement->execute(['user_id' => $userId]);
             $rows = $statement->fetchAll();
 
+            $slugMap = [1 => 'personality', 2 => 'interest', 3 => 'aptitude', 4 => 'values'];
+
             $progress = [];
             foreach ($rows as $row) {
-                $progress[$row['slug']] = [
+                $assessmentId = (int)$row['assessment_id'];
+                $slug = $slugMap[$assessmentId] ?? 'assessment_' . $assessmentId;
+                $progress[$slug] = [
                     'status' => $row['status'] ?? 'in_progress',
-                    'score' => (float)($row['total_score'] ?? 0),
+                    'score' => 0,
                     'completed_at' => $row['completed_at'],
                     'started_at' => $row['started_at'],
                     'progress' => ($row['status'] ?? 'in_progress') === 'completed' ? 100 : 50,
@@ -161,5 +156,75 @@ class StudentAssessmentRepository implements StudentAssessmentRepositoryInterfac
             return [];
         }
     }
-}
 
+    public function getAssessmentScore(int $userId, string $slug): int
+    {
+        $scoreColumn = $slug . '_score';
+        $validColumns = ['personality_score', 'interest_score', 'aptitude_score', 'values_score'];
+
+        if (!in_array($scoreColumn, $validColumns, true)) {
+            return 0;
+        }
+
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT {$scoreColumn} FROM student_assessment_scores WHERE student_id = :user_id LIMIT 1"
+            );
+            $statement->execute(['user_id' => $userId]);
+            $value = $statement->fetchColumn();
+
+            return $value !== false ? (int)$value : 0;
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function saveAssessmentScore(int $userId, string $slug, int $score, ?string $typeLabel = null): void
+    {
+        $scoreColumn = $slug . '_score';
+        $typeColumn = $slug . '_type';
+
+        $validColumns = ['personality_score', 'interest_score', 'aptitude_score', 'values_score'];
+        if (!in_array($scoreColumn, $validColumns, true)) {
+            return;
+        }
+
+        try {
+            $existing = $this->connection->prepare(
+                "SELECT id FROM student_assessment_scores WHERE student_id = :user_id"
+            );
+            $existing->execute(['user_id' => $userId]);
+            $row = $existing->fetch();
+
+            if ($row) {
+                $sql = "UPDATE student_assessment_scores SET {$scoreColumn} = :score";
+                $params = ['score' => $score, 'user_id' => $userId];
+
+                if ($typeLabel !== null) {
+                    $sql .= ", {$typeColumn} = :type_label";
+                    $params['type_label'] = $typeLabel;
+                }
+
+                $sql .= " WHERE student_id = :user_id";
+                $this->connection->prepare($sql)->execute($params);
+            } else {
+                $sql = "INSERT INTO student_assessment_scores (student_id, {$scoreColumn}";
+                $params = ['user_id' => $userId, 'score' => $score];
+
+                if ($typeLabel !== null) {
+                    $sql .= ", {$typeColumn}";
+                    $params['type_label'] = $typeLabel;
+                }
+
+                $sql .= ") VALUES (:user_id, :score";
+                if ($typeLabel !== null) {
+                    $sql .= ", :type_label";
+                }
+                $sql .= ")";
+
+                $this->connection->prepare($sql)->execute($params);
+            }
+        } catch (\Throwable) {
+        }
+    }
+}

@@ -5,53 +5,132 @@ declare(strict_types=1);
 namespace App\Modules\Recommendation\Infrastructure\Persistence;
 
 use App\Config\Database;
+use App\Modules\Recommendation\Domain\Repositories\RecommendationRepositoryInterface;
 use PDO;
 
-class RecommendationRepository
+class RecommendationRepository implements RecommendationRepositoryInterface
 {
-    private PDO $pdo;
+    private PDO $connection;
 
     public function __construct()
     {
-        $this->pdo = Database::getConnection();
+        $this->connection = Database::getConnection();
     }
 
-    public function saveRecommendation(int $userId, string $careerId, string $careerName, float $matchPercent, array $report): bool
+    public function getAllCareers(): array
     {
         try {
-            $stmt = $this->pdo->prepare(
-                "INSERT INTO recommendations (user_id, career_id, career_name, match_percent, report_json, generated_at) VALUES (:user_id, :career_id, :career_name, :match_percent, :report_json, NOW())"
+            $statement = $this->connection->query(
+                "SELECT career_id, career_name, description, required_skills, average_salary, growth_rate, education_required, personality_type, interest_type, aptitude_type, values_type FROM careers ORDER BY career_id"
             );
+            $rows = $statement->fetchAll();
 
-            return (bool)$stmt->execute([
-                ':user_id' => $userId,
-                ':career_id' => $careerId,
-                ':career_name' => $careerName,
-                ':match_percent' => $matchPercent,
-                ':report_json' => json_encode($report),
-            ]);
-        } catch (\Throwable $e) {
-            // if table doesn't exist or other DB errors, fail gracefully
-            return false;
+            return array_map(fn(array $row): array => [
+                'career_id' => (int)$row['career_id'],
+                'career_name' => $row['career_name'] ?? '',
+                'description' => $row['description'] ?? '',
+                'required_skills' => $row['required_skills'] ?? '',
+                'average_salary' => $row['average_salary'] ?? '',
+                'growth_rate' => $row['growth_rate'] ?? '',
+                'education_required' => $row['education_required'] ?? '',
+                'personality_type' => $row['personality_type'] ?? '',
+                'interest_type' => $row['interest_type'] ?? '',
+                'aptitude_type' => $row['aptitude_type'] ?? '',
+                'values_type' => $row['values_type'] ?? '',
+            ], $rows);
+        } catch (\Throwable) {
+            return [];
         }
     }
 
-    public function getLatestForUser(int $userId): ?array
+    public function getStudentScores(int $userId): ?array
     {
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT * FROM recommendations WHERE user_id = :user_id ORDER BY generated_at DESC LIMIT 1"
+            $statement = $this->connection->prepare(
+                "SELECT personality_type, interest_type, aptitude_type, values_type, personality_score, interest_score, aptitude_score, values_score FROM student_assessment_scores WHERE student_id = :user_id LIMIT 1"
             );
-            $stmt->execute([':user_id' => $userId]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$row) {
-                return null;
+            $statement->execute(['user_id' => $userId]);
+            $row = $statement->fetch();
+
+            if ($row) {
+                return [
+                    'personality_type' => $row['personality_type'] ?? '',
+                    'interest_type' => $row['interest_type'] ?? '',
+                    'aptitude_type' => $row['aptitude_type'] ?? '',
+                    'values_type' => $row['values_type'] ?? '',
+                    'personality_score' => (int)($row['personality_score'] ?? 0),
+                    'interest_score' => (int)($row['interest_score'] ?? 0),
+                    'aptitude_score' => (int)($row['aptitude_score'] ?? 0),
+                    'values_score' => (int)($row['values_score'] ?? 0),
+                ];
             }
-            $row['report_json'] = json_decode($row['report_json'] ?? 'null', true) ?: [];
-            return $row;
+        } catch (\Throwable) {
+        }
+
+        return null;
+    }
+
+    public function getEducationLevel(int $userId): ?string
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT e.label AS education_level
+                 FROM student_profiles sp
+                 LEFT JOIN master_data e ON sp.education_level_id = e.id
+                 WHERE sp.user_id = :user_id
+                 LIMIT 1"
+            );
+            $statement->execute(['user_id' => $userId]);
+            $row = $statement->fetch();
+
+            return $row ? ($row['education_level'] ?: null) : null;
         } catch (\Throwable) {
             return null;
         }
     }
-}
 
+    public function getExistingRecommendations(int $userId): array
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT cr.recommendation_id, cr.career_id, cr.match_score, cr.recommendation_reason, cr.created_at,
+                        c.career_name, c.description, c.required_skills, c.average_salary, c.growth_rate, c.education_required
+                 FROM career_recommendations cr
+                 JOIN careers c ON c.career_id = cr.career_id
+                 WHERE cr.user_id = :user_id
+                 ORDER BY cr.match_score DESC
+                 LIMIT 5"
+            );
+            $statement->execute(['user_id' => $userId]);
+            return $statement->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    public function deleteUserRecommendations(int $userId): void
+    {
+        try {
+            $this->connection->prepare("DELETE FROM career_recommendations WHERE user_id = :user_id")
+                ->execute(['user_id' => $userId]);
+        } catch (\Throwable) {
+        }
+    }
+
+    public function saveRecommendation(int $userId, int $careerId, float $matchScore, string $reason): bool
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "INSERT INTO career_recommendations (user_id, career_id, match_score, recommendation_reason, created_at) VALUES (:user_id, :career_id, :match_score, :reason, NOW())"
+            );
+            return (bool)$statement->execute([
+                'user_id' => $userId,
+                'career_id' => $careerId,
+                'match_score' => $matchScore,
+                'reason' => $reason,
+            ]);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+}

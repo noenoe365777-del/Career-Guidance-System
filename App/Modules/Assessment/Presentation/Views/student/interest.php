@@ -4,7 +4,7 @@ $questionCount = count($questions ?? []);
 
 <main class="flex-grow bg-[#f8fafc] w-full">
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <a href="<?= BASE_URL ?>/index.php?page=assessments"
+        <a href="<?= BASE_URL ?>/index.php?page=<?= $backToPage ?? 'assessments' ?>"
            class="inline-flex items-center text-sm font-bold transition-colors hover:text-pink-700 <?= $accentClass ?? 'text-[#ec4899]' ?>">
             <i class="fas fa-arrow-left mr-2"></i>
             Back to Assessments
@@ -42,16 +42,15 @@ $questionCount = count($questions ?? []);
                         </div>
 
                         <div class="ml-9 grid grid-cols-1 gap-2 rounded-xl border border-slate-200/70 bg-white p-1 shadow-xs sm:grid-cols-5">
-                            <?php $options = [5 => 'Strongly Agree', 4 => 'Agree', 3 => 'Neutral', 2 => 'Disagree', 1 => 'Strongly Disagree']; ?>
-                            <?php foreach ($options as $value => $label): ?>
+                            <?php foreach ($question['options'] ?? [] as $opt): ?>
                                 <label class="flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2.5 transition hover:bg-slate-50 group">
                                     <input type="radio"
                                            name="answers[<?= (int)($question['id'] ?? $index) ?>]"
-                                           value="<?= $value ?>"
-                                           <?= $value == 5 ? 'required' : '' ?>
+                                           value="<?= (int)$opt['value'] ?>"
+                                           <?= (int)$opt['value'] === 5 ? 'required' : '' ?>
                                            class="h-4 w-4 border-slate-300 text-[#ec4899] focus:ring-[#ec4899]">
                                     <span class="text-xs font-medium text-slate-500 transition-colors group-hover:text-slate-800">
-                                        <?= $label ?>
+                                        <?= htmlspecialchars($opt['label']) ?>
                                     </span>
                                 </label>
                             <?php endforeach; ?>

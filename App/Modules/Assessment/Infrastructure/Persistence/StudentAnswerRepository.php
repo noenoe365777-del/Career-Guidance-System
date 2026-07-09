@@ -30,13 +30,13 @@ class StudentAnswerRepository implements StudentAnswerRepositoryInterface
 
                 try {
                     $statement = $this->connection->prepare(
-                        "INSERT INTO student_answers (student_assessment_id, question_id, answer_text, score_awarded, created_at) VALUES (:student_assessment_id, :question_id, :answer_text, :score_awarded, NOW())"
+                        "INSERT INTO student_answers (student_assessment_id, question_id, answer_text, score, created_at) VALUES (:student_assessment_id, :question_id, :answer_text, :score, NOW())"
                     );
                     $statement->execute([
                         'student_assessment_id' => $studentAssessmentId,
                         'question_id' => (int)$questionId,
                         'answer_text' => (string)$answerValue,
-                        'score_awarded' => (int)$answerValue,
+                        'score' => (int)$answerValue,
                     ]);
                 } catch (\Throwable) {
                 }
@@ -49,7 +49,7 @@ class StudentAnswerRepository implements StudentAnswerRepositoryInterface
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT answer_id AS id, question_id, answer_text AS answer_value, score_awarded FROM student_answers WHERE student_assessment_id = :id ORDER BY answer_id"
+                "SELECT answer_id AS id, question_id, answer_text AS answer_value, score FROM student_answers WHERE student_assessment_id = :id ORDER BY answer_id"
             );
             $statement->execute(['id' => $studentAssessmentId]);
             return $statement->fetchAll();

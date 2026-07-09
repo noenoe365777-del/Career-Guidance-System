@@ -42,16 +42,41 @@ if ($success) {
                     </div>
 
                     <div class="mt-8 flex w-full flex-col gap-3">
-                        <a href="<?= BASE_URL ?>/index.php?page=<?= htmlspecialchars($assessment['page']); ?>"
-                           class="<?= $assessment['button']; ?> w-full rounded-xl py-3 text-center font-semibold text-white transition duration-300 hover:scale-105">
-                            <i class="fas fa-play mr-2"></i>
-                            Try as Guest
-                        </a>
-                        <a href="<?= BASE_URL ?>/index.php?page=login"
-                           class="w-full rounded-xl border border-slate-200 bg-white py-3 text-center font-semibold text-slate-700 transition duration-300 hover:border-slate-300 hover:bg-slate-50">
-                            <i class="fas fa-lock mr-2"></i>
-                            Login to Save
-                        </a>
+                        <?php if (!empty($isLoggedIn)):
+                            $status = $assessment['progress']['status'] ?? 'not_started';
+                        ?>
+                            <div class="mt-2 text-sm font-medium text-slate-500">
+                                <?php if ($status === 'completed'): ?>
+                                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Completed</span>
+                                <?php elseif ($status === 'in_progress'): ?>
+                                    <span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700">In progress</span>
+                                <?php else: ?>
+                                    <span class="rounded-full bg-slate-50 px-3 py-1 text-slate-500">Not started</span>
+                                <?php endif; ?>
+                            </div>
+                            <a href="<?= BASE_URL ?>/index.php?page=<?= htmlspecialchars($assessment['page']); ?>"
+                               class="<?= $assessment['button']; ?> w-full rounded-xl py-3 text-center font-semibold text-white transition duration-300 hover:scale-105">
+                                <i class="fas fa-play mr-2"></i>
+                                <?php if ($status === 'completed'): ?>
+                                    View Result
+                                <?php elseif ($status === 'in_progress'): ?>
+                                    Continue Assessment
+                                <?php else: ?>
+                                    Start Assessment
+                                <?php endif; ?>
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= BASE_URL ?>/index.php?page=<?= htmlspecialchars($assessment['page']); ?>"
+                               class="<?= $assessment['button']; ?> w-full rounded-xl py-3 text-center font-semibold text-white transition duration-300 hover:scale-105">
+                                <i class="fas fa-play mr-2"></i>
+                                Try as Guest
+                            </a>
+                            <a href="<?= BASE_URL ?>/index.php?page=login"
+                               class="w-full rounded-xl border border-slate-200 bg-white py-3 text-center font-semibold text-slate-700 transition duration-300 hover:border-slate-300 hover:bg-slate-50">
+                                <i class="fas fa-lock mr-2"></i>
+                                Login to Save
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

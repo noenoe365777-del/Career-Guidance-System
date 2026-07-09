@@ -26,7 +26,7 @@ class RoleController extends Controller
         $this->view(
             'Admin/Presentation/Views/roles/index',
             [
-                'layout' => 'none',
+                'layout' => 'dashboard',
                 'pageTitle' => 'Role Management',
                 'activeMenu' => 'roles',
                 'roles' => $roles,
@@ -43,7 +43,7 @@ class RoleController extends Controller
         $this->view(
             'Admin/Presentation/Views/roles/create',
             [
-                'layout' => 'none',
+                'layout' => 'dashboard',
                 'pageTitle' => 'Create Role',
                 'activeMenu' => 'roles',
                 'errors' => [],
@@ -78,7 +78,7 @@ class RoleController extends Controller
             $this->view(
                 'Admin/Presentation/Views/roles/create',
                 [
-                    'layout' => 'none',
+                    'layout' => 'dashboard',
                     'pageTitle' => 'Create Role',
                     'activeMenu' => 'roles',
                     'errors' => $errors,
@@ -107,7 +107,7 @@ class RoleController extends Controller
         $this->view(
             'Admin/Presentation/Views/roles/edit',
             [
-                'layout' => 'none',
+                'layout' => 'dashboard',
                 'pageTitle' => 'Edit Role',
                 'activeMenu' => 'roles',
                 'errors' => [],
@@ -149,7 +149,7 @@ class RoleController extends Controller
             $this->view(
                 'Admin/Presentation/Views/roles/edit',
                 [
-                    'layout' => 'none',
+                    'layout' => 'dashboard',
                     'pageTitle' => 'Edit Role',
                     'activeMenu' => 'roles',
                     'errors' => $errors,
@@ -178,7 +178,7 @@ class RoleController extends Controller
         $this->view(
             'Admin/Presentation/Views/roles/view',
             [
-                'layout' => 'none',
+                'layout' => 'dashboard',
                 'pageTitle' => 'Role Details',
                 'activeMenu' => 'roles',
                 'role' => $role,

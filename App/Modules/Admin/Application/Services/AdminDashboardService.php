@@ -15,23 +15,19 @@ class AdminDashboardService
         $this->adminDashboardRepository = $adminDashboardRepository ?? new AdminDashboardRepository();
     }
 
-    public function getDashboardStats(): array
+    public function getDashboardData(): array
     {
-        return $this->adminDashboardRepository->getDashboardStats();
-    }
-
-    public function getRecentUsers(int $limit = 5): array
-    {
-        return $this->adminDashboardRepository->getRecentUsers($limit);
-    }
-
-    public function getRecentSubmissions(int $limit = 5): array
-    {
-        return $this->adminDashboardRepository->getRecentSubmissions($limit);
-    }
-
-    public function getNotifications(int $limit = 4): array
-    {
-        return $this->adminDashboardRepository->getNotifications($limit);
+        return [
+            'totalUsers' => $this->adminDashboardRepository->getTotalUsers(),
+            'totalAssessments' => $this->adminDashboardRepository->getTotalAssessments(),
+            'totalQuestions' => $this->adminDashboardRepository->getTotalQuestions(),
+            'totalCareers' => $this->adminDashboardRepository->getTotalCareers(),
+            'recentActivity' => $this->adminDashboardRepository->getRecentActivity(5),
+            'systemStatus' => [
+                'database' => $this->adminDashboardRepository->checkDatabaseConnection(),
+                'assessmentModule' => $this->adminDashboardRepository->isAssessmentModuleActive(),
+                'recommendationModule' => $this->adminDashboardRepository->isRecommendationModuleActive(),
+            ],
+        ];
     }
 }

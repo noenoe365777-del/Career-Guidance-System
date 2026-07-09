@@ -56,9 +56,12 @@ $user = isset($_SESSION['user']) ? $_SESSION['user'] : null;
 // Track the current page safely to determine active navigation elements
 $currentPage = $_GET['page'] ?? 'home';
 
+$isLoggedIn = !empty($_SESSION['user_id']);
+$assessmentsPage = $isLoggedIn ? 'student-assessments' : 'assessments';
+
 $navItems = [
     'home' => 'Home',
-    'assessments' => 'Assessments',
+    $assessmentsPage => 'Assessments',
     'careers' => 'Careers',
     'about' => 'About Us',
     'contact' => 'Contact'
@@ -165,7 +168,7 @@ $navItems = [
 <div id="mobileMenu" class="hidden lg:hidden fixed inset-x-0 top-20 bg-white border-b border-slate-200 shadow-xl px-4 py-6 space-y-1 z-40">
     
     <?php foreach ($navItems as $key => $label): 
-        $icons = ['home' => 'house', 'assessments' => 'file-alt', 'careers' => 'briefcase', 'about' => 'circle-info', 'contact' => 'envelope'];
+        $icons = ['home' => 'house', 'assessments' => 'file-alt', 'student-assessments' => 'file-alt', 'careers' => 'briefcase', 'about' => 'circle-info', 'contact' => 'envelope'];
         $isActive = ($currentPage === $key);
     ?>
         <a href="<?= BASE_URL ?>/index.php?page=<?= $key ?>" 

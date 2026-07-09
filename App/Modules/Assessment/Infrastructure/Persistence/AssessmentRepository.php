@@ -12,6 +12,13 @@ class AssessmentRepository implements AssessmentRepositoryInterface
 {
     private PDO $connection;
 
+    private array $slugMap = [
+        1 => 'personality',
+        2 => 'interest',
+        3 => 'aptitude',
+        4 => 'values',
+    ];
+
     public function __construct()
     {
         $this->connection = Database::getConnection();
@@ -21,7 +28,7 @@ class AssessmentRepository implements AssessmentRepositoryInterface
     {
         try {
             $statement = $this->connection->query(
-                "SELECT assessment_id AS id, title, description, assessment_type AS slug, total_questions AS total_questions, status FROM assessments WHERE status = 'active' ORDER BY assessment_id"
+                "SELECT assessment_id AS id, title, description, status FROM assessments WHERE status = 'active' ORDER BY assessment_id"
             );
             $rows = $statement->fetchAll();
 
@@ -31,16 +38,21 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         } catch (\Throwable) {
         }
 
-        return $this->fallbackAssessments();
+        return [];
     }
 
     public function getBySlug(string $slug): ?array
     {
+        $assessmentId = array_search($slug, $this->slugMap, true);
+        if ($assessmentId === false) {
+            return null;
+        }
+
         try {
             $statement = $this->connection->prepare(
-                "SELECT assessment_id AS id, title, description, assessment_type AS slug, total_questions AS total_questions, status FROM assessments WHERE assessment_type = :slug LIMIT 1"
+                "SELECT assessment_id AS id, title, description, status FROM assessments WHERE assessment_id = :id AND status = 'active' LIMIT 1"
             );
-            $statement->execute(['slug' => $slug]);
+            $statement->execute(['id' => $assessmentId]);
             $row = $statement->fetch();
 
             if ($row) {
@@ -49,64 +61,33 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         } catch (\Throwable) {
         }
 
-        $fallback = $this->fallbackAssessments();
-        foreach ($fallback as $item) {
-            if (($item['slug'] ?? '') === $slug) {
-                return $item;
-            }
-        }
-
         return null;
     }
 
     private function mapRow(array $row): array
     {
+        $id = (int)($row['id'] ?? 0);
+
         return [
-            'id' => (int)($row['id'] ?? 0),
+            'id' => $id,
             'title' => $row['title'] ?? 'Assessment',
             'description' => $row['description'] ?? 'Complete this assessment to understand yourself better.',
-            'slug' => $row['slug'] ?? 'assessment',
-            'total_questions' => (int)($row['total_questions'] ?? 0),
+            'slug' => $this->slugMap[$id] ?? 'assessment',
+            'total_questions' => $this->countQuestions($id),
             'status' => $row['status'] ?? 'active',
         ];
     }
 
-    private function fallbackAssessments(): array
+    private function countQuestions(int $assessmentId): int
     {
-        return [
-            [
-                'id' => 1,
-                'title' => 'Personality Assessment',
-                'description' => 'Understand your personality traits and work style.',
-                'slug' => 'personality',
-                'total_questions' => 10,
-                'status' => 'active',
-            ],
-            [
-                'id' => 2,
-                'title' => 'Interest Assessment',
-                'description' => 'Discover careers that match your interests and passions.',
-                'slug' => 'interest',
-                'total_questions' => 10,
-                'status' => 'active',
-            ],
-            [
-                'id' => 3,
-                'title' => 'Aptitude Assessment',
-                'description' => 'Measure your reasoning abilities and problem-solving skills.',
-                'slug' => 'aptitude',
-                'total_questions' => 5,
-                'status' => 'active',
-            ],
-            [
-                'id' => 4,
-                'title' => 'Career Values Assessment',
-                'description' => 'Identify what matters most to you in a future career.',
-                'slug' => 'values',
-                'total_questions' => 5,
-                'status' => 'active',
-            ],
-        ];
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id"
+            );
+            $statement->execute(['assessment_id' => $assessmentId]);
+            return (int)$statement->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 }
-

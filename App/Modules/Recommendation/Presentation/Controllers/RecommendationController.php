@@ -1,30 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Recommendation\Presentation\Controllers;
 
-use App\Shared\Core\Controller;
-use App\Shared\Core\View;
 use App\Modules\Recommendation\Application\Services\RecommendationService;
+use App\Shared\Core\Controller;
 
 class RecommendationController extends Controller
 {
+    private RecommendationService $recommendationService;
+
+    public function __construct()
+    {
+        $this->recommendationService = new RecommendationService();
+    }
+
     public function index(): void
     {
-        $user = $this->getAuthenticatedUser();
-        $userId = (int)($user['id'] ?? $user['user_id'] ?? 0);
-        if ($userId <= 0) {
-            header('Location: ' . BASE_URL . '/index.php?page=login');
-            exit;
-        }
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
 
-        $service = new RecommendationService();
-        $recommendation = $service->generateForUser($userId);
+        $recommendations = $this->recommendationService->generateForUser($userId);
 
-        View::render('Recommendation/Presentation/Views/recommendations', [
-            'pageTitle' => 'Career Recommendation',
-            'recommendation' => $recommendation,
-            'layout' => 'dashboard',
-        ]);
+        $this->view(
+            'Recommendation/Presentation/Views/recommendations',
+            [
+                'pageTitle' => 'Career Recommendations',
+                'recommendations' => $recommendations,
+                'user' => $user,
+                'layout' => 'dashboard',
+            ]
+        );
     }
 }
-

@@ -7,26 +7,27 @@ namespace App\Modules\Recommendation\Domain\Entities;
 class CareerRecommendation
 {
     public int $userId;
-    public string $careerId;
+    public int $careerId;
     public string $careerName;
     public float $matchPercent;
-    public array $skills;
-    public array $recommendedMajors;
-    public array $resources;
     public string $description;
-    public string $generatedAt;
+    public string $requiredSkills;
+    public string $averageSalary;
+    public string $growthRate;
+    public string $educationRequired;
+    public string $reason;
 
     public function __construct(array $data)
     {
         $this->userId = (int)($data['user_id'] ?? 0);
-        $this->careerId = (string)($data['career_id'] ?? '');
+        $this->careerId = (int)($data['career_id'] ?? 0);
         $this->careerName = (string)($data['career_name'] ?? '');
         $this->matchPercent = (float)($data['match_percent'] ?? 0.0);
-        $this->skills = (array)($data['skills'] ?? []);
-        $this->recommendedMajors = (array)($data['recommended_majors'] ?? []);
-        $this->resources = (array)($data['resources'] ?? []);
         $this->description = (string)($data['description'] ?? '');
-        $this->generatedAt = (string)($data['generated_at'] ?? date('Y-m-d H:i:s'));
+        $this->requiredSkills = (string)($data['required_skills'] ?? '');
+        $this->averageSalary = (string)($data['average_salary'] ?? '');
+        $this->growthRate = (string)($data['growth_rate'] ?? '');
+        $this->educationRequired = (string)($data['education_required'] ?? '');
+        $this->reason = (string)($data['reason'] ?? '');
     }
 }
-

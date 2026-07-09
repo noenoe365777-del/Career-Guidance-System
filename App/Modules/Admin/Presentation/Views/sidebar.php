@@ -5,10 +5,10 @@ $settingsExpanded = in_array($activeMenu, ['settings', 'roles', 'permissions', '
 $menuItems = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-house', 'href' => BASE_URL . '/index.php?page=admin-dashboard'],
     ['key' => 'users', 'label' => 'Users', 'icon' => 'bi-people', 'href' => BASE_URL . '/index.php?page=admin-users'],
-    ['key' => 'assessments', 'label' => 'Assessments', 'icon' => 'bi-clipboard-check', 'href' => '#'],
-    ['key' => 'questions', 'label' => 'Questions', 'icon' => 'bi-question-circle', 'href' => '#'],
-    ['key' => 'careers', 'label' => 'Careers', 'icon' => 'bi-briefcase', 'href' => '#'],
-    ['key' => 'reports', 'label' => 'Reports', 'icon' => 'bi-bar-chart', 'href' => '#'],
+    ['key' => 'assessments', 'label' => 'Assessments', 'icon' => 'bi-clipboard-check', 'href' => BASE_URL . '/index.php?page=admin-assessments'],
+    ['key' => 'questions', 'label' => 'Questions', 'icon' => 'bi-question-circle', 'href' => BASE_URL . '/index.php?page=admin-questions'],
+    ['key' => 'careers', 'label' => 'Careers', 'icon' => 'bi-briefcase', 'href' => BASE_URL . '/index.php?page=admin-careers'],
+    ['key' => 'reports', 'label' => 'Reports', 'icon' => 'bi-bar-chart', 'href' => BASE_URL . '/index.php?page=admin-reports'],
     [
         'key' => 'settings',
         'label' => 'Settings',
@@ -28,16 +28,34 @@ $menuItems = [
     .collapsing {
         transition: height 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     }
-    /* Exact color matching your reference image gradient */
     .bg-custom-gradient {
         background: linear-gradient(135deg, #5d5bf6 0%, #3b39df 100%) !important;
     }
     .text-custom-indigo {
         color: #4f46e5;
     }
+    .sidebar-link {
+        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .sidebar-link:hover {
+        transform: translateX(4px);
+    }
+    .sidebar-link-active {
+        transform: translateX(4px);
+    }
 </style>
 
-<aside class="hidden md:flex flex-column justify-content-between w-64 h-full bg-white border-r border-slate-100 p-4 shrink-0" id="adminSidebarDesktop">
+<aside
+class="hidden md:flex md:flex-col justify-between
+w-64
+h-screen
+sticky
+top-0
+bg-white
+border-r
+border-slate-100
+p-4
+shrink-0">
     <div>
         <div class="flex items-center gap-3 px-2 mb-8">
             <div class="flex items-center justify-center w-10 h-10 bg-indigo-50 text-custom-indigo rounded-xl">
@@ -57,8 +75,8 @@ $menuItems = [
                 ?>
                 <div class="relative">
                     <?php if (!empty($item['children'])): ?>
-                        <button class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline outline-none border-0 bg-transparent group
-                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
+                        <button class="sidebar-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline outline-none border-0 bg-transparent group
+                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
                                 type="button"
                                 data-bs-toggle="collapse"
                                 data-bs-target="#settingsSubmenuDesktop"
@@ -74,8 +92,8 @@ $menuItems = [
                         <div id="settingsSubmenuDesktop" class="collapse <?= $settingsExpanded ? 'show' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
                             <?php foreach ($item['children'] as $child): ?>
                                 <?php $isChildActive = $activeMenu === $child['key']; ?>
-                                <a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
-                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
+                                <a class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
+                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm sidebar-link-active' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
                                    href="<?= htmlspecialchars($child['href']) ?>">
                                     <i class="bi <?= htmlspecialchars($child['icon']) ?> text-sm <?= $isChildActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600' ?>"></i>
                                     <span><?= htmlspecialchars($child['label']) ?></span>
@@ -83,8 +101,8 @@ $menuItems = [
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
-                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
+                        <a class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
+                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
                            href="<?= htmlspecialchars($item['href']) ?>">
                             <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
                             <span><?= htmlspecialchars($item['label']) ?></span>
@@ -126,8 +144,8 @@ $menuItems = [
                 ?>
                 <div>
                     <?php if (!empty($item['children'])): ?>
-                        <button class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline border-0 bg-transparent group
-                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
+                        <button class="sidebar-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline border-0 bg-transparent group
+                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
                                 type="button"
                                 data-bs-toggle="collapse"
                                 data-bs-target="#settingsSubmenuMobile"
@@ -143,8 +161,8 @@ $menuItems = [
                         <div id="settingsSubmenuMobile" class="collapse <?= $settingsExpanded ? 'show' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
                             <?php foreach ($item['children'] as $child): ?>
                                 <?php $isChildActive = $activeMenu === $child['key']; ?>
-                                <a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
-                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
+                                <a class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
+                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm sidebar-link-active' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
                                    href="<?= htmlspecialchars($child['href']) ?>">
                                     <i class="bi <?= htmlspecialchars($child['icon']) ?> text-sm <?= $isChildActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600' ?>"></i>
                                     <span><?= htmlspecialchars($child['label']) ?></span>
@@ -152,8 +170,8 @@ $menuItems = [
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
-                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
+                        <a class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
+                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
                            href="<?= htmlspecialchars($item['href']) ?>">
                             <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
                             <span><?= htmlspecialchars($item['label']) ?></span>
