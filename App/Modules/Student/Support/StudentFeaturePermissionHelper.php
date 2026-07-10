@@ -17,21 +17,26 @@ class StudentFeaturePermissionHelper
     public static function getFeatureKeyForPage(string $page): ?string
     {
         $map = [
-            'dashboard' => 'dashboard',
-            'student-assessments' => 'assessments',
-            'personality' => 'assessments',
-            'interest' => 'assessments',
-            'aptitude' => 'assessments',
-            'values' => 'assessments',
-            'assessment-progress' => 'assessments',
-            'assessment-result' => 'assessments',
-            'assessment-detailed-answers' => 'assessments',
-            'recommendation' => 'career_maps',
-            'profile' => 'profile',
-            'edit-profile' => 'profile',
-            'update-profile' => 'profile',
-            'change-password' => 'settings',
-            'update-password' => 'settings',
+            'dashboard' => 'view_dashboard',
+
+            'student-assessments' => 'take_assessment',
+            'personality' => 'take_assessment',
+            'interest' => 'take_assessment',
+            'aptitude' => 'take_assessment',
+            'values' => 'take_assessment',
+            'assessment-progress' => 'take_assessment',
+
+            'assessment-result' => 'view_results',
+            'assessment-detailed-answers' => 'view_results',
+
+            'recommendation' => 'view_recommendations',
+
+            'profile' => 'edit_profile',
+            'edit-profile' => 'edit_profile',
+            'update-profile' => 'edit_profile',
+
+            'change-password' => 'change_password',
+            'update-password' => 'change_password',
         ];
 
         return $map[$page] ?? null;

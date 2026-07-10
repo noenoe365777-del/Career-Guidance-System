@@ -1,3 +1,10 @@
+-- Restructure student_role_permissions: keep only the master feature list
+ALTER TABLE student_role_permissions
+  DROP COLUMN is_enabled,
+  DROP COLUMN created_at,
+  DROP COLUMN updated_at;
+
+-- student_feature_permissions: per-student feature overrides
 CREATE TABLE IF NOT EXISTS student_feature_permissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -11,3 +18,10 @@ CREATE TABLE IF NOT EXISTS student_feature_permissions (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migrate existing global defaults into per-student rows for all existing students
+INSERT IGNORE INTO student_feature_permissions (user_id, feature_key, is_enabled)
+SELECT u.user_id, srf.feature_key, 1
+FROM users u
+CROSS JOIN student_role_permissions srf
+WHERE u.user_role_id = 2;

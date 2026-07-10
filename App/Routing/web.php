@@ -4,9 +4,7 @@ use App\Modules\Home\Presentation\Controllers\HomeController;
 use App\Modules\Career\Presentation\Controllers\CareerController;
 use App\Modules\Auth\Presentation\Controllers\AuthController;
 use App\Modules\Admin\Presentation\Controllers\AdminController;
-use App\Modules\Admin\Presentation\Controllers\RoleController;
-use App\Modules\Admin\Presentation\Controllers\PermissionController;
-use App\Modules\Admin\Presentation\Controllers\RolePermissionController;
+use App\Modules\Admin\Presentation\Controllers\RolesAndPermissionsController;
 use App\Modules\Admin\Presentation\Controllers\StudentFeaturePermissionController;
 use App\Modules\Admin\Presentation\Controllers\UserController;
 use App\Modules\Admin\Presentation\Controllers\AssessmentController as AdminAssessmentController;
@@ -58,22 +56,8 @@ return [
     'admin-questions-update' => [AdminQuestionController::class, 'update'],
     'admin-questions-delete' => [AdminQuestionController::class, 'delete'],
     'admin-reports' => [AdminReportsController::class, 'index'],
-    'admin-roles' => [RoleController::class, 'index'],
-    'admin-roles-create' => [RoleController::class, 'create'],
-    'admin-roles-store' => [RoleController::class, 'store'],
-    'admin-roles-edit' => [RoleController::class, 'edit'],
-    'admin-roles-update' => [RoleController::class, 'update'],
-    'admin-roles-view' => [RoleController::class, 'show'],
-    'admin-roles-delete' => [RoleController::class, 'delete'],
-    'admin-permissions' => [PermissionController::class, 'index'],
-    'admin-permissions-create' => [PermissionController::class, 'create'],
-    'admin-permissions-store' => [PermissionController::class, 'store'],
-    'admin-permissions-edit' => [PermissionController::class, 'edit'],
-    'admin-permissions-update' => [PermissionController::class, 'update'],
-    'admin-permissions-view' => [PermissionController::class, 'show'],
-    'admin-permissions-delete' => [PermissionController::class, 'delete'],
-    'admin-assign-permissions' => [RolePermissionController::class, 'index'],
-    'admin-assign-permissions-save' => [RolePermissionController::class, 'save'],
+    'admin-role-permissions' => [RolesAndPermissionsController::class, 'index'],
+    'admin-role-permissions-save' => [RolesAndPermissionsController::class, 'save'],
     'dashboard' => [
     DashboardController::class,
     'index'

@@ -27,15 +27,15 @@ class RolePermissionModel
                 permission_id INT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE KEY uq_role_permission (role_id, permission_id),
-                CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE ON UPDATE CASCADE,
-                CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE ON UPDATE CASCADE
+                CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
     }
 
     public function getRoles(): array
     {
-        $stmt = $this->pdo->prepare('SELECT role_id, role_name, description FROM roles ORDER BY role_name ASC');
+        $stmt = $this->pdo->prepare('SELECT id, name FROM roles ORDER BY name ASC');
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -43,7 +43,7 @@ class RolePermissionModel
 
     public function getPermissions(): array
     {
-        $stmt = $this->pdo->prepare('SELECT permission_id, permission_name, module_name, description FROM permissions ORDER BY module_name ASC, permission_name ASC');
+        $stmt = $this->pdo->prepare('SELECT id, name, module FROM permissions ORDER BY module ASC, name ASC');
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

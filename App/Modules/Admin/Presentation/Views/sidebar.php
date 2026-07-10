@@ -1,6 +1,8 @@
 <?php
 $activeMenu = $activeMenu ?? 'dashboard';
-$settingsExpanded = in_array($activeMenu, ['settings', 'roles', 'permissions', 'assign-permissions', 'student-permissions'], true);
+$settingsExpanded = in_array($activeMenu, [
+    'settings', 'role-permissions',
+], true);
 
 $menuItems = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-house', 'href' => BASE_URL . '/index.php?page=admin-dashboard'],
@@ -15,18 +17,62 @@ $menuItems = [
         'icon' => 'bi-gear',
         'href' => '#',
         'children' => [
-            ['key' => 'roles', 'label' => 'Role Management', 'icon' => 'bi-person-gear', 'href' => BASE_URL . '/index.php?page=admin-roles'],
-            ['key' => 'permissions', 'label' => 'Permission Management', 'icon' => 'bi-shield-lock', 'href' => BASE_URL . '/index.php?page=admin-permissions'],
-            ['key' => 'assign-permissions', 'label' => 'Assign Permissions', 'icon' => 'bi-person-check', 'href' => BASE_URL . '/index.php?page=admin-assign-permissions'],
-            ['key' => 'student-permissions', 'label' => 'Student Permissions', 'icon' => 'bi-person-lines', 'href' => BASE_URL . '/index.php?page=admin-settings-student-permissions'],
+            ['key' => 'role-permissions', 'label' => 'Roles & Permissions', 'icon' => 'bi-shield-check', 'href' => BASE_URL . '/index.php?page=admin-role-permissions'],
         ],
     ],
 ];
-?>
 
+function renderMenuItems(array $items, string $activeMenu, bool $settingsExpanded, string $prefix): string
+{
+    ob_start();
+    foreach ($items as $item):
+        $isActive = $activeMenu === $item['key'];
+?>
+        <div class="<?= $prefix === 'desktop' ? 'relative' : '' ?>">
+            <?php if (!empty($item['children'])): ?>
+                <button class="sidebar-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline outline-none border-0 bg-transparent group
+                        <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
+                        type="button"
+                        data-toggle="submenu"
+                        aria-expanded="<?= $settingsExpanded ? 'true' : 'false' ?>">
+                    <span class="flex items-center gap-3">
+                        <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $settingsExpanded ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
+                        <span><?= htmlspecialchars($item['label']) ?></span>
+                    </span>
+                    <i class="bi settings-chevron text-xs transition-transform duration-200 <?= $settingsExpanded ? 'bi-chevron-up rotate-180 text-white' : 'bi-chevron-down text-slate-400 group-hover:text-indigo-600' ?>"></i>
+                </button>
+
+                <div class="submenu <?= $settingsExpanded ? 'open' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
+                    <?php foreach ($item['children'] as $child):
+                        $isChildActive = $activeMenu === $child['key'];
+                    ?>
+                        <a class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
+                                <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm sidebar-link-active' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>"
+                           href="<?= htmlspecialchars($child['href']) ?>">
+                            <i class="bi <?= htmlspecialchars($child['icon']) ?> text-sm <?= $isChildActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600' ?>"></i>
+                            <span><?= htmlspecialchars($child['label']) ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <a class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
+                        <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
+                   href="<?= htmlspecialchars($item['href']) ?>">
+                    <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
+                    <span><?= htmlspecialchars($item['label']) ?></span>
+                </a>
+            <?php endif; ?>
+        </div>
+<?php
+    endforeach;
+    return ob_get_clean();
+}
+?>
 <style>
-    .collapsing {
-        transition: height 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    .submenu {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     }
     .bg-custom-gradient {
         background: linear-gradient(135deg, #5d5bf6 0%, #3b39df 100%) !important;
@@ -45,17 +91,7 @@ $menuItems = [
     }
 </style>
 
-<aside
-class="hidden md:flex md:flex-col justify-between
-w-64
-h-screen
-sticky
-top-0
-bg-white
-border-r
-border-slate-100
-p-4
-shrink-0">
+<aside class="hidden md:flex md:flex-col justify-between w-64 h-screen sticky top-0 bg-white border-r border-slate-100 p-4 shrink-0">
     <div>
         <div class="flex items-center gap-3 px-2 mb-8">
             <div class="flex items-center justify-center w-10 h-10 bg-indigo-50 text-custom-indigo rounded-xl">
@@ -66,53 +102,10 @@ shrink-0">
                 <p class="text-[11px] font-medium text-slate-400 m-0">Admin Panel</p>
             </div>
         </div>
-
         <nav class="space-y-1">
-            <?php foreach ($menuItems as $item): ?>
-                <?php 
-                    $isActive = $activeMenu === $item['key']; 
-                    $isSettingsGroup = $item['key'] === 'settings';
-                ?>
-                <div class="relative">
-                    <?php if (!empty($item['children'])): ?>
-                        <button class="sidebar-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline outline-none border-0 bg-transparent group
-                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#settingsSubmenuDesktop"
-                                aria-expanded="<?= $settingsExpanded ? 'true' : 'false' ?>"
-                                aria-controls="settingsSubmenuDesktop">
-                            <span class="flex items-center gap-3">
-                                <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $settingsExpanded ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
-                                <span><?= htmlspecialchars($item['label']) ?></span>
-                            </span>
-                            <i class="bi settings-chevron text-xs transition-transform duration-200 <?= $settingsExpanded ? 'bi-chevron-up rotate-180 text-white' : 'bi-chevron-down text-slate-400 group-hover:text-indigo-600' ?>"></i>
-                        </button>
-
-                        <div id="settingsSubmenuDesktop" class="collapse <?= $settingsExpanded ? 'show' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
-                            <?php foreach ($item['children'] as $child): ?>
-                                <?php $isChildActive = $activeMenu === $child['key']; ?>
-                                <a class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
-                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm sidebar-link-active' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
-                                   href="<?= htmlspecialchars($child['href']) ?>">
-                                    <i class="bi <?= htmlspecialchars($child['icon']) ?> text-sm <?= $isChildActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600' ?>"></i>
-                                    <span><?= htmlspecialchars($child['label']) ?></span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <a class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
-                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
-                           href="<?= htmlspecialchars($item['href']) ?>">
-                            <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
-                            <span><?= htmlspecialchars($item['label']) ?></span>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
+            <?= renderMenuItems($menuItems, $activeMenu, $settingsExpanded, 'desktop') ?>
         </nav>
     </div>
-
     <div class="border-t border-slate-100 pt-4">
         <div class="flex items-center gap-2.5 px-2 text-slate-400">
             <i class="bi bi-shield-check text-base text-emerald-500"></i>
@@ -134,53 +127,10 @@ shrink-0">
         </div>
         <button type="button" class="btn-close shadow-none focus:outline-none text-xs" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
-    
     <div class="offcanvas-body p-4 flex flex-col justify-between h-full">
         <nav class="space-y-1.5 w-full">
-            <?php foreach ($menuItems as $item): ?>
-                <?php 
-                    $isActive = $activeMenu === $item['key']; 
-                    $settingsExpanded = in_array($activeMenu, ['settings', 'roles', 'permissions', 'assign-permissions', 'student-permissions'], true);
-                ?>
-                <div>
-                    <?php if (!empty($item['children'])): ?>
-                        <button class="sidebar-link w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline border-0 bg-transparent group
-                                <?= $settingsExpanded ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#settingsSubmenuMobile"
-                                aria-expanded="<?= $settingsExpanded ? 'true' : 'false' ?>"
-                                aria-controls="settingsSubmenuMobile">
-                            <span class="flex items-center gap-3">
-                                <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $settingsExpanded ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
-                                <span><?= htmlspecialchars($item['label']) ?></span>
-                            </span>
-                            <i class="bi settings-chevron text-xs transition-transform duration-200 <?= $settingsExpanded ? 'bi-chevron-up rotate-180 text-white' : 'bi-chevron-down text-slate-400 group-hover:text-indigo-600' ?>"></i>
-                        </button>
-
-                        <div id="settingsSubmenuMobile" class="collapse <?= $settingsExpanded ? 'show' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
-                            <?php foreach ($item['children'] as $child): ?>
-                                <?php $isChildActive = $activeMenu === $child['key']; ?>
-                                <a class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 no-underline group
-                                        <?= $isChildActive ? 'text-white bg-custom-gradient shadow-sm sidebar-link-active' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50' ?>" 
-                                   href="<?= htmlspecialchars($child['href']) ?>">
-                                    <i class="bi <?= htmlspecialchars($child['icon']) ?> text-sm <?= $isChildActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600' ?>"></i>
-                                    <span><?= htmlspecialchars($child['label']) ?></span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <a class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group
-                                <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>" 
-                           href="<?= htmlspecialchars($item['href']) ?>">
-                            <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
-                            <span><?= htmlspecialchars($item['label']) ?></span>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
+            <?= renderMenuItems($menuItems, $activeMenu, $settingsExpanded, 'mobile') ?>
         </nav>
-
         <div class="border-t border-slate-100 pt-4 mt-auto">
             <div class="flex items-center gap-2.5 text-slate-400">
                 <i class="bi bi-shield-check text-base text-emerald-500"></i>
@@ -191,36 +141,76 @@ shrink-0">
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((button) => {
-            const targetId = button.getAttribute('data-bs-target');
-            const targetElement = document.querySelector(targetId);
-            const chevron = button.querySelector('.settings-chevron');
-            const icon = button.querySelector('.bi:not(.settings-chevron)');
+(function() {
+    'use strict';
 
-            if (!targetElement || !chevron) return;
+    function updateButtonState(button, isOpen) {
+        if (!button) return;
+        var chevron = button.querySelector('.settings-chevron');
+        var icon = button.querySelector('.bi:not(.settings-chevron)');
+        if (!chevron) return;
 
-            targetElement.addEventListener('show.bs.collapse', () => {
-                chevron.classList.add('rotate-180', 'bi-chevron-up', 'text-white');
-                chevron.classList.remove('bi-chevron-down', 'text-slate-400');
-                button.classList.add('text-white', 'bg-custom-gradient', 'shadow-md');
-                button.classList.remove('text-slate-600', 'hover:text-indigo-600', 'hover:bg-slate-50');
-                if (icon) {
-                    icon.classList.add('text-white');
-                    icon.classList.remove('text-slate-600');
-                }
-            });
+        button.classList.toggle('text-white', isOpen);
+        button.classList.toggle('bg-custom-gradient', isOpen);
+        button.classList.toggle('shadow-md', isOpen);
+        button.classList.toggle('sidebar-link-active', isOpen);
+        button.classList.toggle('text-slate-600', !isOpen);
+        button.classList.toggle('hover:text-indigo-600', !isOpen);
+        button.classList.toggle('hover:bg-slate-50', !isOpen);
 
-            targetElement.addEventListener('hide.bs.collapse', () => {
-                chevron.classList.remove('rotate-180', 'bi-chevron-up', 'text-white');
-                chevron.classList.add('bi-chevron-down', 'text-slate-400');
-                button.classList.remove('text-white', 'bg-custom-gradient', 'shadow-md');
-                button.classList.add('text-slate-600', 'hover:text-indigo-600', 'hover:bg-slate-50');
-                if (icon) {
-                    icon.classList.remove('text-white');
-                    icon.classList.add('text-slate-600');
-                }
-            });
-        });
+        chevron.classList.toggle('rotate-180', isOpen);
+        chevron.classList.toggle('bi-chevron-up', isOpen);
+        chevron.classList.toggle('text-white', isOpen);
+        chevron.classList.toggle('bi-chevron-down', !isOpen);
+        chevron.classList.toggle('text-slate-400', !isOpen);
+
+        if (icon) {
+            icon.classList.toggle('text-white', isOpen);
+            icon.classList.toggle('text-slate-600', !isOpen);
+        }
+
+        button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function init() {
+        var submenus = document.querySelectorAll('.submenu');
+        var i, sm, btn;
+
+        for (i = 0; i < submenus.length; i++) {
+            sm = submenus[i];
+            sm.style.maxHeight = sm.classList.contains('open') ? sm.scrollHeight + 'px' : '0';
+        }
+
+        var toggles = document.querySelectorAll('[data-toggle="submenu"]');
+        for (i = 0; i < toggles.length; i++) {
+            btn = toggles[i];
+            sm = btn.nextElementSibling;
+            if (sm && sm.classList.contains('submenu')) {
+                updateButtonState(btn, sm.classList.contains('open'));
+            }
+        }
+    }
+
+    init();
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-toggle="submenu"]');
+        if (!btn) return;
+
+        var sm = btn.nextElementSibling;
+        if (!sm || !sm.classList.contains('submenu')) return;
+
+        var isOpen = sm.classList.contains('open');
+
+        if (isOpen) {
+            sm.classList.remove('open');
+            sm.style.maxHeight = '0';
+        } else {
+            sm.classList.add('open');
+            sm.style.maxHeight = sm.scrollHeight + 'px';
+        }
+
+        updateButtonState(btn, !isOpen);
     });
+})();
 </script>

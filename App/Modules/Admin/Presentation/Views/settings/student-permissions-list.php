@@ -1,103 +1,75 @@
 <?php
 $students = $students ?? [];
 $search = $search ?? '';
+ob_start();
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($pageTitle ?? 'Student Permission Management') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body { background: #f5f7fb; padding-top: 72px; }
-        .admin-sidebar { width: 260px; min-height: calc(100vh - 72px); background: #fff; border-right: 1px solid #e7ebf3; position: sticky; top: 72px; }
-        .admin-content { min-height: calc(100vh - 72px); }
-        .card-soft { border: 0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
-    </style>
-</head>
-<body class="h-full text-slate-700 antialiased font-sans m-0 p-0">
-    <?php
-    $sidebarPath = file_exists(__DIR__ . '/sidebar.php') ? __DIR__ . '/sidebar.php' : __DIR__ . '/../sidebar.php';
-    $headerPath = file_exists(__DIR__ . '/header.php') ? __DIR__ . '/header.php' : __DIR__ . '/../header.php';
-    ?>
-    <!-- admin-shell-wrapper -->
-    <div class="flex h-screen overflow-hidden">
-        <div class="hidden md:flex md:shrink-0 h-full">
-            <?php include $sidebarPath; ?>
+<div class="px-4 sm:px-8 lg:px-10 py-8 space-y-8 flex-1 max-w-[1600px] w-full mx-auto">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900">Student Permission Management</h2>
+            <p class="text-slate-500 text-sm mt-1">Manage the student portal features available to each student account.</p>
         </div>
-        <div class="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
-            <?php include $headerPath; ?>
-            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f4f7fc]">
-                <div class="max-w-[1400px] mx-auto space-y-6">
-                    <main class="admin-content flex-grow-1 p-3 p-lg-4">
-                        <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold mb-1">Student Permission Management</h2>
-                        <p class="text-muted mb-0">Manage the student portal features available to each student account.</p>
-                    </div>
-                    <a href="<?= BASE_URL ?>/index.php?page=admin-dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
-                </div>
+        <a href="<?= BASE_URL ?>/index.php?page=admin-dashboard" class="inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm transition">
+            <i class="fas fa-arrow-left"></i>Back to Dashboard
+        </a>
+    </div>
 
-                <div class="card card-soft">
-                    <div class="card-body p-4">
-                        <form method="get" class="row g-2 mb-4">
-                            <input type="hidden" name="page" value="admin-settings-student-permissions">
-                            <div class="col-md-8">
-                                <input type="text" name="search" class="form-control" placeholder="Search by student name or email" value="<?= htmlspecialchars($search) ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-primary w-100">Search</button>
-                            </div>
-                        </form>
-
-                        <div class="table-responsive">
-                            <table class="table align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Email</th>
-                                        <th>Status</th>
-                                        <th class="text-end">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if ($students === []): ?>
-                                        <tr><td colspan="4" class="text-center text-muted py-4">No students found.</td></tr>
-                                    <?php else: ?>
-                                        <?php foreach ($students as $student): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="fw-semibold"><?= htmlspecialchars((string)($student['username'] ?? '')) ?></div>
-                                                </td>
-                                                <td><?= htmlspecialchars((string)($student['email'] ?? '')) ?></td>
-                                                <td>
-                                                    <?php $statusId = (int)($student['status_id'] ?? 3); ?>
-                                                    <span class="badge bg-<?= $statusId === 1 ? 'success' : ($statusId === 2 ? 'warning' : 'secondary') ?>"><?= htmlspecialchars((string)($student['role_name'] ?? 'Student')) ?></span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="<?= BASE_URL ?>/index.php?page=admin-settings-student-permissions-manage&id=<?= (int)($student['user_id'] ?? 0) ?>" class="btn btn-outline-primary btn-sm">
-                                                        <i class="bi bi-shield-lock"></i> Manage
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="p-4 sm:p-6">
+            <form method="get" class="flex flex-col sm:flex-row gap-3 items-end">
+                <input type="hidden" name="page" value="admin-settings-student-permissions">
+                <div class="flex-1 w-full">
+                    <label for="search" class="block text-sm font-medium text-slate-700 mb-1">Search students</label>
+                    <input id="search" type="text" name="search" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Search by student name or email" value="<?= htmlspecialchars($search) ?>">
                 </div>
-            </div>
-                    </main>
-                </div>
-            </div>
+                <button type="submit" class="w-full sm:w-auto bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-medium text-sm transition">Search</button>
+            </form>
         </div>
     </div>
-    <!-- /admin-shell-wrapper -->
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if ($students === []): ?>
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-slate-500">No students found.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($students as $student): ?>
+                            <?php $statusId = (int)($student['status_id'] ?? 3); ?>
+                            <?php
+                                $badgeClass = $statusId === 1 ? 'bg-green-100 text-green-700' : ($statusId === 2 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600');
+                                $badgeText = htmlspecialchars((string)($student['role_name'] ?? 'Student'));
+                            ?>
+                            <tr class="hover:bg-slate-50/50 transition">
+                                <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-900"><?= htmlspecialchars((string)($student['username'] ?? '')) ?></td>
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-600"><?= htmlspecialchars((string)($student['email'] ?? '')) ?></td>
+                                <td class="px-4 py-3 whitespace-nowrap"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $badgeClass ?>"><?= $badgeText ?></span></td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right">
+                                    <a href="<?= BASE_URL ?>/index.php?page=admin-settings-student-permissions-manage&id=<?= (int)($student['user_id'] ?? 0) ?>" class="inline-flex items-center gap-1.5 bg-white border border-blue-300 hover:bg-blue-50 text-blue-600 px-2.5 py-1.5 rounded text-xs font-medium transition">
+                                        <i class="fas fa-shield-halved"></i> Manage
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';

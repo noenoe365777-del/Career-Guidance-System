@@ -39,7 +39,7 @@ class StudentFeaturePermissionController extends Controller
             [
                 'layout' => 'none',
                 'pageTitle' => 'Student Permission Management',
-                'activeMenu' => 'student-permissions',
+                'activeMenu' => 'role-permissions',
                 'students' => $students,
                 'search' => $search,
                 'currentPage' => $page,
@@ -66,7 +66,7 @@ class StudentFeaturePermissionController extends Controller
             [
                 'layout' => 'none',
                 'pageTitle' => 'Manage Student Permissions',
-                'activeMenu' => 'student-permissions',
+                'activeMenu' => 'role-permissions',
                 'user' => $user,
                 'features' => $this->studentFeaturePermissionModel->getFeatureDefinitions(),
                 'permissions' => $this->studentFeaturePermissionModel->getPermissionsForStudent($userId),

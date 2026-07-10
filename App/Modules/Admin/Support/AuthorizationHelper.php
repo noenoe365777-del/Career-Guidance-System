@@ -39,9 +39,9 @@ class AuthorizationHelper
         $stmt = $pdo->prepare(
             'SELECT COUNT(*)
              FROM role_permissions rp
-             INNER JOIN permissions p ON p.permission_id = rp.permission_id
+             INNER JOIN permissions p ON p.id = rp.permission_id
              WHERE rp.role_id = :role_id
-               AND LOWER(p.permission_name) = LOWER(:permission_name)'
+               AND LOWER(p.name) = LOWER(:permission_name)'
         );
         $stmt->execute([
             ':role_id' => $roleId,
@@ -54,7 +54,7 @@ class AuthorizationHelper
     private static function getRoleIdByName(string $roleName): int
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT role_id FROM roles WHERE LOWER(role_name) = LOWER(:role_name) LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id FROM roles WHERE LOWER(name) = LOWER(:role_name) LIMIT 1');
         $stmt->execute([':role_name' => trim($roleName)]);
 
         return (int)$stmt->fetchColumn();

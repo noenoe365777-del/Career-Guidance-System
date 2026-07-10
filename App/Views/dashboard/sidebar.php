@@ -21,10 +21,10 @@
             $currentStudentUserId = \App\Modules\Student\Support\StudentFeaturePermissionHelper::currentStudentUserId();
 
             $navItems = [
-                ['id' => 'dashboard', 'feature_key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
-                ['id' => 'student-assessments', 'feature_key' => 'assessments', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
-                ['id' => 'recommendation', 'feature_key' => 'career_maps', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
-                ['id' => 'settings', 'feature_key' => 'settings', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
+                ['id' => 'dashboard', 'feature_key' => 'view_dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
+                ['id' => 'student-assessments', 'feature_key' => 'take_assessment', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
+                ['id' => 'recommendation', 'feature_key' => 'view_recommendations', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
+                ['id' => 'settings', 'feature_key' => 'edit_profile', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
             ];
 
             foreach ($navItems as $item):

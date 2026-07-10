@@ -18,13 +18,29 @@ class StudentFeaturePermissionModel
 
     public function getFeatureDefinitions(): array
     {
+        $stmt = $this->pdo->query(
+            'SELECT feature_key, feature_label FROM student_role_permissions ORDER BY id ASC'
+        );
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($rows !== []) {
+            return array_map(fn($r) => [
+                'key' => $r['feature_key'],
+                'label' => $r['feature_label'],
+            ], $rows);
+        }
         return [
-            ['key' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
-            ['key' => 'assessments', 'label' => 'Assessments', 'route' => 'assessments'],
-            ['key' => 'career_maps', 'label' => 'Career Maps', 'route' => 'recommendation'],
-            ['key' => 'profile', 'label' => 'Profile', 'route' => 'profile'],
-            ['key' => 'settings', 'label' => 'Settings', 'route' => 'change-password'],
+            ['key' => 'view_dashboard', 'label' => 'View Dashboard'],
+            ['key' => 'take_assessment', 'label' => 'Take Assessment'],
+            ['key' => 'view_results', 'label' => 'View Assessment Results'],
+            ['key' => 'view_recommendations', 'label' => 'View Career Recommendations'],
+            ['key' => 'edit_profile', 'label' => 'Edit Profile'],
+            ['key' => 'change_password', 'label' => 'Change Password'],
         ];
+    }
+
+    private function getFeatureKeys(): array
+    {
+        return array_map(fn($f) => $f['key'], $this->getFeatureDefinitions());
     }
 
     public function ensurePermissionsForStudent(int $userId): void
@@ -33,64 +49,40 @@ class StudentFeaturePermissionModel
             return;
         }
 
-        $existingStmt = $this->pdo->prepare('SELECT user_id FROM student_permissions WHERE user_id = :user_id LIMIT 1');
-        $existingStmt->execute([':user_id' => $userId]);
+        $existing = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM student_feature_permissions WHERE user_id = :user_id'
+        );
+        $existing->execute([':user_id' => $userId]);
 
-        if ($existingStmt->fetch()) {
+        if ((int)$existing->fetchColumn() > 0) {
             return;
         }
 
-        $insertStmt = $this->pdo->prepare(
-            'INSERT INTO student_permissions (user_id, dashboard, assessments, career_maps, profile, settings)
-             VALUES (:user_id, 1, 1, 1, 1, 1)'
+        $insert = $this->pdo->prepare(
+            'INSERT INTO student_feature_permissions (user_id, feature_key, is_enabled)
+             VALUES (:user_id, :feature_key, 1)'
         );
-        $insertStmt->execute([':user_id' => $userId]);
+
+        foreach ($this->getFeatureKeys() as $featureKey) {
+            $insert->execute([
+                ':user_id' => $userId,
+                ':feature_key' => $featureKey,
+            ]);
+        }
     }
 
     public function getPermissionsForStudent(int $userId): array
     {
-        if ($userId <= 0) {
-            return [];
-        }
-
-        $this->ensurePermissionsForStudent($userId);
-
         $stmt = $this->pdo->prepare(
-            'SELECT dashboard, assessments, career_maps, profile, settings
-             FROM student_permissions
-             WHERE user_id = :user_id
-             LIMIT 1'
+            'SELECT feature_key, is_enabled FROM student_feature_permissions WHERE user_id = :user_id'
         );
         $stmt->execute([':user_id' => $userId]);
 
-        $row = $stmt->fetch();
-        if (!$row) {
-            return [
-                'dashboard' => true,
-                'assessments' => true,
-                'career_maps' => true,
-                'profile' => true,
-                'settings' => true,
-            ];
+        $result = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $result[(string)$row['feature_key']] = (int)$row['is_enabled'];
         }
-
-        return [
-            'dashboard' => (bool)(int)$row['dashboard'],
-            'assessments' => (bool)(int)$row['assessments'],
-            'career_maps' => (bool)(int)$row['career_maps'],
-            'profile' => (bool)(int)$row['profile'],
-            'settings' => (bool)(int)$row['settings'],
-        ];
-    }
-
-    public function hasFeatureAccess(int $userId, string $featureKey): bool
-    {
-        if ($userId <= 0) {
-            return true;
-        }
-
-        $permissions = $this->getPermissionsForStudent($userId);
-        return (bool)($permissions[$featureKey] ?? true);
+        return $result;
     }
 
     public function savePermissionsForStudent(int $userId, array $permissions): void
@@ -99,24 +91,41 @@ class StudentFeaturePermissionModel
             return;
         }
 
-        $this->ensurePermissionsForStudent($userId);
-
-        $stmt = $this->pdo->prepare(
-            'UPDATE student_permissions
-             SET dashboard = :dashboard,
-                 assessments = :assessments,
-                 career_maps = :career_maps,
-                 profile = :profile,
-                 settings = :settings
-             WHERE user_id = :user_id'
+        $upsert = $this->pdo->prepare(
+            'INSERT INTO student_feature_permissions (user_id, feature_key, is_enabled, created_at, updated_at)
+             VALUES (:user_id, :feature_key, :is_enabled, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), updated_at = NOW()'
         );
-        $stmt->execute([
-            ':dashboard' => !empty($permissions['dashboard']) ? 1 : 0,
-            ':assessments' => !empty($permissions['assessments']) ? 1 : 0,
-            ':career_maps' => !empty($permissions['career_maps']) ? 1 : 0,
-            ':profile' => !empty($permissions['profile']) ? 1 : 0,
-            ':settings' => !empty($permissions['settings']) ? 1 : 0,
-            ':user_id' => $userId,
-        ]);
+
+        foreach ($permissions as $featureKey => $isEnabled) {
+            $upsert->execute([
+                ':user_id' => $userId,
+                ':feature_key' => $featureKey,
+                ':is_enabled' => $isEnabled ? 1 : 0,
+            ]);
+        }
+    }
+
+    public function hasFeatureAccess(int $userId, string $featureKey): bool
+    {
+        if ($userId <= 0) {
+            return true;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT is_enabled FROM student_feature_permissions
+                 WHERE user_id = :user_id AND feature_key = :feature_key
+                 LIMIT 1'
+            );
+            $stmt->execute([
+                ':user_id' => $userId,
+                ':feature_key' => $featureKey,
+            ]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ? (bool)(int)$row['is_enabled'] : true;
+        } catch (\PDOException) {
+            return true;
+        }
     }
 }
