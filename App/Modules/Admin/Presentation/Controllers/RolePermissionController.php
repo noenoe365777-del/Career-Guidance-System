@@ -21,7 +21,8 @@ class RolePermissionController extends Controller
 
     public function index(): void
     {
-        AdminAuthMiddleware::requireAdmin();
+
+            AdminAuthMiddleware::requireAdmin();
         $this->requirePermission('assign_permissions');
 
         $selectedRoleId = (int)($_GET['role_id'] ?? 0);
@@ -31,7 +32,7 @@ class RolePermissionController extends Controller
 
         $groupedPermissions = [];
         foreach ($permissions as $permission) {
-            $moduleName = trim((string)($permission['module_name'] ?? 'General'));
+            $moduleName = trim((string)($permission['module'] ?? 'General'));
             $groupedPermissions[$moduleName][] = $permission;
         }
 
@@ -39,8 +40,8 @@ class RolePermissionController extends Controller
 
         $selectedRoleName = '';
         foreach ($roles as $role) {
-            if ((int)($role['role_id'] ?? 0) === $selectedRoleId) {
-                $selectedRoleName = (string)($role['role_name'] ?? '');
+            if ((int)($role['id'] ?? 0) === $selectedRoleId) {
+                $selectedRoleName = (string)($role['name'] ?? '');
                 break;
             }
         }
@@ -85,7 +86,7 @@ class RolePermissionController extends Controller
         }
 
         $errors = $this->validator->validate([
-            'role_id' => $roleId,
+            'id' => $roleId,
             'permissions' => $permissionIds,
         ]);
 
@@ -94,7 +95,7 @@ class RolePermissionController extends Controller
             $permissions = $this->rolePermissionModel->getPermissions();
             $groupedPermissions = [];
             foreach ($permissions as $permission) {
-                $moduleName = trim((string)($permission['module_name'] ?? 'General'));
+               $moduleName = trim((string)($permission['module'] ?? 'General'));
                 $groupedPermissions[$moduleName][] = $permission;
             }
             ksort($groupedPermissions);
@@ -118,6 +119,6 @@ class RolePermissionController extends Controller
         }
 
         $this->rolePermissionModel->saveAssignments($roleId, array_values(array_unique($permissionIds)));
-        $this->redirectTo('admin-assign-permissions', ['role_id' => $roleId, 'message' => 'saved']);
+        $this->redirectTo('admin-assign-permissions', ['id' => $roleId, 'message' => 'saved']);
     }
 }

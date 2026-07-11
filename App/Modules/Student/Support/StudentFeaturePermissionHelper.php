@@ -70,7 +70,7 @@ class StudentFeaturePermissionHelper
         return self::getFeatureKeyForPage($page) !== null;
     }
 
-    public static function ensureStudentPageAccess(string $page): bool
+    public static function ensureStudentPageAccess(string $page):bool
     {
         $featureKey = self::getFeatureKeyForPage($page);
         if ($featureKey === null) {

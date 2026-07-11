@@ -1,36 +1,25 @@
 <?php
 
-namespace App\Modules\Home\Presentation\Controllers;
+declare(strict_types=1);
+
+namespace App\Modules\Admin\Presentation\Controllers;
 
 use App\Modules\Admin\Infrastructure\ContactMessageModel;
 use App\Shared\Core\Controller;
-use App\Shared\Core\View;
 
-class HomeController extends Controller
+class AdminContactController extends Controller
 {
+    private ContactMessageModel $contactMessageModel;
+
+    public function __construct(?ContactMessageModel $contactMessageModel = null)
+    {
+        $this->contactMessageModel = $contactMessageModel ?? new ContactMessageModel();
+    }
+
     public function index(): void
     {
-        View::render('Home/Presentation/Views/home', [
-            'pageTitle' => 'Home - Career Guidance System'
-        ]);
-    }
+        AdminAuthMiddleware::requireAdmin();
 
-    public function about(): void
-    {
-        View::render('Home/Presentation/Views/about', [
-            'pageTitle' => 'About Us - Career Guidance System'
-        ]);
-    }
-
-    public function aboutUs(): void
-    {
-        View::render('Home/Presentation/Views/about-us', [
-            'pageTitle' => 'About Us - Career Guidance System'
-        ]);
-    }
-
-    public function contact(): void
-    {
         $errors = [];
         $success = null;
         $old = [];
@@ -60,8 +49,7 @@ class HomeController extends Controller
             }
 
             if ($errors === []) {
-                $model = new ContactMessageModel();
-                $model->saveMessage([
+                $this->contactMessageModel->saveMessage([
                     'full_name' => $fullName,
                     'email' => $email,
                     'subject' => $subject,
@@ -80,11 +68,16 @@ class HomeController extends Controller
             }
         }
 
-        View::render('Home/Presentation/Views/contact', [
-            'pageTitle' => 'Contact Us - Career Guidance System',
-            'errors' => $errors,
-            'success' => $success,
-            'old' => $old,
-        ]);
+        $this->view(
+            'Admin/Presentation/Views/contact/index',
+            [
+                'layout' => 'none',
+                'pageTitle' => 'Contact Us',
+                'activeMenu' => 'contact',
+                'errors' => $errors,
+                'success' => $success,
+                'old' => $old,
+            ]
+        );
     }
 }

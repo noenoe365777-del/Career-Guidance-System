@@ -6,6 +6,8 @@ namespace App\Routing;
 
 use App\Modules\Student\Support\StudentFeaturePermissionHelper;
 use App\Shared\Core\Container;
+use App\Shared\Core\Middleware;
+use App\Shared\Middleware\StudentAuthMiddleware;
 
 class Router
 {
@@ -13,22 +15,24 @@ class Router
 
     private Container $container;
 
-    private array $protectedRoutes = [
-        'dashboard',
-        'profile',
-        'edit-profile',
-        'update-profile',
-        'change-password',
-        'update-password',
-        'student-assessments',
-        'personality',
-        'interest',
-        'aptitude',
-        'values',
-        'assessment-progress',
-        'assessment-result',
-        'assessment-detailed-answers',
-        'recommendation',
+    private array $routeMiddleware = [
+        'dashboard' => [StudentAuthMiddleware::class],
+        'profile' => [StudentAuthMiddleware::class],
+        'edit-profile' => [StudentAuthMiddleware::class],
+        'update-profile' => [StudentAuthMiddleware::class],
+        'update-profile-image' => [StudentAuthMiddleware::class],
+        'change-password' => [StudentAuthMiddleware::class],
+        'update-password' => [StudentAuthMiddleware::class],
+        'student-change-password' => [StudentAuthMiddleware::class],
+        'student-assessments' => [StudentAuthMiddleware::class],
+        'personality' => [StudentAuthMiddleware::class],
+        'interest' => [StudentAuthMiddleware::class],
+        'aptitude' => [StudentAuthMiddleware::class],
+        'values' => [StudentAuthMiddleware::class],
+        'assessment-progress' => [StudentAuthMiddleware::class],
+        'assessment-result' => [StudentAuthMiddleware::class],
+        'assessment-detailed-answers' => [StudentAuthMiddleware::class],
+        'recommendation' => [StudentAuthMiddleware::class],
     ];
 
     public function __construct()
@@ -46,10 +50,7 @@ class Router
             return;
         }
 
-        if (in_array($page, $this->protectedRoutes, true) && empty($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/index.php?page=login');
-            exit;
-        }
+        $this->runMiddleware($page);
 
         if (StudentFeaturePermissionHelper::isStudentFeatureRestricted($page)) {
             StudentFeaturePermissionHelper::ensureStudentPageAccess($page);
@@ -60,5 +61,22 @@ class Router
         $controller = $this->container->make($controllerClass);
 
         $controller->$method();
+    }
+
+    private function runMiddleware(string $page): void
+    {
+        $middlewareList = $this->routeMiddleware[$page] ?? [];
+
+        foreach ($middlewareList as $middlewareClass) {
+            $instance = new $middlewareClass();
+
+            if (!$instance instanceof Middleware) {
+                throw new \RuntimeException(
+                    sprintf('Middleware "%s" must implement App\Shared\Core\Middleware', $middlewareClass)
+                );
+            }
+
+            $instance->handle();
+        }
     }
 }

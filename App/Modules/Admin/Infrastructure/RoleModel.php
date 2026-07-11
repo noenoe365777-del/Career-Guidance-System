@@ -18,7 +18,7 @@ class RoleModel
 
     public function getAllRoles(): array
     {
-        $stmt = $this->pdo->prepare('SELECT role_id, role_name, description FROM roles ORDER BY role_id ASC');
+        $stmt = $this->pdo->prepare('SELECT id, name, description FROM roles ORDER BY id ASC');
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -26,7 +26,7 @@ class RoleModel
 
     public function getRoleById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT role_id, role_name, description FROM roles WHERE role_id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, name, description FROM roles WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
 
         $role = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -35,9 +35,9 @@ class RoleModel
 
     public function createRole(array $data): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO roles (role_name, description) VALUES (:role_name, :description)');
+        $stmt = $this->pdo->prepare('INSERT INTO roles (name, description) VALUES (:name, :description)');
         $stmt->execute([
-            ':role_name' => trim((string)($data['role_name'] ?? '')),
+            ':name' => trim((string)($data['name'] ?? '')),
             ':description' => trim((string)($data['description'] ?? '')),
         ]);
 
@@ -46,9 +46,9 @@ class RoleModel
 
     public function updateRole(int $id, array $data): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE roles SET role_name = :role_name, description = :description WHERE role_id = :id');
+        $stmt = $this->pdo->prepare('UPDATE roles SET name = :name, description = :description WHERE id = :id');
         return $stmt->execute([
-            ':role_name' => trim((string)($data['role_name'] ?? '')),
+            ':name' => trim((string)($data['name'] ?? '')),
             ':description' => trim((string)($data['description'] ?? '')),
             ':id' => $id,
         ]);
@@ -56,17 +56,17 @@ class RoleModel
 
     public function deleteRole(int $id): bool
     {
-        $stmt = $this->pdo->prepare('DELETE FROM roles WHERE role_id = :id');
+        $stmt = $this->pdo->prepare('DELETE FROM roles WHERE id = :id');
         return $stmt->execute([':id' => $id]);
     }
 
     public function roleNameExists(string $roleName, ?int $excludeId = null): bool
     {
-        $sql = 'SELECT COUNT(*) FROM roles WHERE LOWER(role_name) = LOWER(:role_name)';
-        $params = [':role_name' => $roleName];
+        $sql = 'SELECT COUNT(*) FROM roles WHERE LOWER(name) = LOWER(:name)';
+        $params = [':name' => $roleName];
 
         if ($excludeId !== null) {
-            $sql .= ' AND role_id != :exclude_id';
+            $sql .= ' AND id != :exclude_id';
             $params[':exclude_id'] = $excludeId;
         }
 

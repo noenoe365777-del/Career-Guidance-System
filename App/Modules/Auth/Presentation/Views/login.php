@@ -5,10 +5,12 @@ $errors = $_SESSION['errors'] ?? [];
 
 $success = $_SESSION['success'] ?? null;
 
+$error = $_SESSION['error'] ?? null;
+
 $old = $_SESSION['old'] ?? [];
 
 unset(
-    
+    $_SESSION['error'],
     $_SESSION['errors'],
     $_SESSION['success'],
     $_SESSION['old']
@@ -74,6 +76,16 @@ $pageTitle = "Login";
             Login to continue your account
 
         </p>
+
+        <?php if ($error): ?>
+
+            <div class="mb-5 p-3 rounded-lg bg-red-100 text-red-700 border border-red-300">
+
+                <?= htmlspecialchars($error) ?>
+
+            </div>
+
+        <?php endif; ?>
 
         <?php if ($success): ?>
 

@@ -18,59 +18,73 @@ class RolePermissionModel
         $this->ensureTablesExist();
     }
 
-    private function ensureTablesExist(): void
-    {
-        $this->pdo->exec(
-            "CREATE TABLE IF NOT EXISTS role_permissions (
-                role_permission_id INT AUTO_INCREMENT PRIMARY KEY,
-                role_id INT NOT NULL,
-                permission_id INT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY uq_role_permission (role_id, permission_id),
-                CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-        );
+ private function ensureTablesExist(): void
+{
+    $this->pdo->exec(
+        "CREATE TABLE IF NOT EXISTS role_permissions (
+            role_permission_id INT AUTO_INCREMENT PRIMARY KEY,
+            role_id INT NOT NULL,
+            permission_id INT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_role_permission (role_id, permission_id),
+            CONSTRAINT fk_role_permissions_role
+                FOREIGN KEY (role_id) REFERENCES roles(id)
+                ON DELETE CASCADE ON UPDATE CASCADE,
+            CONSTRAINT fk_role_permissions_permission
+                FOREIGN KEY (permission_id) REFERENCES permissions(id)
+                ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+}
+
+    
+public function getRoles(): array
+{
+    $stmt = $this->pdo->query("SELECT id, name FROM roles");
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+   
+ public function getPermissions(): array
+{
+    $stmt = $this->pdo->prepare(
+        'SELECT id, name, module
+         FROM permissions
+         ORDER BY module ASC, name ASC'
+    );
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function getAssignedPermissionIds(int $roleId): array
+{
+    $stmt = $this->pdo->prepare(
+        'SELECT permission_id
+         FROM role_permissions
+         WHERE role_id = :role_id'
+    );
+
+    $stmt->execute([
+        ':role_id' => $roleId
+    ]);
+
+    $ids = [];
+
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $ids[] = (int)$row['permission_id'];
     }
 
-    public function getRoles(): array
-    {
-        $stmt = $this->pdo->prepare('SELECT id, name FROM roles ORDER BY name ASC');
-        $stmt->execute();
-
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function getPermissions(): array
-    {
-        $stmt = $this->pdo->prepare('SELECT id, name, module FROM permissions ORDER BY module ASC, name ASC');
-        $stmt->execute();
-
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function getAssignedPermissionIds(int $roleId): array
-    {
-        $stmt = $this->pdo->prepare('SELECT permission_id FROM role_permissions WHERE role_id = :role_id');
-        $stmt->execute([':role_id' => $roleId]);
-
-        $ids = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $id = (int)($row['permission_id'] ?? 0);
-            if ($id > 0) {
-                $ids[] = $id;
-            }
-        }
-
-        return $ids;
-    }
+    return $ids;
+}
 
     public function saveAssignments(int $roleId, array $permissionIds): void
     {
         $this->pdo->beginTransaction();
 
         try {
-            $deleteStmt = $this->pdo->prepare('DELETE FROM role_permissions WHERE role_id = :role_id');
+            $deleteStmt = $this->pdo->prepare('DELETE FROM role_permissions
+WHERE role_id = :role_id');
             $deleteStmt->execute([':role_id' => $roleId]);
 
             if ($permissionIds !== []) {

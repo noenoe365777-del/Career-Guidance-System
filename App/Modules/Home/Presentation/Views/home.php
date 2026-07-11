@@ -1,126 +1,88 @@
-<?php
-/**
- * View: Home Landing Page
- * Location: C:\xampp\htdocs\career-guidance-system\App\Modules\Home\Presentation\Views\home.php
- */
-?>
-
-<!-- Modern Premium Animation and Interaction Styles -->
 <style>
-    /* Entry animation for content columns */
-    @keyframes revealPremium {
-        0% { 
-            opacity: 0; 
-            transform: translateY(12px); 
-        }
-        100% { 
-            opacity: 1; 
-            transform: translateY(0); 
-        }
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(24px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
-    .animate-reveal {
-        animation: revealPremium 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
     }
-
-    /* Live subtle floating loop for showcase graphics */
-    @keyframes floatLive {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-6px); }
-        100% { transform: translateY(0px); }
+    @keyframes growWidth {
+        0% { width: 0; }
+        100% { width: 2.5rem; }
+    }
+    .animate-fade-in {
+        animation: fadeInUp 0.6s ease-out forwards;
     }
     .animate-float {
-        animation: floatLive 4s ease-in-out infinite;
+        animation: float 4s ease-in-out infinite;
+    }
+    .fade-section {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .fade-section.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .stagger-card {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    }
+    .fade-section.visible .stagger-card {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .fade-section.visible .stagger-card:nth-child(1) { transition-delay: 0ms; }
+    .fade-section.visible .stagger-card:nth-child(2) { transition-delay: 100ms; }
+    .fade-section.visible .stagger-card:nth-child(3) { transition-delay: 200ms; }
+    .fade-section.visible .stagger-card:nth-child(4) { transition-delay: 300ms; }
+    .underline-grow {
+        width: 0;
+        transition: width 0.6s ease-out;
+    }
+    .fade-section.visible .underline-grow {
+        width: 2.5rem;
     }
 </style>
 
-<!-- ================= HERO SECTION ================= -->
-<section class="relative overflow-hidden bg-white min-h-[55vh] flex items-center selection:bg-blue-600 selection:text-white py-6 sm:py-8 border-b border-slate-50">
-    
-    <!-- Subtle Ambient Background Accents -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="absolute top-[-20%] right-[-5%] w-[35rem] h-[35rem] bg-blue-50/40 rounded-full filter blur-[100px] opacity-60"></div>
-        <div class="absolute bottom-[5%] left-[-5%] w-[25rem] h-[25rem] bg-indigo-50/30 rounded-full filter blur-[80px] opacity-50"></div>
-    </div>
+<section class="relative bg-gradient-to-b from-white to-slate-50 py-10 lg:py-14">
+    <div class="absolute top-[-15%] right-[-8%] w-[30rem] h-[30rem] bg-blue-100/50 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] left-[-5%] w-[25rem] h-[25rem] bg-indigo-100/30 rounded-full blur-[100px] pointer-events-none"></div>
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full">
-        <!-- 12-Column Layout Matrix -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 items-center">
-            
-            <!-- Left Narrative Column -->
-            <div class="lg:col-span-7 space-y-4 opacity-0 animate-reveal">
-                
-                <div class="space-y-2">
-                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0f2d59] leading-[1.12]">
-                        Discover the Right <br class="hidden md:inline" />Career Path for You
-                    </h1>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
 
-                    <!-- Paragraph Description -->
-                    <p class="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-xl font-normal">
-                        Take assessments, explore career options, and get personalized guidance to build a successful future.
-                    </p>
-                </div>
-
-                <!-- Call To Actions -->
-                <div class="flex flex-wrap gap-2.5 pt-0.5">
+            <div class="animate-fade-in">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#0f2d59] leading-[1.12]">
+                    Discover the Right<br>Career Path for You
+                </h1>
+                <p class="mt-4 text-sm sm:text-base text-slate-500 leading-relaxed max-w-lg">
+                    Take assessments, explore career options, and get personalized guidance to build a successful future.
+                </p>
+                <div class="flex flex-wrap gap-3 mt-7">
                     <a href="<?= BASE_URL ?>/index.php?page=assessments"
-                       class="inline-flex items-center justify-center px-4 h-10 rounded-md bg-blue-600 text-white font-semibold text-xs shadow-sm hover:bg-blue-700 active:scale-[0.98] transition-all duration-150">
+                       class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-start via-brand-mid to-brand-end text-white font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 text-sm">
+                        <i class="fas fa-pencil-alt text-xs"></i>
                         Take Assessment
                     </a>
                     <a href="<?= BASE_URL ?>/index.php?page=careers"
-                       class="inline-flex items-center justify-center px-4 h-10 rounded-md bg-white border border-blue-600 text-blue-600 font-semibold text-xs hover:bg-blue-50 active:scale-[0.98] transition-all duration-150">
+                       class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md hover:-translate-y-1 active:scale-[0.98] transition-all duration-300">
+                        <i class="fas fa-briefcase text-xs"></i>
                         Explore Careers
                     </a>
                 </div>
-
-                <!-- Inline Mini-Feature Badging Row -->
-                <div class="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-100">
-                    
-                    <!-- Feature 1: Discover Your Strengths -->
-                    <div class="flex items-start gap-2 group">
-                        <div class="w-8 h-8 flex-shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform duration-200">
-                            <i class="fas fa-brain text-[11px]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-xs text-[#0f2d59] leading-snug">Discover Your Strengths</h4>
-                            <p class="text-[10.5px] text-slate-400 leading-tight">Scientifically designed assessments</p>
-                        </div>
-                    </div>
-
-                    <!-- Feature 2: Personalized Analysis -->
-                    <div class="flex items-start gap-2 group">
-                        <div class="w-8 h-8 flex-shrink-0 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-105 transition-transform duration-200">
-                            <i class="fas fa-chart-pie text-[11px]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-xs text-[#0f2d59] leading-snug">Personalized Analysis</h4>
-                            <p class="text-[10.5px] text-slate-400 leading-tight">Detailed insights about your skills</p>
-                        </div>
-                    </div>
-
-                    <!-- Feature 3: Career Recommendations -->
-                    <div class="flex items-start gap-2 group">
-                        <div class="w-8 h-8 flex-shrink-0 rounded-full bg-pink-50 flex items-center justify-center text-pink-500 group-hover:scale-105 transition-transform duration-200">
-                            <i class="fas fa-route text-[11px]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-xs text-[#0f2d59] leading-snug">Career Recommendations</h4>
-                            <p class="text-[10.5px] text-slate-400 leading-tight">Find best paths that match profile</p>
-                        </div>
-                    </div>
-
-                </div>
             </div>
 
-            <!-- Right Showcase Graphic Column -->
-            <div class="lg:col-span-5 relative w-full flex justify-center lg:justify-end opacity-0 animate-reveal [animation-delay:150ms] z-10">
-                <!-- Combines live float loop, rich transitions, and high fidelity hover shadow changes -->
-                <div class="animate-float relative w-full max-w-xs sm:max-w-sm lg:max-w-full overflow-hidden rounded-xl shadow-md border border-slate-100/80 bg-white p-1 transition-all duration-300 hover:shadow-2xl hover:border-blue-100 group">
-                    <img
-                        src="<?= BASE_URL ?>/assets/images/home.png"
-                        class="w-full h-auto object-cover rounded-lg transform transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-                        alt="Career Guidance System Interface">
-                    
-                    <div class="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-transparent to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-lg"></div>
+            <div class="flex justify-center lg:justify-end">
+                <div class="relative w-full max-w-sm lg:max-w-md group animate-float">
+                    <div class="relative overflow-hidden rounded-2xl shadow-lg border border-slate-100 bg-white transition-all duration-500 group-hover:shadow-xl group-hover:shadow-indigo-200/40">
+                        <img src="<?= BASE_URL ?>/assets/images/home.png"
+                             class="w-full h-auto object-cover transition-all duration-500 group-hover:scale-105 group-hover:-rotate-1"
+                             alt="Career Guidance System Interface">
+                    </div>
                 </div>
             </div>
 
@@ -128,85 +90,142 @@
     </div>
 </section>
 
-<!-- ================= HOW IT WORKS SECTION ================= -->
-<section class="py-6 sm:py-8 bg-white relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+<section class="fade-section py-10 lg:py-12 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- Centered Section Header -->
-        <div class="text-center mb-5 max-w-2xl mx-auto">
-            <div class="inline-block pb-1 relative">
-                <h2 class="text-xl font-bold text-[#0f2d59] tracking-tight">
-                    How It Works
-                </h2>
-                <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-full mx-auto w-full"></div>
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 py-6 px-6 lg:px-10">
+            <div class="text-center mb-6">
+                <span class="inline-block text-[11px] font-bold text-indigo-600 uppercase tracking-[0.2em] mb-2">How It Works</span>
+                <div class="flex justify-center mt-3">
+                    <span class="inline-block h-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-300 underline-grow"></span>
+                </div>
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto stagger-group">
+                <div class="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-indigo-300 transition-all duration-300 overflow-hidden relative flex flex-col stagger-card">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="p-5 relative flex flex-col gap-2.5 h-full">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
+                            <i class="fas fa-clipboard-check text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Take Assessment</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed flex-1">Answer carefully designed questions about your interests, personality, and aptitude.</p>
+                        
+                    </div>
+                </div>
+
+                <div class="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-indigo-300 transition-all duration-300 overflow-hidden relative flex flex-col stagger-card">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="p-5 relative flex flex-col gap-2.5 h-full">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
+                            <i class="fas fa-chart-pie text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Get Results</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed flex-1">Receive detailed insights and a personalized analysis of your strengths and preferences.</p>
+                       
+                    </div>
+                </div>
+
+                <div class="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-indigo-300 transition-all duration-300 overflow-hidden relative flex flex-col stagger-card">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-50/50 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="p-5 relative flex flex-col gap-2.5 h-full">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
+                            <i class="fas fa-compass text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Explore Careers</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed flex-1">Browse career options matched to your profile and learn about each path in detail.</p>
+                        
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 4-Step Process Grid (Utilizes items-stretch + h-full for perfectly uniform card dimensions) -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch relative">
-            <?php
-            $steps = [
-                [
-                    'num' => '1',
-                    'title' => 'Take Assessment',
-                    'desc' => 'Answer questions about interests and personality.',
-                    'numBg' => 'bg-blue-50',
-                    'numText' => 'text-blue-500'
-                ],
-                [
-                    'num' => '2',
-                    'title' => 'Get Your Results',
-                    'desc' => 'Our system analyzes your responses and generates metrics.',
-                    'numBg' => 'bg-emerald-50',
-                    'numText' => 'text-emerald-500'
-                ],
-                [
-                    'num' => '3',
-                    'title' => 'View Recommendations',
-                    'desc' => 'Get personalized career options matching your profile.',
-                    'numBg' => 'bg-pink-50',
-                    'numText' => 'text-pink-500'
-                ],
-                [
-                    'num' => '4',
-                    'title' => 'Explore Details',
-                    'desc' => 'Explore structural data, salaries, and growth trends.',
-                    'numBg' => 'bg-amber-50',
-                    'numText' => 'text-amber-500'
-                ]
-            ];
+    </div>
+</section>
 
-            foreach($steps as $index => $step):
-            ?>
-            <div class="relative group flex flex-col items-center md:items-start text-center md:text-left bg-white border border-slate-100 rounded-lg p-4 shadow-sm hover:shadow-md h-full w-full transition-all duration-200">
-                
-                <!-- Sequential Step Badge Component -->
-                <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] shadow-inner <?= $step['numBg'] ?> <?= $step['numText'] ?>">
-                    <?= $step['num'] ?>
-                </div>
+<section class="fade-section py-10 lg:py-12 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <!-- Step Title & Description Typography -->
-                <h3 class="font-bold text-sm text-[#0f2d59] mt-3 tracking-tight">
-                    <?= $step['title'] ?>
-                </h3>
-
-                <p class="text-xs text-slate-400 mt-1.5 leading-relaxed font-normal">
-                    <?= $step['desc'] ?>
-                </p>
-
-                <!-- Vector Connector Arrows -->
-                <?php if($index < 3): ?>
-                <div class="hidden md:flex absolute top-1/2 -right-2.5 transform -translate-y-1/2 z-20 text-slate-300 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all duration-200">
-                    <i class="fas fa-arrow-right text-[10px]"></i>
-                </div>
-                <?php endif; ?>
-
+        <div class="text-center mb-8">
+            <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0f2d59]">Popular Careers</h2>
+            <div class="flex justify-center mt-4">
+                <span class="inline-block h-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-300 underline-grow"></span>
             </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger-group">
+            <?php
+            $popular = [
+                ['name' => 'Software Engineer', 'category' => 'Technology', 'icon' => 'fa-code', 'slug' => 'software-engineer', 'color' => 'indigo', 'desc' => 'Design and develop software systems that power businesses and everyday life.'],
+                ['name' => 'Data Analyst', 'category' => 'Technology', 'icon' => 'fa-database', 'slug' => 'data-analyst', 'color' => 'indigo', 'desc' => 'Interpret complex datasets to drive data-driven decision-making.'],
+                ['name' => 'UX Designer', 'category' => 'Creative Arts', 'icon' => 'fa-paint-brush', 'slug' => 'ux-designer', 'color' => 'orange', 'desc' => 'Craft intuitive and accessible user experiences for digital products.'],
+                ['name' => 'Nurse', 'category' => 'Healthcare', 'icon' => 'fa-heartbeat', 'slug' => 'nurse', 'color' => 'emerald', 'desc' => 'Provide compassionate patient care and collaborate with medical teams.'],
+            ];
+            $colorClasses = [
+                'indigo' => ['from-indigo-500', 'to-indigo-600', 'bg-indigo-100', 'text-indigo-600'],
+                'orange' => ['from-amber-500', 'to-orange-500', 'bg-amber-100', 'text-amber-600'],
+                'emerald' => ['from-emerald-500', 'to-emerald-600', 'bg-emerald-100', 'text-emerald-600'],
+            ];
+            foreach ($popular as $i => $p):
+                $c = $colorClasses[$p['color']];
+            ?>
+            <a href="<?= BASE_URL ?>/index.php?page=career-detail&id=<?= $p['slug'] ?>"
+               class="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-indigo-300 transition-all duration-300 overflow-hidden relative flex flex-col stagger-card">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-<?= $p['color'] ?>-50/50 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="p-5 relative flex flex-col gap-2.5 h-full">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br <?= $c[0] ?> <?= $c[1] ?> flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
+                        <i class="fas <?= $p['icon'] ?> text-white text-sm"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900"><?= htmlspecialchars($p['name']) ?></h3>
+                    <span class="inline-block self-start px-2.5 py-1 rounded-full <?= $c[2] ?> <?= $c[3] ?> text-[10px] font-semibold uppercase tracking-wider"><?= htmlspecialchars($p['category']) ?></span>
+                    <p class="text-xs text-slate-500 leading-relaxed line-clamp-2"><?= htmlspecialchars($p['desc']) ?></p>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 group-hover:text-indigo-800 transition-colors mt-auto pt-1">
+                    View Details
+                        <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                    </span>
+                </div>
+            </a>
             <?php endforeach; ?>
         </div>
 
+        <div class="text-center mt-8">
+            <a href="<?= BASE_URL ?>/index.php?page=careers"
+               class="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold px-8 py-3.5 rounded-full border border-indigo-200 shadow-sm hover:shadow-xl hover:bg-indigo-50 hover:border-indigo-300 hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 text-sm">
+                View All Careers
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+
     </div>
 </section>
 
+<script>
+    (function() {
+        var sections = document.querySelectorAll('.fade-section');
 
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15 });
 
+            sections.forEach(function(s) { observer.observe(s); });
+        } else {
+            function checkVisibility() {
+                for (var i = 0; i < sections.length; i++) {
+                    var rect = sections[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight - 60) {
+                        sections[i].classList.add('visible');
+                    }
+                }
+            }
+            checkVisibility();
+            window.addEventListener('scroll', checkVisibility);
+            window.addEventListener('resize', checkVisibility);
+        }
+    })();
+</script>

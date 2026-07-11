@@ -10,6 +10,12 @@ $assignedSet = [];
 foreach ($assignedPermissionIds as $id) {
     $assignedSet[(int)$id] = true;
 }
+
+$pageTitle = $selectedRoleId > 0 ? htmlspecialchars($selectedRoleName) . ' Permissions' : 'Roles & Permissions';
+$headerTitle = $pageTitle;
+$activeMenu = 'role-permissions';
+
+ob_start();
 ?>
 <div class="px-4 sm:px-8 lg:px-10 py-8 space-y-8 flex-1 max-w-[1600px] w-full mx-auto">
 
@@ -111,3 +117,6 @@ foreach ($assignedPermissionIds as $id) {
 <?php endif; ?>
 
 </div>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';

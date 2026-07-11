@@ -10,6 +10,10 @@ $assignedSet = [];
 foreach ($assignedPermissionIds as $id) {
     $assignedSet[(int)$id] = true;
 }
+   
+
+
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -66,8 +70,12 @@ foreach ($assignedPermissionIds as $id) {
                                 <select class="form-select" id="role_id" name="role_id" onchange="this.form.submit()">
                                     <option value="0">Choose a role</option>
                                     <?php foreach ($roles as $role): ?>
-                                        <option value="<?= (int)($role['role_id'] ?? 0) ?>" <?= ((int)($role['role_id'] ?? 0) === $selectedRoleId) ? 'selected' : '' ?>><?= htmlspecialchars((string)($role['role_name'] ?? '')) ?></option>
-                                    <?php endforeach; ?>
+    <option
+        value="<?= (int)$role['id'] ?>"
+        <?= ((int)$role['id'] === $selectedRoleId) ? 'selected' : '' ?>>
+        <?= htmlspecialchars($role['name']) ?>
+    </option>
+<?php endforeach; ?>
                                 </select>
                             </div>
                         </form>

@@ -64,6 +64,8 @@ return [
 ],
     
     'careers' => [CareerController::class, 'index'],
+    'career-detail' => [CareerController::class, 'show'],
+    'about-us' => [HomeController::class, 'aboutUs'],
     'about' => [HomeController::class, 'about'],
     'contact' => [HomeController::class, 'contact'],
 

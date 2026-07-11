@@ -1,6 +1,6 @@
 
 <!-- ================= FOOTER ================= -->
-<footer style="background:#111827;color:white;padding:60px;">
+<footer class="relative" style="background:#111827;color:white;padding:60px;">
     <!-- Background Glow Animations -->
     <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
     <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 12s;"></div>
