@@ -1,327 +1,121 @@
 <?php
-$pageTitle = "Change Password";
+$errors = $_SESSION['errors'] ?? [];
+$successMsg = $_SESSION['success'] ?? '';
+unset($_SESSION['errors'], $_SESSION['success']);
 ?>
+<div class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
 
-<main class="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 py-8 md:py-12 lg:py-16 px-4">
+    <!-- Toast -->
+    <?php if ($successMsg): ?>
+    <div id="successToast" class="fixed right-6 top-24 z-50 flex max-w-sm items-center gap-3 rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl transition-all duration-500">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <i class="fas fa-check text-sm"></i>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-900">Success</p>
+            <p class="text-xs text-slate-500"><?= htmlspecialchars($successMsg) ?></p>
+        </div>
+        <button type="button" onclick="this.closest('#successToast').remove()" class="ml-2 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+            <i class="fas fa-times text-xs"></i>
+        </button>
+    </div>
+    <script>setTimeout(() => { const t = document.getElementById('successToast'); if (t) t.remove(); }, 4000);</script>
+    <?php endif; ?>
 
-<div class="max-w-6xl mx-auto">
-
-<?php if (!empty($_SESSION['errors'])): ?>
-
-<div class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 md:p-5 flex items-center gap-4">
-
-    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500 flex items-center justify-center">
-
-        <i class="fas fa-times text-white"></i>
-
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">Change Password</h1>
+            <p class="mt-0.5 text-sm text-slate-500">Update your account password.</p>
+        </div>
+        <a href="<?= BASE_URL ?>/index.php?page=profile" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:bg-slate-50">
+            <i class="fas fa-arrow-left text-xs"></i>
+            Back to Profile
+        </a>
     </div>
 
-    <div>
+    <!-- Password Form Card -->
+    <section class="rounded-[20px] border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
+        <form action="<?= BASE_URL ?>/index.php?page=update-password" method="POST" novalidate>
+            <input type="hidden" name="_redirect" value="change-password">
 
-        <h3 class="font-bold text-red-700">
-            Error
-        </h3>
+            <?php if (!empty($errors)): ?>
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                <p class="text-xs font-semibold text-red-700">Please fix the following errors:</p>
+                <ul class="mt-2 list-inside list-disc space-y-1 text-xs text-red-600">
+                    <?php foreach ($errors as $error): ?>
+                    <li><?= htmlspecialchars($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
 
-        <?php foreach ($_SESSION['errors'] as $error): ?>
+            <div class="mb-6 border-b border-slate-100 pb-4">
+                <h2 class="text-base font-bold text-slate-900">Password</h2>
+                <p class="mt-0.5 text-sm text-slate-500">Choose a strong password you haven't used before.</p>
+            </div>
 
-            <p class="text-red-600">
-                <?= htmlspecialchars($error) ?>
-            </p>
+            <div class="space-y-5">
+                <!-- Current Password -->
+                <div>
+                    <label for="currentPassword" class="mb-1.5 block text-xs font-semibold text-slate-700">Current Password <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="currentPassword" name="current_password" required
+                            class="w-full rounded-xl border border-[#E5E7EB] px-4 py-2.5 pr-10 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5B5CEB] focus:ring-2 focus:ring-[#5B5CEB]/20">
+                        <button type="button" onclick="togglePassword('currentPassword', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <?php endforeach; ?>
+                <!-- New Password -->
+                <div>
+                    <label for="newPassword" class="mb-1.5 block text-xs font-semibold text-slate-700">New Password <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="newPassword" name="new_password" required
+                            class="w-full rounded-xl border border-[#E5E7EB] px-4 py-2.5 pr-10 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5B5CEB] focus:ring-2 focus:ring-[#5B5CEB]/20">
+                        <button type="button" onclick="togglePassword('newPassword', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <!-- Strength bars -->
+                    <div class="mt-3 grid grid-cols-4 gap-2">
+                        <div id="bar1" class="h-2 rounded bg-gray-200 transition-all duration-300"></div>
+                        <div id="bar2" class="h-2 rounded bg-gray-200 transition-all duration-300"></div>
+                        <div id="bar3" class="h-2 rounded bg-gray-200 transition-all duration-300"></div>
+                        <div id="bar4" class="h-2 rounded bg-gray-200 transition-all duration-300"></div>
+                    </div>
+                    <p id="strengthText" class="mt-1 text-xs font-semibold text-red-500">Weak</p>
+                </div>
 
-    </div>
+                <!-- Confirm New Password -->
+                <div>
+                    <label for="confirmPassword" class="mb-1.5 block text-xs font-semibold text-slate-700">Confirm New Password <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="confirmPassword" name="confirm_password" required
+                            class="w-full rounded-xl border border-[#E5E7EB] px-4 py-2.5 pr-10 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5B5CEB] focus:ring-2 focus:ring-[#5B5CEB]/20">
+                        <button type="button" onclick="togglePassword('confirmPassword', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <p id="matchMessage" class="mt-1 text-xs"></p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
+                <a href="<?= BASE_URL ?>/index.php?page=profile" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:bg-slate-50 sm:w-auto">
+                    Cancel
+                </a>
+                <button type="submit" id="submitBtn" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#5B5CEB] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#4a4bd6] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                    <span id="btnText">Update Password</span>
+                </button>
+            </div>
+        </form>
+    </section>
 
 </div>
 
-<?php unset($_SESSION['errors']); ?>
-
+<?php if (isset($extraJs)): ?>
+<script src="<?= BASE_URL ?>/<?= $extraJs ?>"></script>
 <?php endif; ?>
-
-
-<?php if (!empty($_SESSION['success'])): ?>
-
-<div class="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4 md:p-5 flex items-center gap-4">
-
-    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500 flex items-center justify-center">
-
-        <i class="fas fa-check text-white"></i>
-
-    </div>
-
-    <div>
-
-        <h3 class="font-bold text-green-700">
-            Success
-        </h3>
-
-        <p class="text-green-600">
-            <?= htmlspecialchars($_SESSION['success']); ?>
-        </p>
-
-    </div>
-
-</div>
-
-<?php unset($_SESSION['success']); ?>
-
-<?php endif; ?>
-<div class="bg-white
-rounded-2xl lg:rounded-3xl
-shadow-2xl
-overflow-hidden
-grid
-grid-cols-1
-lg:grid-cols-2
-animate-fade
-hover:-translate-y-2
-hover:shadow-[0_30px_80px_rgba(21,71,154,.25)]
-transition-all
-duration-500">
-
-    <!-- Left Panel -->
-   <div class="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-8 xl:p-12">
-
-        <lottie-player
-            src="https://assets7.lottiefiles.com/packages/lf20_jcikwtux.json"
-            background="transparent"
-            speed="1"
-            style="width:100%;max-width:300px;height:300px;"
-            loop
-            autoplay>
-        </lottie-player>
-
-        <h2 class="text-3xl font-bold text-slate-800 mt-6 text-center">
-            Keep Your Account Secure
-        </h2>
-
-        <p class="text-gray-500 text-center mt-4 leading-8">
-            Change your password regularly to protect your account and personal information.
-        </p>
-
-    </div>
-
-    <!-- Right Panel -->
-<div class="p-6 md:p-8 lg:p-10">
-
-        <div class="flex items-center gap-4 mb-8">
-
-            <div class="w-10 h-10 md:w-12 md:h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-[#15479A] flex items-center justify-center shadow-lg">
-
-                <i class="fas fa-lock text-white text-2xl"></i>
-
-            </div>
-
-            <div>
-<h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-800">
-                    Change Password
-                </h1>
-<p class="text-sm md:text-base text-gray-500 mt-1">
-                    Update your password securely.
-                </p>
-
-            </div>
-
-        </div>
-<form action="index.php?page=update-password"
-      method="POST"
-      class="space-y-5 md:space-y-7">
-
-    <!-- Current Password -->
-    <div>
-        <label class="block text-sm md:text-base font-semibold text-gray-700 mb-2">
-            Current Password
-        </label>
-
-        <div class="relative">
-
-            <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-
-            <input
-                id="currentPassword"
-                type="password"
-                name="current_password"
-                required
-                placeholder="Enter current password"
-                class="w-full
-pl-14
-pr-14
-py-3 md:py-4
-rounded-xl
-border
-border-gray-300
-bg-white
-shadow-sm
-focus:border-[#15479A]
-focus:ring-4
-focus:ring-blue-100
-focus:scale-[1.02]
-hover:border-blue-300
-transition-all
-duration-300">
-
-            <button
-                type="button"
-                onclick="togglePassword('currentPassword',this)"
-                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#15479A]">
-
-                <i class="fas fa-eye"></i>
-
-            </button>
-
-        </div>
-    </div>
-
-    <!-- New Password -->
-    <div>
-
-        <label class="block text-sm font-semibold text-gray-700 mb-2">
-            New Password
-        </label>
-
-        <div class="relative">
-
-            <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-
-            <input
-                id="newPassword"
-                type="password"
-                name="new_password"
-                required
-                placeholder="Enter new password"
-                class="w-full
-pl-14
-pr-14
-py-3 md:py-4
-rounded-xl
-border
-border-gray-300
-bg-white
-shadow-sm
-focus:border-[#15479A]
-focus:ring-4
-focus:ring-blue-100
-focus:scale-[1.02]
-hover:border-blue-300
-transition-all
-duration-300">
-
-            <button
-                type="button"
-                onclick="togglePassword('newPassword',this)"
-                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#15479A]">
-
-                <i class="fas fa-eye"></i>
-
-            </button>
-
-        </div>
-
-        <div class="mt-4">
-
-            <div class="flex justify-between text-sm">
-
-                <span>Password Strength</span>
-
-                <span id="strengthText" class="font-semibold text-red-500">
-                    Weak
-                </span>
-
-            </div>
-
-            <div class="grid grid-cols-4 gap-2 mt-2">
-
-                <div id="bar1" class="h-2 rounded bg-gray-200"></div>
-                <div id="bar2" class="h-2 rounded bg-gray-200"></div>
-                <div id="bar3" class="h-2 rounded bg-gray-200"></div>
-                <div id="bar4" class="h-2 rounded bg-gray-200"></div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- Confirm Password -->
-
-    <div>
-
-        <label class="block text-sm font-semibold text-gray-700 mb-2">
-            Confirm Password
-        </label>
-
-        <div class="relative">
-
-            <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-
-            <input
-                id="confirmPassword"
-                type="password"
-                name="confirm_password"
-                required
-                placeholder="Confirm password"
-                class="w-full
-pl-14
-pr-14
-py-3 md:py-4
-rounded-xl
-border
-border-gray-300
-bg-white
-shadow-sm
-focus:border-[#15479A]
-focus:ring-4
-focus:ring-blue-100
-focus:scale-[1.02]
-hover:border-blue-300
-transition-all
-duration-300">
-
-            <button
-                type="button"
-                onclick="togglePassword('confirmPassword',this)"
-                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#15479A]">
-
-                <i class="fas fa-eye"></i>
-
-            </button>
-
-        </div>
-
-        <p id="matchMessage" class="mt-3 text-sm"></p>
-
-    </div>
-<button
-    id="submitBtn"
-    type="submit"
-class="w-full py-3 md:py-4 rounded-xl
-           bg-gradient-to-r
-           from-[#15479A]
-           to-blue-600
-           text-white
-           font-bold
-          text-base md:text-lg
-           shadow-lg
-           hover:scale-105
-           hover:shadow-2xl
-           transition-all
-           duration-300">
-
-    <span id="btnText">
-        <i class="fas fa-lock mr-2"></i>
-        Update Password
-    </span>
-
-</button>
-
-
-</form>
-
-    </div>
-
-</div>
-</div>
-
-</main>
-
-<?php $extraJs = 'assets/js/change-password.js'; ?>

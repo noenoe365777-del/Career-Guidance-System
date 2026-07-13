@@ -35,11 +35,15 @@ class AssessmentService
         return array_map(function (array $assessment) use ($progress): array {
             $slug = $assessment['slug'];
             $userProgress = $progress[$slug] ?? null;
+            $total = $assessment['total_questions'] ?? 0;
+            $preview = $assessment['preview_questions'] ?? 0;
 
             return [
                 'title' => $assessment['title'],
                 'description' => $assessment['description'],
-                'questions' => (($assessment['total_questions'] ?? 0) > 0 ? $assessment['total_questions'] . ' Questions' : 'Quick review'),
+                'questions' => $total > 0 ? $total . ' Questions' : 'Quick review',
+                'questions_count' => $total,
+                'preview_questions' => $preview,
                 'icon' => $this->iconForAssessment($slug),
                 'iconBg' => $this->iconBgForAssessment($slug),
                 'iconColor' => $this->iconColorForAssessment($slug),
@@ -51,9 +55,9 @@ class AssessmentService
         }, $catalog);
     }
 
-    public function getAssessmentQuestions(string $slug): array
+    public function getAssessmentQuestions(string $slug, bool $previewOnly = false): array
     {
-        return $this->questionRepository->getQuestionsBySlug($slug);
+        return $this->questionRepository->getQuestionsBySlug($slug, $previewOnly);
     }
 
     public function startAssessment(string $slug, ?int $userId = null): array
@@ -84,7 +88,7 @@ class AssessmentService
 
         $normalizedAnswers = $this->normalizeAnswers($answers);
         $score = $this->calculateScore($slug, $normalizedAnswers);
-        $summary = $this->buildSummary($assessment['title'], $score, count($normalizedAnswers));
+        $summary = $this->buildSummary($assessment['title'], $score, count($normalizedAnswers), $guest);
         $type = $this->resultTypeRepository->findType($slug, $score);
         $typeLabel = $type['type_label'] ?? null;
 
@@ -97,11 +101,12 @@ class AssessmentService
                 'status' => 'completed',
                 'completed_at' => date('Y-m-d H:i:s'),
                 'summary' => $summary,
+                'preview' => true,
             ];
 
             return [
                 'success' => true,
-                'message' => 'Guest assessment saved. Sign in to keep your progress and unlock tailored recommendations.',
+                'message' => 'Preview assessment saved. Create an account to unlock the full assessment and personalized recommendations.',
                 'guest' => true,
                 'score' => $score,
                 'summary' => $summary,
@@ -185,8 +190,11 @@ class AssessmentService
         return max(0, min(100, $percentage));
     }
 
-    private function buildSummary(string $title, int $score, int $questionCount): string
+    private function buildSummary(string $title, int $score, int $questionCount, bool $preview = false): string
     {
+        if ($preview) {
+            return sprintf('You completed the %s preview with a score of %d/100.', $title, $score);
+        }
         return sprintf('You completed %s with a score of %d/100.', $title, $score);
     }
 

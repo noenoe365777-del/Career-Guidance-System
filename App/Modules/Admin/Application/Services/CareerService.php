@@ -15,9 +15,17 @@ class CareerService
         $this->careerRepository = $careerRepository ?? new CareerRepository();
     }
 
-    public function getAllCareers(int $page = 1, int $perPage = 10, string $search = '', ?string $educationFilter = null, ?string $growthFilter = null): array
-    {
-        return $this->careerRepository->getAllCareers($page, $perPage, $search, $educationFilter, $growthFilter);
+    public function getAllCareers(
+        int $page = 1,
+        int $perPage = 10,
+        string $search = '',
+        ?string $educationFilter = null,
+        ?string $growthFilter = null,
+        ?string $categoryFilter = null,
+        ?string $statusFilter = null,
+        string $sort = 'az'
+    ): array {
+        return $this->careerRepository->getAllCareers($page, $perPage, $search, $educationFilter, $growthFilter, $categoryFilter, $statusFilter, $sort);
     }
 
     public function getCareerById(int $id): ?array
@@ -40,6 +48,16 @@ class CareerService
         return $this->careerRepository->getDistinctGrowthRates();
     }
 
+    public function getDistinctPersonalityTypes(): array
+    {
+        return $this->careerRepository->getDistinctPersonalityTypes();
+    }
+
+    public function getDistinctStatuses(): array
+    {
+        return $this->careerRepository->getDistinctStatuses();
+    }
+
     public function createCareer(array $data): ?int
     {
         return $this->careerRepository->createCareer($data);
@@ -53,5 +71,25 @@ class CareerService
     public function deleteCareer(int $id): bool
     {
         return $this->careerRepository->deleteCareer($id);
+    }
+
+    public function getSummaryStats(): array
+    {
+        return $this->careerRepository->getSummaryStats();
+    }
+
+    public function getCareerRecommendationStudents(int $careerId): array
+    {
+        return $this->careerRepository->getCareerRecommendationStudents($careerId);
+    }
+
+    public function getAllRecommendationStudents(): array
+    {
+        return $this->careerRepository->getAllRecommendationStudents();
+    }
+
+    public function getCareerRecommendationAnalytics(int $careerId): array
+    {
+        return $this->careerRepository->getCareerRecommendationAnalytics($careerId);
     }
 }

@@ -1,5 +1,6 @@
 <?php
 $career = $career ?? [];
+$recommendationStudents = $recommendationStudents ?? [];
 
 $pageTitle = 'Career Details';
 $headerTitle = 'Career Details';
@@ -29,21 +30,36 @@ ob_start();
                 <div class="font-semibold text-slate-700 mt-1"><?= htmlspecialchars((string)($career['career_name'] ?? '')) ?></div>
             </div>
             <div>
+                <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Status</label>
+                <div class="mt-1">
+                    <?php $status = $career['status'] ?? 'active'; ?>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide <?= $status === 'active' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-500 bg-slate-100' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $status === 'active' ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
+                        <?= $status === 'active' ? 'Active' : 'Inactive' ?>
+                    </span>
+                </div>
+            </div>
+            <div>
                 <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Average Salary</label>
                 <div class="font-semibold text-slate-700 mt-1">
                     <?php
                     $salary = (string)($career['average_salary'] ?? '');
-                    echo $salary !== '' ? 'PHP ' . htmlspecialchars($salary) : '—';
+                    $salaryNum = preg_replace('/[^0-9.]/', '', $salary);
+                    echo $salaryNum !== '' && $salaryNum !== '0' ? 'PHP ' . number_format((float)$salaryNum) : '—';
                     ?>
                 </div>
             </div>
             <div>
-                <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Growth Rate</label>
+                <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Growth Rate (Job Outlook)</label>
                 <div class="font-semibold text-slate-700 mt-1"><?= htmlspecialchars((string)($career['growth_rate'] ?? '—')) ?></div>
             </div>
             <div>
                 <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Education Required</label>
                 <div class="font-semibold text-slate-700 mt-1"><?= htmlspecialchars((string)($career['education_required'] ?? '—')) ?></div>
+            </div>
+            <div>
+                <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Recommendation Count</label>
+                <div class="font-semibold text-slate-700 mt-1"><?= (int)($career['recommendation_count'] ?? 0) ?></div>
             </div>
             <div>
                 <label class="text-xs text-slate-500 font-medium uppercase tracking-wide">Personality Type</label>
@@ -72,6 +88,52 @@ ob_start();
         </div>
     </div>
 </div>
+
+<?php if ($recommendationStudents !== []): ?>
+<div class="bg-white rounded-2xl shadow-sm overflow-hidden mt-6">
+    <div class="p-6">
+        <h3 class="text-base font-bold text-slate-800 mb-1">Students Who Received This Recommendation</h3>
+        <p class="text-sm text-slate-500 mb-4">List of students who were recommended this career path.</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse align-middle">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/50">
+                        <th class="whitespace-nowrap px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Match Score</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Recommendation Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    <?php foreach ($recommendationStudents as $rs): ?>
+                        <tr class="hover:bg-slate-50/40 transition-colors">
+                            <td class="px-4 py-3">
+                                <span class="font-semibold text-slate-700"><?= htmlspecialchars((string)($rs['username'] ?? $rs['email'] ?? 'Unknown')) ?></span>
+                                <div class="text-xs text-slate-400"><?= htmlspecialchars((string)($rs['email'] ?? '')) ?></div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <?php if (isset($rs['match_score'])): ?>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold <?= (float)$rs['match_score'] >= 80 ? 'text-emerald-600 bg-emerald-50' : ((float)$rs['match_score'] >= 60 ? 'text-amber-600 bg-amber-50' : 'text-slate-600 bg-slate-50') ?>">
+                                        <?= htmlspecialchars((string)$rs['match_score']) ?>%
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-slate-400">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500">
+                                <?php if (isset($rs['created_at'])): ?>
+                                    <?= date('M j, Y g:i A', strtotime($rs['created_at'])) ?>
+                                <?php else: ?>
+                                    <span class="text-slate-400">—</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="flex gap-3 mt-6">
     <a href="<?= BASE_URL ?>/index.php?page=admin-careers-edit&id=<?= (int)($career['career_id'] ?? 0) ?>"

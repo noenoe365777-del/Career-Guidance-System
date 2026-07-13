@@ -22,10 +22,55 @@ class AssessmentController extends Controller
         $this->requirePermission('view_assessments');
 
         $search = trim((string)($_GET['search'] ?? ''));
-        $assessments = $this->assessmentService->getAllAssessments($search !== '' ? $search : null);
+        $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
+        $sort = isset($_GET['sort']) && $_GET['sort'] !== '' ? trim((string)$_GET['sort']) : null;
+
+        $assessments = $this->assessmentService->getFilteredAssessments(
+            $search !== '' ? $search : null,
+            $statusFilter,
+            $sort
+        );
+        $completionsMap = $this->assessmentService->getStudentCompletionsByAssessment();
+        $avgScoresMap = [];
+        foreach ($this->assessmentService->getAverageScoresByAssessment() as $row) {
+            $avgScoresMap[(int)$row['assessment_id']] = [
+                'avg_score' => (float)$row['avg_score'],
+                'completed_count' => (int)$row['completed_count'],
+            ];
+        }
+
+        $assessments = array_map(function ($a) use ($completionsMap, $avgScoresMap) {
+            $id = (int)($a['assessment_id'] ?? 0);
+            $a['students_completed'] = $completionsMap[$id] ?? 0;
+            $a['avg_score'] = $avgScoresMap[$id]['avg_score'] ?? 0;
+            $a['completed_count'] = $avgScoresMap[$id]['completed_count'] ?? 0;
+            return $a;
+        }, $assessments);
+
         $totalAssessments = $this->assessmentService->getTotalAssessments();
-        $activeAssessments = $this->assessmentService->getActiveAssessmentsCount();
         $totalQuestions = $this->assessmentService->getTotalQuestionsCount();
+        $studentsCompleted = $this->assessmentService->getStudentsCompletedCount();
+        $averageScore = $this->assessmentService->getAverageScore();
+
+        $recentCompleted = $this->assessmentService->getRecentCompletedAssessments(5);
+        foreach ($recentCompleted as &$rc) {
+            $qCount = (int)($rc['question_count'] ?? 0);
+            $maxScore = $qCount * 5;
+            $rc['max_score'] = $maxScore;
+            $rc['percentage'] = $maxScore > 0 ? round(((float)($rc['total_score'] ?? 0) / $maxScore) * 100, 1) : 0;
+        }
+        unset($rc);
+
+        $perfData = $this->assessmentService->getPerAssessmentCompletionData();
+        $perfMap = [];
+        foreach ($perfData as $pd) {
+            $aid = (int)($pd['assessment_id'] ?? 0);
+            $perfMap[$aid] = [
+                'title' => $pd['title'] ?? '',
+                'completed_count' => (int)($pd['completed_count'] ?? 0),
+                'avg_score' => $avgScoresMap[$aid]['avg_score'] ?? 0,
+            ];
+        }
 
         $this->view(
             'Admin/Presentation/Views/assessments/index',
@@ -34,10 +79,16 @@ class AssessmentController extends Controller
                 'pageTitle' => 'Assessment Management',
                 'activeMenu' => 'assessments',
                 'assessments' => $assessments,
+                'recentCompleted' => $recentCompleted,
+                'perfData' => $perfData,
+                'perfMap' => $perfMap,
                 'search' => $search,
+                'statusFilter' => $statusFilter ?? '',
+                'sort' => $sort ?? '',
                 'totalAssessments' => $totalAssessments,
-                'activeAssessments' => $activeAssessments,
                 'totalQuestions' => $totalQuestions,
+                'studentsCompleted' => $studentsCompleted,
+                'averageScore' => $averageScore,
                 'message' => $_GET['message'] ?? null,
             ]
         );
@@ -148,5 +199,28 @@ class AssessmentController extends Controller
         }
 
         $this->redirectTo('admin-assessments');
+    }
+
+    public function duplicate(): void
+    {
+        AdminAuthMiddleware::requireAdmin();
+        $this->requirePermission('edit_assessments');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirectTo('admin-assessments');
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $assessment = $this->assessmentService->getAssessmentById($id);
+
+        if (!$assessment) {
+            $this->redirectTo('admin-assessments', ['message' => 'not_found']);
+        }
+
+        $customTitle = trim((string)($_POST['title'] ?? ''));
+        $newTitle = $customTitle !== '' ? $customTitle : (string)($assessment['title'] ?? '') . ' (Copy)';
+        $result = $this->assessmentService->duplicateAssessment($id, $newTitle);
+
+        $this->redirectTo('admin-assessments', ['message' => $result ? 'duplicated' : 'error']);
     }
 }

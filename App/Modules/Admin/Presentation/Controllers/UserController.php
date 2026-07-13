@@ -26,8 +26,9 @@ class UserController extends Controller
 
         $page = max(1, (int)($_GET['page_number'] ?? 1));
         $search = trim((string)($_GET['search'] ?? ''));
-        $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
-        $result = $this->userService->listUsers($page, 10, $search, $statusFilter);
+        $assessmentStatus = isset($_GET['assessment_status']) && $_GET['assessment_status'] !== '' ? trim((string)$_GET['assessment_status']) : null;
+        $educationLevel = isset($_GET['education_level']) && $_GET['education_level'] !== '' ? (int)$_GET['education_level'] : null;
+        $result = $this->userService->listUsers($page, 10, $search, null, $assessmentStatus, $educationLevel);
 
         $this->view(
             'Admin/Presentation/Views/users/index',
@@ -40,7 +41,9 @@ class UserController extends Controller
                 'totalPages' => $result['totalPages'],
                 'totalUsers' => $result['total'],
                 'search' => $search,
-                'statusFilter' => $statusFilter ?? '',
+                'assessmentStatus' => $assessmentStatus ?? '',
+                'educationLevel' => $educationLevel,
+                'educationLevels' => $this->userService->getEducationLevels(),
                 'message' => $_GET['message'] ?? null,
             ]
         );
@@ -69,6 +72,14 @@ class UserController extends Controller
         $this->requirePermission('view_users');
 
         $id = (int)($_GET['id'] ?? 0);
+
+        if (isset($_GET['format']) && $_GET['format'] === 'json') {
+            header('Content-Type: application/json');
+            $data = $this->userService->getUserDetailForModal($id);
+            echo json_encode($data ?: []);
+            return;
+        }
+
         $user = $this->userService->getUserById($id);
 
         if (!$user) {

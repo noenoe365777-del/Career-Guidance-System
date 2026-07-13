@@ -3,6 +3,13 @@ $admin = $admin ?? ($_SESSION['admin'] ?? []);
 $adminName = trim((string)($admin['full_name'] ?? $admin['username'] ?? 'Admin'));
 $adminInitial = strtoupper(substr($adminName ?: 'A', 0, 1));
 $headerTitle = $headerTitle ?? ($pageTitle ?? 'Dashboard');
+
+$notifUnreadCount = 0;
+try {
+    $pdo = \App\Config\Database::getConnection();
+    $stmt = $pdo->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0");
+    $notifUnreadCount = (int)$stmt->fetchColumn();
+} catch (\Throwable $e) {}
 ?>
 
 <nav class="sticky top-0 z-40 bg-white border-b border-slate-100">    <div class="px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -21,12 +28,14 @@ $headerTitle = $headerTitle ?? ($pageTitle ?? 'Dashboard');
 
         <div class="flex items-center gap-4">
 
-            <button class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200 ease-out border-0 bg-transparent outline-none group hover:scale-110 active:scale-95" 
-                    type="button" 
-                    aria-label="Notifications">
+            <a href="<?= BASE_URL ?>/index.php?page=admin-notifications"
+               class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200 ease-out no-underline outline-none inline-flex items-center justify-center hover:scale-110 active:scale-95" 
+               aria-label="Notifications">
                 <i class="bi bi-bell text-xl transition-transform duration-200"></i>
-                <span class="absolute top-2 right-2 flex h-2 w-2 items-center justify-center rounded-full bg-blue-500 ring-2 ring-white"></span>
-            </button>
+                <?php if ($notifUnreadCount > 0): ?>
+                <span class="notification-badge absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-sm ring-2 ring-white"><?= $notifUnreadCount ?></span>
+                <?php endif; ?>
+            </a>
 
             <div class="relative dropdown">
                 <button class="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50/80 transition-all duration-200 ease-out border-0 bg-transparent text-left outline-none hover:scale-[1.02] active:scale-[0.98]" 

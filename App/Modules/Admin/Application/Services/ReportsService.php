@@ -44,4 +44,34 @@ class ReportsService
     {
         return $this->reportsRepository->getMostCommonResultTypes();
     }
+
+    public function getSummaryStatsForRange(?string $startDate = null, ?string $endDate = null): array
+    {
+        return $this->reportsRepository->getSummaryStatsForRange($startDate, $endDate);
+    }
+
+    public function getActiveUsersToday(): int
+    {
+        return $this->reportsRepository->getActiveUsersToday();
+    }
+
+    public function getAverageAssessmentScore(): float
+    {
+        return $this->reportsRepository->getAverageAssessmentScore();
+    }
+
+    public function getAssessmentCompletionTrend(?string $period = null): array
+    {
+        return $this->reportsRepository->getAssessmentCompletionTrend($period);
+    }
+
+    public function getStudentPerformance(int $limit = 10): array
+    {
+        return $this->reportsRepository->getStudentPerformance($limit);
+    }
+
+    public function getRecentActivities(int $limit = 10): array
+    {
+        return $this->reportsRepository->getRecentActivities($limit);
+    }
 }

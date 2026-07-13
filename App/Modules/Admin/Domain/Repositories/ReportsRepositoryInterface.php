@@ -17,4 +17,14 @@ interface ReportsRepositoryInterface
     public function getEducationLevelDistribution(): array;
 
     public function getMostCommonResultTypes(): array;
+
+    public function getActiveUsersToday(): int;
+
+    public function getAverageAssessmentScore(): float;
+
+    public function getAssessmentCompletionTrend(?string $period = null): array;
+
+    public function getStudentPerformance(int $limit = 10): array;
+
+    public function getRecentActivities(int $limit = 10): array;
 }

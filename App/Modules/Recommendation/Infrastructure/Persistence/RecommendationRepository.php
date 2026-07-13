@@ -21,13 +21,14 @@ class RecommendationRepository implements RecommendationRepositoryInterface
     {
         try {
             $statement = $this->connection->query(
-                "SELECT career_id, career_name, description, required_skills, average_salary, growth_rate, education_required, personality_type, interest_type, aptitude_type, values_type FROM careers ORDER BY career_id"
+                "SELECT career_id, career_name, career_icon, description, required_skills, average_salary, growth_rate, education_required, personality_type, interest_type, aptitude_type, values_type FROM careers ORDER BY career_id"
             );
             $rows = $statement->fetchAll();
 
             return array_map(fn(array $row): array => [
                 'career_id' => (int)$row['career_id'],
                 'career_name' => $row['career_name'] ?? '',
+                'career_icon' => $row['career_icon'] ?? '',
                 'description' => $row['description'] ?? '',
                 'required_skills' => $row['required_skills'] ?? '',
                 'average_salary' => $row['average_salary'] ?? '',
@@ -74,7 +75,7 @@ class RecommendationRepository implements RecommendationRepositoryInterface
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT e.label AS education_level
+                "SELECT COALESCE(e.label, '') AS education_level
                  FROM student_profiles sp
                  LEFT JOIN master_data e ON sp.education_level_id = e.id
                  WHERE sp.user_id = :user_id
@@ -83,7 +84,8 @@ class RecommendationRepository implements RecommendationRepositoryInterface
             $statement->execute(['user_id' => $userId]);
             $row = $statement->fetch();
 
-            return $row ? ($row['education_level'] ?: null) : null;
+            $level = $row ? trim($row['education_level'] ?? '') : '';
+            return $level !== '' ? $level : null;
         } catch (\Throwable) {
             return null;
         }
@@ -94,7 +96,8 @@ class RecommendationRepository implements RecommendationRepositoryInterface
         try {
             $statement = $this->connection->prepare(
                 "SELECT cr.recommendation_id, cr.career_id, cr.match_score, cr.recommendation_reason, cr.created_at,
-                        c.career_name, c.description, c.required_skills, c.average_salary, c.growth_rate, c.education_required
+                        c.career_name, c.career_icon, c.description, c.required_skills, c.average_salary, c.growth_rate, c.education_required,
+                        c.personality_type, c.interest_type, c.aptitude_type, c.values_type
                  FROM career_recommendations cr
                  JOIN careers c ON c.career_id = cr.career_id
                  WHERE cr.user_id = :user_id

@@ -18,16 +18,12 @@ class AdminDashboardService
     public function getDashboardData(): array
     {
         return [
-            'totalUsers' => $this->adminDashboardRepository->getTotalUsers(),
+            'totalStudents' => $this->adminDashboardRepository->getTotalStudents(),
             'totalAssessments' => $this->adminDashboardRepository->getTotalAssessments(),
             'totalQuestions' => $this->adminDashboardRepository->getTotalQuestions(),
             'totalCareers' => $this->adminDashboardRepository->getTotalCareers(),
             'recentActivity' => $this->adminDashboardRepository->getRecentActivity(5),
-            'systemStatus' => [
-                'database' => $this->adminDashboardRepository->checkDatabaseConnection(),
-                'assessmentModule' => $this->adminDashboardRepository->isAssessmentModuleActive(),
-                'recommendationModule' => $this->adminDashboardRepository->isRecommendationModuleActive(),
-            ],
+            'recentStudents' => $this->adminDashboardRepository->getRecentStudents(5),
         ];
     }
 }

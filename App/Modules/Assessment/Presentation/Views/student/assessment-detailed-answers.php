@@ -55,12 +55,5 @@ $maxScore = $score ?? 0;
             </div>
         <?php endif; ?>
     </div>
-
-    <div class="mt-8 text-center">
-        <a href="<?= BASE_URL ?>/index.php?page=assessment-result&slug=<?= htmlspecialchars($_GET['slug'] ?? '') ?>"
-           class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-            <i class="fas fa-arrow-left"></i>
-            Back to Results
-        </a>
-    </div>
+            
 </div>

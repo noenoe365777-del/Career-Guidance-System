@@ -1,6 +1,11 @@
 <?php
 /** @var string $pageTitle */
 /** @var string $message */
+/** @var string $backUrl */
+$backUrl = $backUrl ?? (BASE_URL . '/index.php?page=admin-dashboard');
+$backLabel = str_contains($backUrl, 'page=dashboard') && !str_contains($backUrl, 'admin-dashboard')
+    ? 'Back to Dashboard'
+    : 'Back to Dashboard';
 ?><!doctype html>
 <html lang="en" class="h-full bg-[#f4f7fc]">
 <head>
@@ -23,8 +28,8 @@
                 <i class="bi bi-shield-exclamation text-3xl"></i>
             </div>
             <h1 class="text-2xl font-bold text-slate-800">Access Denied</h1>
-            <p class="mt-3 text-sm text-slate-500">You do not have the required permission to view or perform this action.</p>
-            <a href="<?= BASE_URL ?>/index.php?page=admin-dashboard" class="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors duration-200">Back to Dashboard</a>
+            <p class="mt-3 text-sm text-slate-500"><?= htmlspecialchars($message ?? 'You do not have the required permission to view or perform this action.') ?></p>
+            <a href="<?= htmlspecialchars($backUrl) ?>" class="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors duration-200"><?= $backLabel ?></a>
         </div>
     </div>
 </body>

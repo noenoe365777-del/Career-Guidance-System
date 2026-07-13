@@ -17,9 +17,14 @@ class AdminDashboardRepository
         $this->connection = $connection ?? Database::getConnection();
     }
 
-    public function getTotalUsers(): int
+    public function getTotalStudents(): int
     {
-        return $this->countRows('users');
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM users WHERE user_role_id = 2");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
     }
 
     public function getTotalAssessments(): int
@@ -37,22 +42,86 @@ class AdminDashboardRepository
         return $this->countRows('careers');
     }
 
+    public function getTotalAssessmentAttempts(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM student_assessments");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getTotalRecommendations(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM career_recommendations");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getAssessmentCompletionByCategory(): array
+    {
+        try {
+            $sql = "
+                SELECT
+                    a.assessment_id,
+                    a.title,
+                    a.category,
+                    COUNT(sa.student_assessment_id) AS total_taken,
+                    SUM(CASE WHEN sa.status = 'completed' THEN 1 ELSE 0 END) AS completed
+                FROM assessments a
+                LEFT JOIN student_assessments sa ON sa.assessment_id = a.assessment_id
+                GROUP BY a.assessment_id, a.title, a.category
+                ORDER BY a.title
+            ";
+            $stmt = $this->connection->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getTopRecommendedCareers(int $limit = 5): array
+    {
+        try {
+            $sql = "
+                SELECT
+                    c.career_name,
+                    c.career_icon,
+                    COUNT(cr.recommendation_id) AS recommendation_count,
+                    ROUND(AVG(cr.match_score), 2) AS avg_score
+                FROM career_recommendations cr
+                JOIN careers c ON c.career_id = cr.career_id
+                GROUP BY c.career_id, c.career_name, c.career_icon
+                ORDER BY recommendation_count DESC, avg_score DESC
+                LIMIT :limit
+            ";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
     public function getRecentActivity(int $limit = 5): array
     {
         try {
             $sql = "
-                SELECT type, subject, detail, occurred_at FROM (
-                    SELECT 'user_registered' AS type, username AS subject, '' AS detail, created_at AS occurred_at
-                    FROM users
+                SELECT type, subject, detail, occurred_at, user_id FROM (
+                    SELECT 'user_registered' AS type, u.username AS subject, '' AS detail, u.created_at AS occurred_at, u.user_id
+                    FROM users u
+                    WHERE u.user_role_id = 2
                     UNION ALL
-                    SELECT 'assessment_completed' AS type, u.username AS subject, a.title AS detail, COALESCE(sa.completed_at, sa.created_at) AS occurred_at
+                    SELECT 'assessment_completed' AS type, u.username AS subject, a.title AS detail, COALESCE(sa.completed_at, sa.created_at) AS occurred_at, u.user_id
                     FROM student_assessments sa
                     JOIN users u ON u.user_id = sa.user_id
                     JOIN assessments a ON a.assessment_id = sa.assessment_id
                     WHERE sa.status = 'completed'
-                    UNION ALL
-                    SELECT 'question_added' AS type, '' AS subject, LEFT(q.question_text, 80) AS detail, q.created_at AS occurred_at
-                    FROM questions q
                 ) combined
                 ORDER BY occurred_at DESC
                 LIMIT :limit
@@ -63,6 +132,69 @@ class AdminDashboardRepository
             $statement->execute();
 
             return $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getRecentlyAddedCareers(int $limit = 5): array
+    {
+        try {
+            $sql = "
+                SELECT career_id, career_name, career_icon, created_at
+                FROM careers
+                ORDER BY created_at DESC
+                LIMIT :limit
+            ";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getRecentlyAddedQuestions(int $limit = 5): array
+    {
+        try {
+            $sql = "
+                SELECT q.question_id, q.question_text, q.created_at, a.title AS assessment_title
+                FROM questions q
+                JOIN assessments a ON a.assessment_id = q.assessment_id
+                ORDER BY q.created_at DESC
+                LIMIT :limit
+            ";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getRecentStudents(int $limit = 5): array
+    {
+        try {
+            $sql = "
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.created_at AS registered_at,
+                    sp.profile_image,
+                    COALESCE(e.label, '') AS education_level
+                FROM users u
+                LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
+                LEFT JOIN master_data e ON e.id = sp.education_level_id
+                WHERE u.user_role_id = 2
+                ORDER BY u.created_at DESC
+                LIMIT :limit
+            ";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException) {
             return [];
         }

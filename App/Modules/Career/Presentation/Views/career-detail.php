@@ -1,4 +1,4 @@
-<div class="bg-gray">
+<div class="bg-white">
 
     <section class="relative overflow-hidden bg-gradient-to-b from-white via-indigo-50/20 to-slate-50 py-16 lg:py-20">
         <div class="absolute top-0 right-0 -z-10 h-72 w-72 rounded-full bg-indigo-200/30 blur-3xl"></div>
@@ -6,9 +6,9 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            <a href="<?= BASE_URL ?>/index.php?page=careers" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors mb-6">
+            <a href="<?= htmlspecialchars($backUrl ?? (BASE_URL . '/index.php?page=careers')) ?>" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors mb-6">
                 <i class="fas fa-arrow-left text-xs"></i>
-                Back to Careers
+                <?= !empty($isAdminView) ? 'Back to Career Management' : 'Back to Careers' ?>
             </a>
 
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -23,10 +23,17 @@
                     <p class="mt-4 text-base sm:text-lg text-slate-500 leading-relaxed"><?= htmlspecialchars($career['description']) ?></p>
                 </div>
                 <div class="flex-shrink-0">
+                    <?php if (!empty($isAdminView)): ?>
+                    <span class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-bold px-7 py-3 rounded-xl shadow-md text-sm">
+                        <i class="fas fa-shield-alt text-xs"></i>
+                        Admin View
+                    </span>
+                    <?php else: ?>
                     <a href="<?= BASE_URL ?>/index.php?page=assessments" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-start via-brand-mid to-brand-end text-white font-bold px-7 py-3 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm">
                         <i class="fas fa-pencil-alt text-xs"></i>
                         Take Assessment
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -116,6 +123,77 @@
         </div>
     </section>
 
+    <?php if (!empty($isAdminView) && !empty($analytics)): ?>
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-chart-pie text-white text-sm"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Recommendation Statistics</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+                    <p class="text-xs uppercase tracking-wider text-indigo-600 font-semibold">Recommended Count</p>
+                    <p class="mt-2 text-2xl font-extrabold text-slate-900"><?= (int)($analytics['recommended_count'] ?? 0) ?></p>
+                </div>
+                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                    <p class="text-xs uppercase tracking-wider text-emerald-600 font-semibold">Avg. Match Score</p>
+                    <p class="mt-2 text-2xl font-extrabold text-slate-900"><?= number_format((float)($analytics['average_score'] ?? 0), 1) ?>%</p>
+                </div>
+                <div class="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+                    <p class="text-xs uppercase tracking-wider text-amber-600 font-semibold">Last Recommendation</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900"><?= !empty($analytics['last_recommendation_date']) ? date('M d, Y', strtotime($analytics['last_recommendation_date'])) : 'No data yet' ?></p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Education Distribution</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900"><?= count($analytics['education_distribution'] ?? []) > 0 ? implode(', ', array_slice(array_keys($analytics['education_distribution'] ?? []), 0, 3)) : 'No data yet' ?></p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-800">Education Level Mix</h3>
+                        <span class="text-xs text-slate-500">Based on student profiles</span>
+                    </div>
+                    <div class="space-y-3">
+                        <?php foreach ($analytics['education_distribution'] ?? [] as $label => $count): ?>
+                        <div>
+                            <div class="flex items-center justify-between text-sm text-slate-600 mb-1">
+                                <span><?= htmlspecialchars($label) ?></span>
+                                <span class="font-semibold text-slate-800"><?= (int)$count ?></span>
+                            </div>
+                            <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700" style="width: <?= !empty($analytics['recommended_count']) ? min(100, (int)$count / max(1, (int)$analytics['recommended_count']) * 100) : 0 ?>%"></div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-800">Recent Recommendation History</h3>
+                        <span class="text-xs text-slate-500">Latest recommendations</span>
+                    </div>
+                    <div class="space-y-3">
+                        <?php foreach ($analytics['history'] ?? [] as $historyItem): ?>
+                        <div class="rounded-2xl border border-slate-200 p-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-semibold text-slate-800"><?= htmlspecialchars((string)($historyItem['student'] ?? 'Student')) ?></span>
+                                <span class="text-xs font-semibold text-indigo-600"><?= number_format((float)($historyItem['score'] ?? 0), 1) ?>%</span>
+                            </div>
+                            <p class="mt-2 text-sm text-slate-500"><?= htmlspecialchars((string)($historyItem['reason'] ?? 'No notes')) ?></p>
+                            <p class="mt-2 text-xs text-slate-400"><?= !empty($historyItem['date']) ? date('M d, Y', strtotime($historyItem['date'])) : 'No date' ?></p>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (!empty($career['right_for_you'])): ?>
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12">
         <div class="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
             <div class="flex items-center gap-3 mb-6">
@@ -136,6 +214,7 @@
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
     <?php if (!empty($relatedCareers)): ?>
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 lg:pb-16">

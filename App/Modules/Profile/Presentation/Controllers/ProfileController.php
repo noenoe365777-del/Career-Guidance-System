@@ -83,8 +83,9 @@ public function update(): void
     if ($result['success']) {
 
         $_SESSION['user']['username'] = $_POST['username'];
+        $_SESSION['success'] = 'Profile updated successfully.';
 
-        header('Location: index.php?page=profile');
+        header('Location: index.php?page=edit-profile');
         exit;
     }
 
@@ -122,6 +123,22 @@ public function studentChangePassword(): void
         'Profile/Presentation/Views/student-change-password',
         [
             'pageTitle' => 'Change Password',
+            'layout' => 'dashboard',
+        ]
+    );
+}
+
+public function notifications(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    View::render(
+        'Profile/Presentation/Views/notifications',
+        [
+            'pageTitle' => 'Notifications',
             'layout' => 'dashboard',
         ]
     );
@@ -169,6 +186,15 @@ public function updatePassword(): void
     }
 
     $userId = (int) $_SESSION['user']['user_id'];
+    $redirect = $_GET['redirect'] ?? 'profile';
+
+    if (isset($_POST['remove']) && $_POST['remove'] === '1') {
+        $this->profileService->updateProfileImage($userId, '');
+        $_SESSION['user']['profile_image'] = '';
+        $_SESSION['success'] = 'Profile photo removed.';
+        header("Location: index.php?page=" . $redirect);
+        exit;
+    }
 
     if (
         isset($_FILES['profile_image']) &&
@@ -177,7 +203,15 @@ public function updatePassword(): void
 
         $file = $_FILES['profile_image'];
 
-        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+        $maxSize = 2 * 1024 * 1024;
+
+        if ($file['size'] > $maxSize) {
+            $_SESSION['error'] = 'File size must be under 2MB.';
+            header("Location: index.php?page=" . $redirect);
+            exit;
+        }
+
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
 
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -185,20 +219,28 @@ public function updatePassword(): void
 
             $newName = "user_" . $userId . "_" . time() . "." . $extension;
 
-            $destination = BASE_PATH .
-                "/Public/assets/images/" . $newName;
+            $uploadDir = BASE_PATH . "/public/uploads/profile/";
+
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $destination = $uploadDir . $newName;
 
             move_uploaded_file($file['tmp_name'], $destination);
 
-$result = $this->profileService->updateProfileImage(
-    $userId,
-    $newName
-);
-       $_SESSION['user']['profile_image'] = $newName;
+            $this->profileService->updateProfileImage(
+                $userId,
+                $newName
+            );
+
+            $_SESSION['user']['profile_image'] = $newName;
+        } else {
+            $_SESSION['error'] = 'Allowed formats: JPG, JPEG, PNG, WEBP.';
         }
     }
 
-    header("Location: index.php?page=profile");
+    header("Location: index.php?page=" . $redirect);
     exit;
 }
 

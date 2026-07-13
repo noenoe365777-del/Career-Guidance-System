@@ -29,6 +29,7 @@ class StudentFeaturePermissionHelper
             'assessment-result' => 'view_results',
             'assessment-detailed-answers' => 'view_results',
 
+            'notifications' => 'view_notifications',
             'recommendation' => 'view_recommendations',
 
             'profile' => 'edit_profile',

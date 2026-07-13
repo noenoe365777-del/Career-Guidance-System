@@ -11,6 +11,7 @@ use App\Modules\Admin\Presentation\Controllers\AssessmentController as AdminAsse
 use App\Modules\Admin\Presentation\Controllers\CareerController as AdminCareerController;
 use App\Modules\Admin\Presentation\Controllers\QuestionController as AdminQuestionController;
 use App\Modules\Admin\Presentation\Controllers\ReportsController as AdminReportsController;
+use App\Modules\Admin\Presentation\Controllers\NotificationController as AdminNotificationController;
 use App\Modules\Profile\Presentation\Controllers\ProfileController;
 use App\Modules\Public\Presentation\Controllers\AssessmentController as PublicAssessmentController;
 use App\Modules\Student\Presentation\Controllers\AssessmentController as StudentAssessmentController;
@@ -41,6 +42,7 @@ return [
     'admin-assessments-edit' => [AdminAssessmentController::class, 'edit'],
     'admin-assessments-update' => [AdminAssessmentController::class, 'update'],
     'admin-assessments-toggle-status' => [AdminAssessmentController::class, 'toggleStatus'],
+    'admin-assessments-duplicate' => [AdminAssessmentController::class, 'duplicate'],
     'admin-careers' => [AdminCareerController::class, 'index'],
     'admin-careers-view' => [AdminCareerController::class, 'show'],
     'admin-careers-create' => [AdminCareerController::class, 'create'],
@@ -55,7 +57,14 @@ return [
     'admin-questions-edit' => [AdminQuestionController::class, 'edit'],
     'admin-questions-update' => [AdminQuestionController::class, 'update'],
     'admin-questions-delete' => [AdminQuestionController::class, 'delete'],
+    'admin-questions-duplicate' => [AdminQuestionController::class, 'duplicate'],
+    'admin-questions-bulk-delete' => [AdminQuestionController::class, 'bulkDelete'],
     'admin-reports' => [AdminReportsController::class, 'index'],
+    'admin-notifications' => [AdminNotificationController::class, 'index'],
+    'admin-notifications-api-unread-count' => [AdminNotificationController::class, 'apiUnreadCount'],
+    'admin-notifications-api-mark-read' => [AdminNotificationController::class, 'apiMarkAsRead'],
+    'admin-notifications-api-mark-all-read' => [AdminNotificationController::class, 'apiMarkAllAsRead'],
+    'admin-notifications-api-delete' => [AdminNotificationController::class, 'apiDelete'],
     'admin-role-permissions' => [RolesAndPermissionsController::class, 'index'],
     'admin-role-permissions-save' => [RolesAndPermissionsController::class, 'save'],
     'dashboard' => [
@@ -97,6 +106,11 @@ return [
 'change-password' => [
     App\Modules\Profile\Presentation\Controllers\ProfileController::class,
     'changePassword'
+],
+
+'notifications' => [
+    App\Modules\Profile\Presentation\Controllers\ProfileController::class,
+    'notifications'
 ],
 
 'student-change-password' => [

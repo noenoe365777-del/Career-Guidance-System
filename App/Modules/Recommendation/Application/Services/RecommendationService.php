@@ -16,6 +16,41 @@ class RecommendationService
         $this->recommendationRepo = new RecommendationRepository();
     }
 
+    public function getExistingForUser(int $userId): array
+    {
+        $existing = $this->recommendationRepo->getExistingRecommendations($userId);
+        if (empty($existing)) {
+            return [];
+        }
+
+        $scores = $this->recommendationRepo->getStudentScores($userId);
+
+        return array_map(function (array $row) use ($userId, $scores): CareerRecommendation {
+            $career = [
+                'personality_type' => $row['personality_type'] ?? '',
+                'interest_type' => $row['interest_type'] ?? '',
+                'aptitude_type' => $row['aptitude_type'] ?? '',
+                'values_type' => $row['values_type'] ?? '',
+            ];
+            $matchDetails = $scores ? $this->getMatchDetails($scores, $career) : [];
+
+            return new CareerRecommendation([
+                'user_id' => $userId,
+                'career_id' => (int)$row['career_id'],
+                'career_name' => $row['career_name'],
+                'career_icon' => $row['career_icon'] ?? '',
+                'match_percent' => (float)$row['match_score'],
+                'description' => $row['description'] ?? '',
+                'required_skills' => $row['required_skills'] ?? '',
+                'average_salary' => $row['average_salary'] ?? '',
+                'growth_rate' => $row['growth_rate'] ?? '',
+                'education_required' => $row['education_required'] ?? '',
+                'reason' => $row['recommendation_reason'] ?? '',
+                'matched_dimensions' => $matchDetails,
+            ]);
+        }, $existing);
+    }
+
     public function generateForUser(int $userId): array
     {
         $scores = $this->recommendationRepo->getStudentScores($userId);
@@ -24,26 +59,24 @@ class RecommendationService
         }
 
         $educationLevel = $this->recommendationRepo->getEducationLevel($userId);
-        $careers = $this->recommendationRepo->getAllCareers();
-
-        if (empty($careers)) {
+        $allCareers = $this->recommendationRepo->getAllCareers();
+        if (empty($allCareers)) {
             return [];
         }
 
-        $results = [];
-        foreach ($careers as $career) {
-            $typeScore = $this->calculateTypeMatch($scores, $career);
-            $scoreBonus = $this->calculateScoreBonus($scores);
-            $educationScore = $this->calculateEducationMatch($educationLevel, $career['education_required']);
-            $total = $typeScore + $scoreBonus + $educationScore;
+        $eligibleCareers = $this->filterByEducation($allCareers, $educationLevel);
 
-            $results[] = [
-                'career' => $career,
-                'type_score' => $typeScore,
-                'score_bonus' => $scoreBonus,
-                'education_score' => $educationScore,
-                'total_score' => round($total, 2),
-            ];
+        $results = [];
+        foreach ($eligibleCareers as $career) {
+            $score = $this->calculateWeightedMatch($scores, $career);
+            if ($score >= 60) {
+                $matchDetails = $this->getMatchDetails($scores, $career);
+                $results[] = [
+                    'career' => $career,
+                    'total_score' => $score,
+                    'match_details' => $matchDetails,
+                ];
+            }
         }
 
         usort($results, fn(array $a, array $b): int => $b['total_score'] <=> $a['total_score']);
@@ -55,13 +88,14 @@ class RecommendationService
         $recommendations = [];
         foreach ($top5 as $r) {
             $career = $r['career'];
-            $reason = $this->buildReason($scores, $career, $educationLevel);
+            $reason = $this->buildReason($r['match_details']);
             $this->recommendationRepo->saveRecommendation($userId, $career['career_id'], $r['total_score'], $reason);
 
             $recommendations[] = new CareerRecommendation([
                 'user_id' => $userId,
                 'career_id' => $career['career_id'],
                 'career_name' => $career['career_name'],
+                'career_icon' => $career['career_icon'] ?? '',
                 'match_percent' => $r['total_score'],
                 'description' => $career['description'],
                 'required_skills' => $career['required_skills'],
@@ -69,124 +103,95 @@ class RecommendationService
                 'growth_rate' => $career['growth_rate'],
                 'education_required' => $career['education_required'],
                 'reason' => $reason,
+                'matched_dimensions' => $r['match_details'],
             ]);
         }
 
         return $recommendations;
     }
 
-    private function calculateTypeMatch(array $scores, array $career): int
+    private function filterByEducation(array $careers, ?string $educationLevel): array
     {
-        $dimensions = ['personality_type', 'interest_type', 'aptitude_type', 'values_type'];
-        $matched = 0;
+        if ($educationLevel === null || $educationLevel === '') {
+            return $careers;
+        }
 
-        foreach ($dimensions as $dim) {
+        $studentLevel = $this->educationLabelToLevel($educationLevel);
+        if ($studentLevel === 0) {
+            return $careers;
+        }
+
+        return array_values(array_filter($careers, function (array $career) use ($studentLevel): bool {
+            $careerLevel = $this->educationLabelToLevel($career['education_required'] ?? '');
+            return $careerLevel > 0 && $careerLevel <= $studentLevel;
+        }));
+    }
+
+    private function educationLabelToLevel(string $label): int
+    {
+        return match (strtolower(trim($label))) {
+            'high school', 'secondary' => 1,
+            'undergraduate', 'bachelor', 'bachelors', "bachelor's", "bachelor's degree" => 2,
+            'graduate', 'master', 'masters', "master's", "master's degree", 'phd', 'doctorate' => 3,
+            default => 0,
+        };
+    }
+
+    private function calculateWeightedMatch(array $scores, array $career): float
+    {
+        $weights = [
+            'interest_type' => 30,
+            'personality_type' => 25,
+            'aptitude_type' => 25,
+            'values_type' => 20,
+        ];
+
+        $total = 0;
+        foreach ($weights as $dim => $weight) {
             $studentType = trim($scores[$dim] ?? '');
             $careerType = trim($career[$dim] ?? '');
-
             if ($studentType !== '' && $careerType !== '' && strcasecmp($studentType, $careerType) === 0) {
-                $matched++;
+                $total += $weight;
             }
         }
 
-        return $matched * 15;
+        return round($total, 2);
     }
 
-    private function calculateScoreBonus(array $scores): float
+    private function getMatchDetails(array $scores, array $career): array
     {
-        $scoreKeys = ['personality_score', 'interest_score', 'aptitude_score', 'values_score'];
-        $total = 0;
-        $count = 0;
-
-        foreach ($scoreKeys as $key) {
-            $val = (int)($scores[$key] ?? 0);
-            $total += $val;
-            $count++;
-        }
-
-        $average = $count > 0 ? $total / $count : 0;
-        return round(($average / 100) * 20, 2);
-    }
-
-    private function calculateEducationMatch(?string $studentEducation, ?string $careerEducation): int
-    {
-        if ($studentEducation === null || $careerEducation === null || $careerEducation === '') {
-            return 10;
-        }
-
-        $studentLevel = $this->educationToLevel($studentEducation);
-        $careerLevel = $this->educationToLevel($careerEducation);
-
-        if ($studentLevel === 0 || $careerLevel === 0) {
-            return 10;
-        }
-
-        $delta = $studentLevel - $careerLevel;
-
-        if ($delta === 0) {
-            return 20;
-        }
-        if ($delta > 0) {
-            return 15;
-        }
-        if ($delta === -1) {
-            return 10;
-        }
-
-        return 5;
-    }
-
-    private function educationToLevel(string $label): int
-    {
-        $map = [
-            'high school' => 1,
-            'secondary' => 1,
-            'diploma' => 2,
-            'associate' => 2,
-            'undergraduate' => 3,
-            'bachelor' => 3,
-            'bachelors' => 3,
-            "bachelor's" => 3,
-            "bachelor's degree" => 3,
-            'graduate' => 4,
-            'master' => 4,
-            'masters' => 4,
-            "master's" => 4,
-            'phd' => 5,
-            'doctorate' => 5,
-        ];
-
-        return $map[strtolower(trim($label))] ?? 0;
-    }
-
-    private function buildReason(array $scores, array $career, ?string $educationLevel): string
-    {
-        $matchedTypes = [];
-
         $dims = [
-            'personality_type' => 'Personality',
-            'interest_type' => 'Interest',
-            'aptitude_type' => 'Aptitude',
-            'values_type' => 'Values',
+            'interest_type' => ['label' => 'Interest', 'weight' => 30],
+            'personality_type' => ['label' => 'Personality', 'weight' => 25],
+            'aptitude_type' => ['label' => 'Aptitude', 'weight' => 25],
+            'values_type' => ['label' => 'Career Values', 'weight' => 20],
         ];
 
-        foreach ($dims as $key => $label) {
-            $studentType = trim($scores[$key] ?? '');
-            $careerType = trim($career[$key] ?? '');
-            if ($studentType !== '' && $careerType !== '' && strcasecmp($studentType, $careerType) === 0) {
-                $matchedTypes[] = $label . ' (' . $studentType . ')';
-            }
+        $details = [];
+        foreach ($dims as $dim => $info) {
+            $studentType = trim($scores[$dim] ?? '');
+            $careerType = trim($career[$dim] ?? '');
+            $matched = $studentType !== '' && $careerType !== '' && strcasecmp($studentType, $careerType) === 0;
+            $details[] = [
+                'dimension' => $info['label'],
+                'matched' => $matched,
+                'student_type' => $studentType,
+                'career_type' => $careerType,
+                'weight' => $info['weight'],
+            ];
         }
 
-        $parts = [];
-        if (!empty($matchedTypes)) {
-            $parts[] = 'Matches ' . implode(', ', $matchedTypes);
+        return $details;
+    }
+
+    private function buildReason(array $matchDetails): string
+    {
+        $matched = array_filter($matchDetails, fn(array $d): bool => $d['matched']);
+        if (empty($matched)) {
+            return 'General career match based on assessment results.';
         }
 
-        if ($educationLevel) {
-            $parts[] = 'Education: ' . $educationLevel;
-        }
-
-        return !empty($parts) ? implode('. ', $parts) . '.' : 'General career match based on assessment results.';
+        $parts = array_map(fn(array $d): string => $d['dimension'] . ' (' . $d['student_type'] . ')', $matched);
+        return 'Matches ' . implode(', ', $parts) . '.';
     }
 }

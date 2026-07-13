@@ -24,7 +24,7 @@ class QuestionRepository implements QuestionRepositoryInterface
         $this->connection = Database::getConnection();
     }
 
-    public function getQuestionsBySlug(string $slug): array
+    public function getQuestionsBySlug(string $slug, bool $previewOnly = false): array
     {
         $assessmentId = $this->slugMap[$slug] ?? 0;
         if ($assessmentId === 0) {
@@ -32,12 +32,17 @@ class QuestionRepository implements QuestionRepositoryInterface
         }
 
         try {
-            $statement = $this->connection->prepare(
-                "SELECT question_id AS id, question_text AS question, question_type AS type, question_order AS `order`
-                 FROM questions
-                 WHERE assessment_id = :assessment_id
-                 ORDER BY question_order"
-            );
+            $sql = "SELECT question_id AS id, question_text AS question, question_type AS type, question_order AS `order`
+                    FROM questions
+                    WHERE assessment_id = :assessment_id";
+
+            if ($previewOnly) {
+                $sql .= " AND preview = 1";
+            }
+
+            $sql .= " ORDER BY question_order";
+
+            $statement = $this->connection->prepare($sql);
             $statement->execute(['assessment_id' => $assessmentId]);
             $rows = $statement->fetchAll();
 
@@ -59,11 +64,45 @@ class QuestionRepository implements QuestionRepositoryInterface
                 ];
             }
 
-            shuffle($questions);
+            if (!$previewOnly) {
+                shuffle($questions);
+            }
+
             return $questions;
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    public function getTotalQuestionCount(int $assessmentId): int
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id"
+            );
+            $statement->execute(['assessment_id' => $assessmentId]);
+            return (int)$statement->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    public function getPreviewQuestionCount(int $assessmentId): int
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id AND preview = 1"
+            );
+            $statement->execute(['assessment_id' => $assessmentId]);
+            return (int)$statement->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    public function getSlugMap(): array
+    {
+        return $this->slugMap;
     }
 
     private function getOptionsForQuestion(int $questionId): array

@@ -9,6 +9,7 @@ class CareerRecommendation
     public int $userId;
     public int $careerId;
     public string $careerName;
+    public string $careerIcon;
     public float $matchPercent;
     public string $description;
     public string $requiredSkills;
@@ -16,12 +17,14 @@ class CareerRecommendation
     public string $growthRate;
     public string $educationRequired;
     public string $reason;
+    public array $matchedDimensions;
 
     public function __construct(array $data)
     {
         $this->userId = (int)($data['user_id'] ?? 0);
         $this->careerId = (int)($data['career_id'] ?? 0);
         $this->careerName = (string)($data['career_name'] ?? '');
+        $this->careerIcon = (string)($data['career_icon'] ?? '');
         $this->matchPercent = (float)($data['match_percent'] ?? 0.0);
         $this->description = (string)($data['description'] ?? '');
         $this->requiredSkills = (string)($data['required_skills'] ?? '');
@@ -29,5 +32,6 @@ class CareerRecommendation
         $this->growthRate = (string)($data['growth_rate'] ?? '');
         $this->educationRequired = (string)($data['education_required'] ?? '');
         $this->reason = (string)($data['reason'] ?? '');
+        $this->matchedDimensions = (array)($data['matched_dimensions'] ?? []);
     }
 }

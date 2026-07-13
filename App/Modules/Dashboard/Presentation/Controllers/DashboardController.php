@@ -23,32 +23,19 @@ class DashboardController extends Controller
 
         $userId = (int)$user['id'];
 
-        // Dashboard data
-        $dashboard =
-            $this->dashboardService->getDashboardData($userId);
+        $dashboard = $this->dashboardService->getDashboardData($userId);
 
-        // Open dashboard view
         $this->view(
             'Dashboard/Presentation/Views/student-dashboard',
             [
                 'pageTitle' => 'Student Dashboard',
-
                 'user' => $user,
-
-                'totalAssessments' =>
-                    $dashboard['totalAssessments'],
-
-                'completedAssessments' =>
-                    $dashboard['completedAssessments'],
-
-                'percentage' =>
-                    $dashboard['percentage'],
-
-                'statusMap' =>
-                    $dashboard['statusMap'],
-
-                'recommendation' =>
-                    $dashboard['recommendation'],
+                'totalAssessments' => $dashboard['totalAssessments'],
+                'completedAssessments' => $dashboard['completedAssessments'],
+                'percentage' => $dashboard['percentage'],
+                'allCompleted' => $dashboard['allCompleted'],
+                'statusMap' => $dashboard['statusMap'],
+                'recommendation' => $dashboard['recommendation'],
             ]
         );
     }

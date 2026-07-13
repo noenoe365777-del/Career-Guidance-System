@@ -4,6 +4,15 @@ $settingsExpanded = in_array($activeMenu, [
     'settings', 'role-permissions',
 ], true);
 
+$unreadCount = 0;
+try {
+    $pdo = \App\Config\Database::getConnection();
+    $stmt = $pdo->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0");
+    $unreadCount = (int)$stmt->fetchColumn();
+} catch (\Throwable $e) {
+    $unreadCount = 0;
+}
+
 $menuItems = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-house', 'href' => BASE_URL . '/index.php?page=admin-dashboard'],
     ['key' => 'users', 'label' => 'Users', 'icon' => 'bi-people', 'href' => BASE_URL . '/index.php?page=admin-users'],
@@ -11,6 +20,7 @@ $menuItems = [
     ['key' => 'questions', 'label' => 'Questions', 'icon' => 'bi-question-circle', 'href' => BASE_URL . '/index.php?page=admin-questions'],
     ['key' => 'careers', 'label' => 'Careers', 'icon' => 'bi-briefcase', 'href' => BASE_URL . '/index.php?page=admin-careers'],
     ['key' => 'reports', 'label' => 'Reports', 'icon' => 'bi-bar-chart', 'href' => BASE_URL . '/index.php?page=admin-reports'],
+    ['key' => 'notifications', 'label' => 'Notifications', 'icon' => 'bi-bell', 'href' => BASE_URL . '/index.php?page=admin-notifications', 'badge' => $unreadCount > 0 ? $unreadCount : null],
     [
         'key' => 'settings',
         'label' => 'Settings',
@@ -59,7 +69,10 @@ function renderMenuItems(array $items, string $activeMenu, bool $settingsExpande
                         <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>"
                    href="<?= htmlspecialchars($item['href']) ?>">
                     <i class="bi <?= htmlspecialchars($item['icon']) ?> text-base <?= $isActive ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600' ?>"></i>
-                    <span><?= htmlspecialchars($item['label']) ?></span>
+                    <span class="flex-1"><?= htmlspecialchars($item['label']) ?></span>
+                    <?php if (!empty($item['badge'])): ?>
+                    <span class="notification-badge inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-sm"><?= (int)$item['badge'] ?></span>
+                    <?php endif; ?>
                 </a>
             <?php endif; ?>
         </div>

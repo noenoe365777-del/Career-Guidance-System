@@ -21,7 +21,13 @@ class RecommendationController extends Controller
         $user = $this->requireAuthenticatedUser();
         $userId = (int)($user['id'] ?? 0);
 
-        $recommendations = $this->recommendationService->generateForUser($userId);
+        $existing = $this->recommendationService->getExistingForUser($userId);
+
+        if (!empty($existing)) {
+            $recommendations = $existing;
+        } else {
+            $recommendations = $this->recommendationService->generateForUser($userId);
+        }
 
         $this->view(
             'Recommendation/Presentation/Views/recommendations',

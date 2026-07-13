@@ -1,3 +1,17 @@
+<style>
+    .bg-custom-gradient {
+        background: linear-gradient(135deg, #5d5bf6 0%, #3b39df 100%) !important;
+    }
+    .sidebar-link-active {
+        transform: translateX(4px);
+    }
+    .sidebar-link {
+        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .sidebar-link:hover {
+        transform: translateX(4px);
+    }
+</style>
 <!-- Mobile Sidebar Backdrop -->
 <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
@@ -6,7 +20,7 @@
     <div>
         <div class="flex items-center gap-3 px-2 mb-8">
             <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600">
-                <i class="fas fa-graduation-cap text-xl"></i>
+                <i class="bi bi-mortarboard-fill text-xl"></i>
             </div>
             <div>
                 <h2 class="text-sm font-bold text-slate-800 tracking-tight">Career Guidance</h2>
@@ -21,10 +35,11 @@
             $currentStudentUserId = \App\Modules\Student\Support\StudentFeaturePermissionHelper::currentStudentUserId();
 
             $navItems = [
-                ['id' => 'dashboard', 'feature_key' => 'view_dashboard', 'label' => 'Dashboard', 'icon' => 'fa-th-large'],
-                ['id' => 'student-assessments', 'feature_key' => 'take_assessment', 'label' => 'Assessments', 'icon' => 'fa-clipboard-list'],
-                ['id' => 'recommendation', 'feature_key' => 'view_recommendations', 'label' => 'Career Maps', 'icon' => 'fa-map-marked-alt'],
-                ['id' => 'settings', 'feature_key' => 'edit_profile', 'label' => 'Settings', 'icon' => 'fa-sliders-h']
+                ['id' => 'dashboard', 'feature_key' => 'view_dashboard', 'label' => 'Dashboard', 'icon' => 'bi-house'],
+                ['id' => 'student-assessments', 'feature_key' => 'take_assessment', 'label' => 'Assessments', 'icon' => 'bi-clipboard-check'],
+                ['id' => 'recommendation', 'feature_key' => 'view_recommendations', 'label' => 'Career Maps', 'icon' => 'bi-briefcase'],
+                ['id' => 'notifications', 'feature_key' => '', 'label' => 'Notifications', 'icon' => 'bi-bell'],
+                ['id' => 'settings', 'feature_key' => 'edit_profile', 'label' => 'Settings', 'icon' => 'bi-gear']
             ];
 
             foreach ($navItems as $item):
@@ -36,20 +51,15 @@
                 $href = $item['id'] === 'settings' ? BASE_URL . '/index.php?page=change-password' : BASE_URL . '/index.php?page=' . $item['id'];
             ?>
                 <a href="<?= $href ?>"
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group <?= $isActive ? 'text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>">
-                    <i class="fas <?= $item['icon'] ?> text-base <?= $isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600' ?>"></i>
+                    class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold no-underline group <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>">
+                    <i class="bi <?= $item['icon'] ?> text-xl <?= $isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600' ?>"></i>
                     <span><?= $item['label'] ?></span>
                 </a>
             <?php endforeach; ?>
         </nav>
     </div>
 
-    <div class="border-t border-slate-100 pt-4">
-        <div class="flex items-center gap-2.5 px-2 text-slate-400">
-            <i class="fas fa-shield-alt text-sm text-emerald-500"></i>
-            <span class="text-xs font-medium tracking-wide">Secure student access</span>
-        </div>
-    </div>
+ 
 </aside>
 
 <!-- Mobile Sidebar (Offcanvas-style) -->
@@ -57,7 +67,7 @@
     <div class="flex items-center justify-between px-4 py-3.5 border-b border-slate-50">
         <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600">
-                <i class="fas fa-graduation-cap text-lg"></i>
+                    <i class="bi bi-mortarboard-fill text-lg"></i>
             </div>
             <div>
                 <h5 class="text-sm font-bold text-slate-800 m-0">Career Guidance</h5>
@@ -65,7 +75,7 @@
             </div>
         </div>
         <button id="close-sidebar-btn" class="w-8 h-8 rounded-lg bg-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50 flex items-center justify-center transition border-0 outline-none">
-            <i class="fas fa-times text-sm"></i>
+            <i class="bi bi-x text-lg"></i>
         </button>
     </div>
 
@@ -80,8 +90,8 @@
                 $href = $item['id'] === 'settings' ? BASE_URL . '/index.php?page=change-password' : BASE_URL . '/index.php?page=' . $item['id'];
             ?>
                 <a href="<?= $href ?>"
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 no-underline group <?= $isActive ? 'text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-sm' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>">
-                    <i class="fas <?= $item['icon'] ?> text-base <?= $isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600' ?>"></i>
+                    class="sidebar-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold no-underline group <?= $isActive ? 'text-white bg-custom-gradient shadow-md sidebar-link-active' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50' ?>">
+                    <i class="bi <?= $item['icon'] ?> text-xl <?= $isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600' ?>"></i>
                     <span><?= $item['label'] ?></span>
                 </a>
             <?php endforeach; ?>
@@ -90,7 +100,7 @@
 
     <div class="border-t border-slate-100 p-4">
         <div class="flex items-center gap-2.5 text-slate-400">
-            <i class="fas fa-shield-alt text-sm text-emerald-500"></i>
+            <i class="bi bi-shield-check text-base text-emerald-500"></i>
             <span class="text-xs font-medium tracking-wide">Secure student access</span>
         </div>
     </div>

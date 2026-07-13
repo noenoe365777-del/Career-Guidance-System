@@ -25,11 +25,24 @@ class CareerController extends Controller
         $search = trim((string)($_GET['search'] ?? ''));
         $educationFilter = isset($_GET['education']) && $_GET['education'] !== '' ? trim((string)$_GET['education']) : null;
         $growthFilter = isset($_GET['growth']) && $_GET['growth'] !== '' ? trim((string)$_GET['growth']) : null;
+        $categoryFilter = isset($_GET['category']) && $_GET['category'] !== '' ? trim((string)$_GET['category']) : null;
+        $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
+        $sort = isset($_GET['sort']) && in_array($_GET['sort'], ['newest', 'az', 'most_recommended']) ? $_GET['sort'] : 'az';
 
-        $result = $this->careerService->getAllCareers($page, 10, $search, $educationFilter, $growthFilter);
+        $result = $this->careerService->getAllCareers($page, 10, $search, $educationFilter, $growthFilter, $categoryFilter, $statusFilter, $sort);
         $educationLevels = $this->careerService->getDistinctEducationLevels();
         $growthRates = $this->careerService->getDistinctGrowthRates();
-        $totalCareers = $this->careerService->getTotalCareers();
+        $personalityTypes = $this->careerService->getDistinctPersonalityTypes();
+        $statuses = $this->careerService->getDistinctStatuses();
+        $summaryStats = $this->careerService->getSummaryStats();
+        $allRecommendationStudents = $this->careerService->getAllRecommendationStudents();
+
+        $careers = [];
+        foreach ($result['careers'] as $career) {
+            $careerId = (int)($career['career_id'] ?? 0);
+            $career['analytics'] = $this->careerService->getCareerRecommendationAnalytics($careerId);
+            $careers[] = $career;
+        }
 
         $this->view(
             'Admin/Presentation/Views/careers/index',
@@ -37,15 +50,22 @@ class CareerController extends Controller
                 'layout' => 'none',
                 'pageTitle' => 'Career Management',
                 'activeMenu' => 'careers',
-                'careers' => $result['careers'],
+                'careers' => $careers,
                 'currentPage' => $result['currentPage'],
                 'totalPages' => $result['totalPages'],
                 'totalCareers' => $result['total'],
                 'search' => $search,
                 'educationFilter' => $educationFilter ?? '',
                 'growthFilter' => $growthFilter ?? '',
+                'categoryFilter' => $categoryFilter ?? '',
+                'statusFilter' => $statusFilter ?? '',
+                'sort' => $sort,
                 'educationLevels' => $educationLevels,
                 'growthRates' => $growthRates,
+                'personalityTypes' => $personalityTypes,
+                'statuses' => $statuses,
+                'summaryStats' => $summaryStats,
+                'allRecommendationStudents' => $allRecommendationStudents,
                 'message' => $_GET['message'] ?? null,
             ]
         );
@@ -63,13 +83,36 @@ class CareerController extends Controller
             $this->redirectTo('admin-careers', ['message' => 'not_found']);
         }
 
+        $analytics = $this->careerService->getCareerRecommendationAnalytics($id);
+        $viewCareer = [
+            'career_id' => (int)($career['career_id'] ?? 0),
+            'name' => (string)($career['career_name'] ?? 'Career'),
+            'category' => (string)($career['personality_type'] ?? 'General'),
+            'icon' => (string)($career['career_icon'] ?? 'fa-briefcase'),
+            'color' => 'indigo',
+            'high_demand' => stripos((string)($career['growth_rate'] ?? ''), 'high') !== false || stripos((string)($career['growth_rate'] ?? ''), 'rapid') !== false,
+            'description' => (string)($career['description'] ?? ''),
+            'education' => (string)($career['education_required'] ?? ''),
+            'certification' => '',
+            'salary_min' => $this->extractSalaryValue((string)($career['average_salary'] ?? ''), 'min'),
+            'salary_max' => $this->extractSalaryValue((string)($career['average_salary'] ?? ''), 'max'),
+            'job_outlook' => (string)($career['growth_rate'] ?? 'Medium'),
+            'skills' => $this->parseSkills((string)($career['required_skills'] ?? '')),
+            'right_for_you' => [],
+            'work_environment' => [],
+        ];
+
         $this->view(
-            'Admin/Presentation/Views/careers/view',
+            'Career/Presentation/Views/career-detail',
             [
                 'layout' => 'none',
                 'pageTitle' => 'Career Details',
                 'activeMenu' => 'careers',
-                'career' => $career,
+                'career' => $viewCareer,
+                'relatedCareers' => [],
+                'isAdminView' => true,
+                'analytics' => $analytics,
+                'backUrl' => BASE_URL . '/index.php?page=admin-careers',
             ]
         );
     }
@@ -114,6 +157,8 @@ class CareerController extends Controller
             'interest_type' => trim((string)($_POST['interest_type'] ?? '')),
             'aptitude_type' => trim((string)($_POST['aptitude_type'] ?? '')),
             'values_type' => trim((string)($_POST['values_type'] ?? '')),
+            'status' => trim((string)($_POST['status'] ?? 'active')),
+            'career_icon' => trim((string)($_POST['career_icon'] ?? '')),
         ];
 
         $errors = [];
@@ -261,5 +306,41 @@ class CareerController extends Controller
         }
 
         $this->redirectTo('admin-careers', ['message' => 'deleted']);
+    }
+
+    private function extractSalaryValue(string $salary, string $type): int
+    {
+        $parts = preg_split('/[\-–]/', $salary) ?: [];
+        $numbers = [];
+        foreach ($parts as $part) {
+            $numeric = preg_replace('/[^0-9.]/', '', trim($part));
+            if ($numeric !== '') {
+                $numbers[] = (int)round((float)$numeric);
+            }
+        }
+
+        if ($numbers === []) {
+            return 0;
+        }
+
+        return $type === 'min' ? ($numbers[0] ?? 0) : ($numbers[count($numbers) - 1] ?? $numbers[0]);
+    }
+
+    private function parseSkills(string $skills): array
+    {
+        if ($skills === '') {
+            return [];
+        }
+
+        $parts = preg_split('/[;,|\n]+/', $skills) ?: [];
+        $clean = [];
+        foreach ($parts as $part) {
+            $value = trim((string)$part);
+            if ($value !== '') {
+                $clean[] = $value;
+            }
+        }
+
+        return array_slice($clean, 0, 8);
     }
 }

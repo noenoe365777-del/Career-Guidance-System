@@ -99,7 +99,7 @@ class AssessmentController extends Controller
             exit;
         }
 
-        $questions = $this->assessmentService->getAssessmentQuestions($slug);
+        $questions = $this->assessmentService->getAssessmentQuestions($slug, true);
 
         $this->view(
             $viewPath,

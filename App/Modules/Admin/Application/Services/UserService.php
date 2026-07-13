@@ -15,9 +15,19 @@ class UserService
         $this->userRepository = $userRepository ?? new UserRepository();
     }
 
-    public function listUsers(int $page = 1, int $perPage = 10, string $search = '', ?string $statusFilter = null): array
+    public function listUsers(int $page = 1, int $perPage = 10, string $search = '', ?string $statusFilter = null, ?string $assessmentStatus = null, ?int $educationLevel = null): array
     {
-        return $this->userRepository->listUsers($page, $perPage, $search, $statusFilter);
+        return $this->userRepository->listUsers($page, $perPage, $search, $statusFilter, $assessmentStatus, $educationLevel);
+    }
+
+    public function getUserDetailForModal(int $id): ?array
+    {
+        return $this->userRepository->getUserDetailForModal($id);
+    }
+
+    public function getEducationLevels(): array
+    {
+        return $this->userRepository->getEducationLevels();
     }
 
     public function getTotalUsers(): int

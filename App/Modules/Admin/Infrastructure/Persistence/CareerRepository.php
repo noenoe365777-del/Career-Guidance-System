@@ -18,8 +18,16 @@ class CareerRepository implements CareerRepositoryInterface
         $this->connection = $connection ?? Database::getConnection();
     }
 
-    public function getAllCareers(int $page = 1, int $perPage = 10, string $search = '', ?string $educationFilter = null, ?string $growthFilter = null): array
-    {
+    public function getAllCareers(
+        int $page = 1,
+        int $perPage = 10,
+        string $search = '',
+        ?string $educationFilter = null,
+        ?string $growthFilter = null,
+        ?string $categoryFilter = null,
+        ?string $statusFilter = null,
+        string $sort = 'az'
+    ): array {
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset = ($page - 1) * $perPage;
@@ -42,16 +50,37 @@ class CareerRepository implements CareerRepositoryInterface
             $params[':growth'] = $growthFilter;
         }
 
+        if ($categoryFilter !== null && $categoryFilter !== '') {
+            $conditions[] = 'LOWER(c.personality_type) = LOWER(:category)';
+            $params[':category'] = $categoryFilter;
+        }
+
+        if ($statusFilter !== null && $statusFilter !== '') {
+            $conditions[] = 'c.status = :status';
+            $params[':status'] = $statusFilter;
+        }
+
         $where = '';
         if ($conditions !== []) {
             $where = 'WHERE ' . implode(' AND ', $conditions);
         }
 
+        $orderBy = match ($sort) {
+            'most_recommended' => 'recommendation_count DESC, c.career_name ASC',
+            'newest' => 'c.created_at DESC, c.career_name ASC',
+            default => 'c.career_name ASC',
+        };
+
         $selectSql = "
-            SELECT c.*
+            SELECT c.*, COALESCE(rc.cnt, 0) AS recommendation_count
             FROM careers c
+            LEFT JOIN (
+                SELECT career_id, COUNT(*) AS cnt
+                FROM career_recommendations
+                GROUP BY career_id
+            ) rc ON c.career_id = rc.career_id
             {$where}
-            ORDER BY c.career_name ASC
+            ORDER BY {$orderBy}
             LIMIT :limit OFFSET :offset
         ";
 
@@ -97,10 +126,30 @@ class CareerRepository implements CareerRepositoryInterface
         }
     }
 
+    public function getDistinctPersonalityTypes(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT personality_type FROM careers WHERE personality_type IS NOT NULL AND personality_type != '' ORDER BY personality_type ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
     public function getCareerById(int $id): ?array
     {
         try {
-            $stmt = $this->connection->prepare('SELECT * FROM careers WHERE career_id = :id LIMIT 1');
+            $stmt = $this->connection->prepare('
+                SELECT c.*, COALESCE(rc.cnt, 0) AS recommendation_count
+                FROM careers c
+                LEFT JOIN (
+                    SELECT career_id, COUNT(*) AS cnt
+                    FROM career_recommendations
+                    GROUP BY career_id
+                ) rc ON c.career_id = rc.career_id
+                WHERE c.career_id = :id
+                LIMIT 1
+            ');
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
@@ -143,11 +192,13 @@ class CareerRepository implements CareerRepositoryInterface
     {
         try {
             $stmt = $this->connection->prepare('
-                INSERT INTO careers (career_name, description, required_skills, average_salary, growth_rate, education_required, personality_type, interest_type, aptitude_type, values_type)
-                VALUES (:career_name, :description, :required_skills, :average_salary, :growth_rate, :education_required, :personality_type, :interest_type, :aptitude_type, :values_type)
+                INSERT INTO careers (career_name, career_icon, status, description, required_skills, average_salary, growth_rate, education_required, personality_type, interest_type, aptitude_type, values_type)
+                VALUES (:career_name, :career_icon, :status, :description, :required_skills, :average_salary, :growth_rate, :education_required, :personality_type, :interest_type, :aptitude_type, :values_type)
             ');
             $stmt->execute([
                 ':career_name' => $data['career_name'],
+                ':career_icon' => $data['career_icon'] ?? null,
+                ':status' => $data['status'] ?? 'active',
                 ':description' => $data['description'] ?? null,
                 ':required_skills' => $data['required_skills'] ?? null,
                 ':average_salary' => $data['average_salary'] ?? null,
@@ -170,7 +221,7 @@ class CareerRepository implements CareerRepositoryInterface
             $fields = [];
             $params = [':id' => $id];
 
-            $allowedFields = ['career_name', 'description', 'required_skills', 'average_salary', 'growth_rate', 'education_required', 'personality_type', 'interest_type', 'aptitude_type', 'values_type'];
+            $allowedFields = ['career_name', 'career_icon', 'status', 'description', 'required_skills', 'average_salary', 'growth_rate', 'education_required', 'personality_type', 'interest_type', 'aptitude_type', 'values_type'];
 
             foreach ($allowedFields as $field) {
                 if (array_key_exists($field, $data)) {
@@ -203,6 +254,164 @@ class CareerRepository implements CareerRepositoryInterface
         } catch (PDOException) {
             $this->connection->rollBack();
             return false;
+        }
+    }
+
+    public function getSummaryStats(): array
+    {
+        try {
+            $totalCareers = (int)$this->connection->query('SELECT COUNT(*) FROM careers')->fetchColumn();
+
+            $studentsWithRecommendations = (int)$this->connection->query('
+                SELECT COUNT(DISTINCT user_id) FROM career_recommendations
+            ')->fetchColumn();
+
+            $mostRecommended = $this->connection->query('
+                SELECT c.career_name, COUNT(*) AS cnt
+                FROM career_recommendations r
+                JOIN careers c ON r.career_id = c.career_id
+                GROUP BY r.career_id
+                ORDER BY cnt DESC
+                LIMIT 1
+            ')->fetch(PDO::FETCH_ASSOC);
+
+            $totalRecommendations = (int)$this->connection->query('
+                SELECT COUNT(*) FROM career_recommendations
+            ')->fetchColumn();
+
+            return [
+                'total_careers' => $totalCareers,
+                'students_with_recommendations' => $studentsWithRecommendations,
+                'most_recommended_name' => $mostRecommended ? $mostRecommended['career_name'] : null,
+                'most_recommended_count' => $mostRecommended ? (int)$mostRecommended['cnt'] : 0,
+                'total_recommendations' => $totalRecommendations,
+            ];
+        } catch (PDOException) {
+            return [
+                'total_careers' => 0,
+                'students_with_recommendations' => 0,
+                'most_recommended_name' => null,
+                'most_recommended_count' => 0,
+                'total_recommendations' => 0,
+            ];
+        }
+    }
+
+    public function getDistinctStatuses(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT status FROM careers WHERE status IS NOT NULL ORDER BY status ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getCareerRecommendationStudents(int $careerId): array
+    {
+        try {
+            $stmt = $this->connection->prepare('
+                SELECT r.recommendation_id, r.user_id, r.match_score, r.recommendation_reason, r.created_at,
+                       u.username, u.email
+                FROM career_recommendations r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.career_id = :career_id
+                ORDER BY r.created_at DESC
+            ');
+            $stmt->execute([':career_id' => $careerId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getAllRecommendationStudents(): array
+    {
+        try {
+            $stmt = $this->connection->query('
+                SELECT r.career_id, r.recommendation_id, r.user_id, r.match_score, r.recommendation_reason, r.created_at,
+                       u.username, u.email
+                FROM career_recommendations r
+                JOIN users u ON r.user_id = u.user_id
+                ORDER BY r.career_id, r.created_at DESC
+            ');
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $grouped = [];
+            foreach ($rows as $row) {
+                $cid = (int)$row['career_id'];
+                if (!isset($grouped[$cid])) {
+                    $grouped[$cid] = [];
+                }
+                $grouped[$cid][] = $row;
+            }
+            return $grouped;
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getCareerRecommendationAnalytics(int $careerId): array
+    {
+        try {
+            $stmt = $this->connection->prepare('
+                SELECT r.recommendation_id, r.user_id, r.match_score, r.recommendation_reason, r.created_at,
+                       u.username, u.email,
+                       COALESCE(md.label, CONCAT("Level ", sp.education_level_id)) AS education_level
+                FROM career_recommendations r
+                JOIN users u ON u.user_id = r.user_id
+                LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
+                LEFT JOIN master_data md ON md.id = sp.education_level_id AND md.category = "education_level"
+                WHERE r.career_id = :career_id
+                ORDER BY r.created_at DESC
+            ');
+            $stmt->execute([':career_id' => $careerId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $history = [];
+            $educationDistribution = [];
+            $scoreTotal = 0.0;
+            $recommendationCount = count($rows);
+            $lastRecommendationDate = null;
+
+            foreach ($rows as $row) {
+                $score = (float)($row['match_score'] ?? 0);
+                $scoreTotal += $score;
+                $lastRecommendationDate = $lastRecommendationDate ?? (string)($row['created_at'] ?? '');
+
+                $educationLabel = trim((string)($row['education_level'] ?? 'Unknown'));
+                if ($educationLabel === '') {
+                    $educationLabel = 'Unknown';
+                }
+                if (!isset($educationDistribution[$educationLabel])) {
+                    $educationDistribution[$educationLabel] = 0;
+                }
+                $educationDistribution[$educationLabel]++;
+
+                $history[] = [
+                    'student' => trim((string)($row['username'] ?? $row['email'] ?? 'Unknown')),
+                    'score' => $score,
+                    'date' => (string)($row['created_at'] ?? ''),
+                    'reason' => trim((string)($row['recommendation_reason'] ?? '')),
+                ];
+            }
+
+            $averageScore = $recommendationCount > 0 ? round($scoreTotal / $recommendationCount, 2) : 0.0;
+
+            return [
+                'recommended_count' => $recommendationCount,
+                'average_score' => $averageScore,
+                'education_distribution' => $educationDistribution,
+                'last_recommendation_date' => $lastRecommendationDate,
+                'history' => array_slice($history, 0, 6),
+            ];
+        } catch (PDOException) {
+            return [
+                'recommended_count' => 0,
+                'average_score' => 0.0,
+                'education_distribution' => [],
+                'last_recommendation_date' => null,
+                'history' => [],
+            ];
         }
     }
 }

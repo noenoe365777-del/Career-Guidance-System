@@ -18,7 +18,7 @@ class QuestionRepository implements QuestionRepositoryInterface
         $this->connection = $connection ?? Database::getConnection();
     }
 
-    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?int $assessmentFilter = null, ?string $typeFilter = null): array
+    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?int $assessmentFilter = null, ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array
     {
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
@@ -42,28 +42,63 @@ class QuestionRepository implements QuestionRepositoryInterface
             $params[':question_type'] = $typeFilter;
         }
 
-        $where = '';
-        if ($conditions !== []) {
-            $where = 'WHERE ' . implode(' AND ', $conditions);
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $havingConditions = [];
+        if ($difficultyFilter !== null && $difficultyFilter !== '') {
+            $havingConditions[] = 'difficulty = :difficulty';
+            $params[':difficulty'] = $difficultyFilter;
         }
+        if ($statusFilter !== null && $statusFilter !== '') {
+            $havingConditions[] = 'status = :status';
+            $params[':status'] = $statusFilter;
+        }
+        $having = $havingConditions !== [] ? 'HAVING ' . implode(' AND ', $havingConditions) : '';
+
+        $order = match ($sort) {
+            'oldest' => 'q.created_at ASC',
+            'alpha' => 'q.question_text ASC',
+            default => 'q.created_at DESC',
+        };
 
         $selectSql = "
             SELECT q.question_id, q.question_text, q.assessment_id, q.question_type, q.question_order, q.created_at,
                    a.title AS assessment_title,
-                   COUNT(qo.option_id) AS option_count
+                   a.assessment_type AS assessment_type,
+                   a.category AS assessment_category,
+                   COUNT(DISTINCT qo.option_id) AS option_count,
+                   COUNT(DISTINCT sa.answer_id) AS response_count,
+                   CASE
+                       WHEN COUNT(DISTINCT qo.option_id) <= 2 THEN 'easy'
+                       WHEN COUNT(DISTINCT qo.option_id) <= 4 THEN 'medium'
+                       ELSE 'hard'
+                   END AS difficulty,
+                   CASE
+                       WHEN COUNT(DISTINCT sa.answer_id) > 0 THEN 'used'
+                       ELSE 'draft'
+                   END AS status
             FROM questions q
             JOIN assessments a ON a.assessment_id = q.assessment_id
             LEFT JOIN question_options qo ON qo.question_id = q.question_id
+            LEFT JOIN student_answers sa ON sa.question_id = q.question_id
             {$where}
             GROUP BY q.question_id
-            ORDER BY q.question_id ASC
+            {$having}
+            ORDER BY {$order}
             LIMIT :limit OFFSET :offset
         ";
 
         $countSql = "
-            SELECT COUNT(*)
-            FROM questions q
-            {$where}
+            SELECT COUNT(*) FROM (
+                SELECT q.question_id
+                FROM questions q
+                JOIN assessments a ON a.assessment_id = q.assessment_id
+                LEFT JOIN question_options qo ON qo.question_id = q.question_id
+                LEFT JOIN student_answers sa ON sa.question_id = q.question_id
+                {$where}
+                GROUP BY q.question_id
+                {$having}
+            ) AS filtered_questions
         ";
 
         try {
@@ -109,7 +144,9 @@ class QuestionRepository implements QuestionRepositoryInterface
         try {
             $stmt = $this->connection->prepare("
                 SELECT q.question_id, q.question_text, q.assessment_id, q.question_type, q.question_order, q.created_at,
-                       a.title AS assessment_title
+                       a.title AS assessment_title,
+                       a.assessment_type AS assessment_type,
+                       a.category AS assessment_category
                 FROM questions q
                 JOIN assessments a ON a.assessment_id = q.assessment_id
                 WHERE q.question_id = :id
@@ -143,6 +180,54 @@ class QuestionRepository implements QuestionRepositoryInterface
         }
     }
 
+    public function getQuestionsCountByAssessment(): array
+    {
+        try {
+            $stmt = $this->connection->query("
+                SELECT a.assessment_id, a.title, a.assessment_type, a.category, COUNT(q.question_id) AS question_count
+                FROM assessments a
+                LEFT JOIN questions q ON q.assessment_id = a.assessment_id
+                GROUP BY a.assessment_id
+                ORDER BY a.assessment_id ASC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getRecentlyAddedCount(int $days = 7): int
+    {
+        try {
+            $stmt = $this->connection->prepare("
+                SELECT COUNT(*) FROM questions
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            ");
+            $stmt->execute([':days' => $days]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getRecentQuestionActivity(int $limit = 5): array
+    {
+        try {
+            $stmt = $this->connection->prepare("
+                (SELECT 'created' AS action_type, q.question_text AS subject, a.title AS assessment_name, q.created_at AS occurred_at
+                 FROM questions q
+                 JOIN assessments a ON a.assessment_id = q.assessment_id)
+                ORDER BY occurred_at DESC
+                LIMIT :lim
+            ");
+            $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
     public function getOptionsByQuestionId(int $questionId): array
     {
         try {
@@ -151,6 +236,17 @@ class QuestionRepository implements QuestionRepositoryInterface
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException) {
             return [];
+        }
+    }
+
+    public function hasQuestionColumn(string $columnName): bool
+    {
+        try {
+            $stmt = $this->connection->prepare('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table_name AND column_name = :column_name');
+            $stmt->execute([':table_name' => 'questions', ':column_name' => $columnName]);
+            return (int)$stmt->fetchColumn() > 0;
+        } catch (PDOException) {
+            return false;
         }
     }
 
@@ -214,7 +310,6 @@ class QuestionRepository implements QuestionRepositoryInterface
     {
         try {
             $this->connection->beginTransaction();
-
             $this->connection->prepare('DELETE FROM question_options WHERE question_id = :id')->execute([':id' => $questionId]);
 
             $stmt = $this->connection->prepare('
@@ -236,6 +331,72 @@ class QuestionRepository implements QuestionRepositoryInterface
         } catch (PDOException) {
             $this->connection->rollBack();
             return false;
+        }
+    }
+
+    public function duplicateQuestion(int $id, ?int $targetAssessmentId = null): ?int
+    {
+        try {
+            $original = $this->getQuestionById($id);
+            if (!$original) return null;
+
+            $this->connection->beginTransaction();
+
+            $newId = $this->createQuestion([
+                'assessment_id' => $targetAssessmentId ?? (int)$original['assessment_id'],
+                'question_text' => (string)$original['question_text'],
+                'question_type' => (string)$original['question_type'],
+                'question_order' => (int)($original['question_order'] ?? 1),
+            ]);
+
+            if ($newId === null) {
+                $this->connection->rollBack();
+                return null;
+            }
+
+            $options = $this->getOptionsByQuestionId($id);
+            if ($options !== []) {
+                $optStmt = $this->connection->prepare('
+                    INSERT INTO question_options (question_id, option_text, option_value, option_order)
+                    VALUES (:question_id, :option_text, :option_value, :option_order)
+                ');
+                foreach ($options as $opt) {
+                    $optStmt->execute([
+                        ':question_id' => $newId,
+                        ':option_text' => $opt['option_text'] ?? '',
+                        ':option_value' => $opt['option_value'] ?? 0,
+                        ':option_order' => $opt['option_order'] ?? 1,
+                    ]);
+                }
+            }
+
+            $this->connection->commit();
+            return $newId;
+        } catch (PDOException) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            return null;
+        }
+    }
+
+    public function bulkDelete(array $ids): int
+    {
+        if ($ids === []) return 0;
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $this->connection->beginTransaction();
+            $stmt1 = $this->connection->prepare("DELETE FROM question_options WHERE question_id IN ({$placeholders})");
+            $stmt1->execute(array_map('intval', $ids));
+            $stmt2 = $this->connection->prepare("DELETE FROM questions WHERE question_id IN ({$placeholders})");
+            $stmt2->execute(array_map('intval', $ids));
+            $this->connection->commit();
+            return $stmt2->rowCount();
+        } catch (PDOException) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            return 0;
         }
     }
 }

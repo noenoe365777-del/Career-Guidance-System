@@ -1,277 +1,341 @@
 <?php
-// =======================================================================
-// Dashboard Controller Logic Mock Data (Inject variables from router controller)
-// =======================================================================
 $totalAssessments = $totalAssessments ?? 4;
-$completedAssessments = $completedAssessments ?? 1; 
-$percentage = $percentage ?? ($totalAssessments > 0 ? ($completedAssessments / $totalAssessments) * 100 : 25);
-$studentId = $user['id'] ?? $_SESSION['user']['id'] ?? 'STU-9482';
+$completedAssessments = $completedAssessments ?? 0;
+$percentage = $percentage ?? 0;
+$statusMap = $statusMap ?? [];
+$recommendation = $recommendation ?? null;
+$allCompleted = $allCompleted ?? ($completedAssessments >= $totalAssessments);
 
+$studentName = htmlspecialchars($user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Student');
 
+$assessmentSlugs = ['personality', 'interest', 'aptitude', 'values'];
+
+$faIcons = [
+    'personality' => 'fa-brain',
+    'interest'    => 'fa-heart',
+    'aptitude'    => 'fa-chart-line',
+    'values'      => 'fa-bullseye',
+];
+
+$assessmentLabels = [
+    'personality' => 'Personality Assessment',
+    'interest'    => 'Interest Assessment',
+    'aptitude'    => 'Aptitude Assessment',
+    'values'      => 'Career Values Assessment',
+];
+
+$questionCounts = [
+    'personality' => 25,
+    'interest'    => 25,
+    'aptitude'    => 15,
+    'values'      => 20,
+];
+
+$assessmentColors = [
+    'personality' => ['bg' => 'bg-indigo-50', 'icon' => 'text-indigo-600', 'btn' => 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800'],
+    'interest'    => ['bg' => 'bg-pink-50', 'icon' => 'text-pink-600', 'btn' => 'bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800'],
+    'aptitude'    => ['bg' => 'bg-emerald-50', 'icon' => 'text-emerald-600', 'btn' => 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'],
+    'values'      => ['bg' => 'bg-amber-50', 'icon' => 'text-amber-600', 'btn' => 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'],
+];
+
+$nextSlug = null;
+foreach ($assessmentSlugs as $slug) {
+    $s = $statusMap[$slug] ?? ['status' => 'Locked', 'completed_at' => null];
+    if (strtolower($s['status']) !== 'completed') {
+        $nextSlug = $slug;
+        break;
+    }
+}
+
+$careerIconMap = [
+    'Software Engineer' => 'fa-code',
+    'Data Analyst' => 'fa-chart-bar',
+    'Graphic Designer' => 'fa-paintbrush',
+    'Teacher' => 'fa-chalkboard-user',
+    'Doctor' => 'fa-user-doctor',
+    'Accountant' => 'fa-calculator',
+    'Civil Engineer' => 'fa-helmet-safety',
+    'Mechanical Engineer' => 'fa-gears',
+    'Marketing Specialist' => 'fa-bullhorn',
+    'Nurse' => 'fa-user-nurse',
+    'Electrician' => 'fa-bolt',
+    'Plumber' => 'fa-wrench',
+    'Certified Nursing Assistant (CNA)' => 'fa-heart-pulse',
+    'Retail Manager' => 'fa-store',
+    'HVAC Technician' => 'fa-snowflake',
+    'Administrative Assistant' => 'fa-file-lines',
+    'Security Guard' => 'fa-shield-halved',
+    'Chef / Cook' => 'fa-utensils',
+];
+
+$recommendationIcon = 'fa-trophy';
+if ($recommendation && isset($careerIconMap[$recommendation['career_name']])) {
+    $recommendationIcon = $careerIconMap[$recommendation['career_name']];
+}
+
+$dash = 408;
+$offset = max(0, (int)round($dash - ($dash * ($percentage / 100))));
+
+function dashboardStatusBadge(string $status): string
+{
+    return match (strtolower($status)) {
+        'completed' => '<span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Completed</span>',
+        'in_progress', 'in progress' => '<span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>In Progress</span>',
+        'not_started', 'not started' => '<span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Not Started</span>',
+        default => '<span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500"><i class="fas fa-lock text-[9px]"></i> Locked</span>',
+    };
+}
+
+function dashboardFormatDate(?string $value): string
+{
+    if (empty($value)) return '—';
+    $ts = strtotime($value);
+    return $ts ? date('M j, Y', $ts) : '—';
+}
 ?>
+<div class="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
 
-<!-- Framework & Premium Float Micro-interaction Style Hooks -->
-<style>
-@keyframes float {
-    0%, 100% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-10px) scale(1.02); }
-}
-.animate-float-premium {
-    animation: float 6s ease-in-out infinite;
-}
-@keyframes pulseGlow {
-    0%, 100% { opacity: 0.15; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(1.08); }
-}
-.animate-glow {
-    animation: pulseGlow 4s ease-in-out infinite;
-}
-</style>
-
-<div class="px-4 sm:px-8 lg:px-10 py-8 space-y-8 flex-1 max-w-[1600px] w-full mx-auto">
-
-            <!-- ===================================== -->
-            <!-- Section Component: Welcome Header Banner -->
-            <!-- ===================================== -->
-            <section class="relative bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300">
-                <!-- Premium Ambient Background Blur Shape -->
-                <div class="absolute -right-20 -top-20 w-80 h-80 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-700"></div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center p-6 sm:p-10">
-                    <!-- Text Segment Copy Block -->
-                    <div class="lg:col-span-7 space-y-4 text-center lg:text-left">
-                        <div>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 rounded-full">
-                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                Core Overview
-                            </span>
-                        </div>
-                        
-                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-                            Welcome back,<?= htmlspecialchars($user['username'] ?? 'Student') ?>! <span class="inline-block origin-bottom-right hover:animate-[wave_1s_ease-in-out_2]">👋</span>
-                        </h1>
-                        
-                        <p class="text-slate-500 text-sm max-w-md mx-auto lg:mx-0 font-medium leading-relaxed">
-                            Complete your assessments to unlock personalized career recommendations.
-                        </p>
-
-                        <div class="pt-2">
-                            <a href="<?= BASE_URL ?>/index.php?page=assessments" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-semibold shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-95 transition-all duration-200 text-sm">
-                                Continue Assessment
-                                <i class="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                            </a>
-                        </div>
+    <!-- Welcome Card -->
+    <section class="relative overflow-hidden rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <div class="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-100/60 to-violet-100/60 blur-3xl"></div>
+        <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
+                        <i class="fas fa-graduation-cap"></i>
                     </div>
-
-                    <!-- Right Abstract Vector Visual Graphics Display -->
-                    <div class="hidden lg:col-span-5 lg:flex justify-end pr-4 relative">
-                        <div class="absolute inset-0 bg-gradient-to-tr from-blue-400/10 to-transparent rounded-full blur-2xl animate-glow"></div>
-                        <div class="relative max-w-sm w-full animate-float-premium">
-                            <img src="<?= BASE_URL ?>/assets/images/welcome.png" class="w-full h-auto object-contain drop-shadow-xl" alt="Dashboard Illustration Graphic Mockup">
-                        </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">Welcome back, <?= $studentName ?></h1>
+                        <p class="mt-0.5 text-sm text-slate-500">Complete your assessments to unlock personalized career recommendations.</p>
                     </div>
                 </div>
-            </section>
+            </div>
+            <?php if ($allCompleted): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
+                    <i class="fas fa-trophy text-xs"></i>
+                    View Career Recommendation
+                </a>
+            <?php else: ?>
+                <a href="<?= BASE_URL ?>/index.php?page=student-assessments" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
+                    <i class="fas fa-arrow-right text-xs"></i>
+                    Continue Assessment
+                </a>
+            <?php endif; ?>
+        </div>
+    </section>
 
-            <!-- ===================================== -->
-            <!-- Functional Grid Data Panels Area -->
-            <!-- ===================================== -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-
-                <!-- Left Column Metric Segment Containers -->
-                <div class="space-y-8">
-
-                    <!-- Metric Frame: Radial Donut Circle Progress Card Layout Component -->
-                    <div class="bg-white rounded-3xl border border-slate-200/70 shadow-sm hover:shadow-md transition-all duration-300 p-6 sm:p-8 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-900 tracking-tight">Assessment Progress</h2>
-                                <p class="text-slate-400 text-xs font-medium mt-0.5">Overall Completion Status</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                                <i class="fas fa-chart-line text-sm"></i>
-                            </div>
-                        </div>
-
-                        <!-- Progress Circle Graphic Calculation Container Block Area -->
-                        <div class="flex items-center justify-center py-8">
-                            <div class="relative w-36 h-36 transform transition-transform duration-500 hover:scale-105">
-                                <?php
-                                $dash = 408;
-                                $offset = max(0, (int)round($dash - ($dash * ($percentage / 100))));
-                                ?>
-                                <svg class="w-36 h-36 -rotate-90 drop-shadow-sm">
-                                    <circle cx="72" cy="72" r="58" stroke="#F1F5F9" stroke-width="10" fill="none" />
-                                    <circle cx="72" cy="72" r="58" stroke="#2563EB" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="<?= $dash ?>" stroke-dashoffset="<?= $offset ?>" class="transition-all duration-1000 ease-out" />
-                                </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                    <span class="text-2xl font-black text-slate-900 tracking-tight"><?= round($percentage) ?>%</span>
-                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5"><?= (int)$completedAssessments ?> of <?= (int)$totalAssessments ?> Done</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
-                            <p class="text-xs font-medium text-slate-500 leading-relaxed">
-                                Keep going! You're one step closer to unlocking personalized career maps.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Metric Frame: Lock Gate Authorization Recommendation Container Block -->
-                    <div class="bg-white rounded-3xl border border-slate-200/70 shadow-sm hover:shadow-md transition-all duration-300 p-6 sm:p-8">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-900 tracking-tight">Career Recommendation</h2>
-                                <p class="text-slate-400 text-xs font-medium mt-0.5">Personalized Pathway Assessment</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                                <i class="fas fa-briefcase text-sm"></i>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col items-center text-center py-6">
-                            <?php if((int)$completedAssessments === (int)$totalAssessments){ ?>
-                                <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-2xl mb-4 border border-emerald-100 shadow-inner animate-bounce">
-                                    <i class="fas fa-unlock-alt"></i>
-                                </div>
-                                <h3 class="text-base font-bold text-emerald-600">Recommendations Unlocked</h3>
-                                <p class="mt-2 text-xs font-medium text-slate-500 max-w-xs leading-relaxed">
-                                    Congratulations! Your core testing profile matrix analysis has computed a match layout strategy.
-                                </p>
-                                <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="mt-5 w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm transition">
-                                    View Recommendation
-                                </a>
-                            <?php } else { ?>
-                                <div class="w-14 h-14 bg-slate-50 text-slate-400 border border-slate-200/60 rounded-2xl flex items-center justify-center text-xl mb-4 shadow-sm">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Locked</h3>
-                                <p class="mt-2 text-xs font-medium text-slate-400 max-w-[210px] leading-relaxed">
-                                    Complete all remaining items to open your customized matrix framework.
-                                </p>
-                                <button disabled class="mt-5 w-full bg-slate-100 text-slate-400 py-2.5 rounded-xl text-xs font-semibold cursor-not-allowed border border-slate-200/40">
-                                    Locked
-                                </button>
-                            <?php } ?>
-                        </div>
-                    </div>
-
+    <!-- Quick Statistics -->
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Completed</span>
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-500">
+                    <i class="fas fa-check text-xs"></i>
                 </div>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900"><?= (int)$completedAssessments ?></p>
+            <p class="text-xs text-slate-400">Assessments</p>
+        </div>
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total</span>
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+                    <i class="fas fa-list-check text-xs"></i>
+                </div>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900"><?= (int)$totalAssessments ?></p>
+            <p class="text-xs text-slate-400">Assessments</p>
+        </div>
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Education</span>
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-500">
+                    <i class="fas fa-graduation-cap text-xs"></i>
+                </div>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900"><?= htmlspecialchars($recommendation['education_required'] ?? '—') ?></p>
+            <p class="text-xs text-slate-400">Level</p>
+        </div>
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Top Match</span>
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
+                    <i class="fas fa-trophy text-xs"></i>
+                </div>
+            </div>
+            <p class="mt-3 text-2xl font-bold text-slate-900"><?= $recommendation ? (int)$recommendation['match_score'] . '%' : '—' ?></p>
+            <p class="text-xs text-slate-400">Score</p>
+        </div>
+    </div>
+    
+    <!-- Progress + Next Assessment -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
 
-                <!-- Right-Side Matrix List Actions Stack Column -->
-                <div class="xl:col-span-2 space-y-8">
+        <!-- Circular Progress -->
+        <section class="flex w-full min-w-0 flex-col items-center rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <div class="flex w-full items-center justify-between">
+                <h2 class="text-sm font-semibold text-slate-900">Progress</h2>
+                <i class="fas fa-chart-pie text-slate-400"></i>
+            </div>
+            <div class="relative mt-6 h-32 w-32">
+                <svg class="h-32 w-32 -rotate-90" viewBox="0 0 144 144">
+                    <circle cx="72" cy="72" r="58" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+                    <circle cx="72" cy="72" r="58" fill="none" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" stroke-dasharray="<?= $dash ?>" stroke-dashoffset="<?= $offset ?>" class="transition-all duration-1000 ease-out"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-2xl font-bold text-slate-900"><?= round($percentage) ?>%</span>
+                    <span class="text-xs font-medium text-slate-400"><?= (int)$completedAssessments ?> / <?= (int)$totalAssessments ?></span>
+                </div>
+            </div>
+            <p class="mt-3 text-xs text-slate-400"><?= $allCompleted ? 'All assessments complete!' : 'Keep going to unlock your career path.' ?></p>
+        </section>
 
-                    <!-- Assessment Item Matrix Roadmap Framework View Container -->
-                    <div class="bg-white rounded-3xl border border-slate-200/70 shadow-sm hover:shadow-md transition-all duration-300 p-6 sm:p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-900 tracking-tight">Assessment Status</h2>
-                                <p class="text-slate-400 text-xs font-medium mt-0.5">Complete each to build your profile path structure.</p>
+        <!-- Next Assessment or All Completed -->
+        <section class="flex w-full min-w-0 flex-col rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <?php if ($nextSlug !== null): ?>
+                <?php
+                $slug = $nextSlug;
+                $s = $statusMap[$slug] ?? ['status' => 'Locked', 'completed_at' => null];
+                $status = $s['status'];
+                $c = $assessmentColors[$slug];
+                $icon = $faIcons[$slug];
+                $label = $assessmentLabels[$slug];
+                $qCount = $questionCounts[$slug] ?? 0;
+                $isInProgress = in_array(strtolower($status), ['in_progress', 'in progress']);
+                $btnLabel = $isInProgress ? 'Continue' : 'Start';
+                ?>
+                <div class="flex w-full flex-col gap-4">
+                    <h2 class="text-sm font-semibold text-slate-900">Next Assessment</h2>
+                    <div class="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl <?= $c['bg'] ?>">
+                                <i class="fas <?= $icon ?> text-xl <?= $c['icon'] ?>"></i>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                                <i class="fas fa-clipboard-check text-sm"></i>
+                            <div class="min-w-0">
+                                <h3 class="truncate text-base font-semibold text-slate-900"><?= htmlspecialchars($label) ?></h3>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <span class="text-xs text-slate-400"><?= $qCount ?> Questions</span>
+                                    <span class="text-slate-300">·</span>
+                                    <?= dashboardStatusBadge($status) ?>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Process Map List Layout Group Container Panel Rows -->
-                        <div class="space-y-3">
-                            
-                            <!-- Custom Helper to clean row badges dynamic output syntax -->
-                            <?php
-                            if (!function_exists('renderModernRowButton')) {
-                                function renderModernRowButton($status) {
-                                    $statusClean = strtolower($status ?? '');
-                                    if ($statusClean === 'completed') {
-                                        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg"><span class="w-1 h-1 rounded-full bg-emerald-500"></span>Completed</span>';
-                                    }
-                                    if ($statusClean === 'pending' || $statusClean === 'in progress') {
-                                        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg animate-pulse"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>In Progress</span>';
-                                    }
-                                    return '<span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-slate-400 bg-slate-50 border border-slate-100 rounded-lg"><i class="fas fa-lock text-[10px]"></i>Locked</span>';
-                                }
-                            }
-                            ?>
-
-                            <!-- Item row block: Personality Assessment -->
-                            <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-slate-200/80 hover:bg-slate-50/50 transition-all duration-200 group">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-xl bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center text-lg transition-transform group-hover:scale-105">
-                                        <i class="fas fa-smile-beam"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Personality Assessment</h3>
-                                        <p class="text-xs text-slate-400 font-medium mt-0.5">Discover your core personality traits.</p>
-                                    </div>
-                                </div>
-                                <div><?= renderModernRowButton($statusMap['Personality'] ?? 'Completed') ?></div>
-                            </div>
-
-                            <!-- Item row block: Interest Assessment -->
-                            <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-slate-200/80 hover:bg-slate-50/50 transition-all duration-200 group">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-lg transition-transform group-hover:scale-105">
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Interest Assessment</h3>
-                                        <p class="text-xs text-slate-400 font-medium mt-0.5">Map out matching vocational dynamics.</p>
-                                    </div>
-                                </div>
-                                <div><?= renderModernRowButton($statusMap['Interest'] ?? 'In Progress') ?></div>
-                            </div>
-
-                            <!-- Item row block: Aptitude Assessment -->
-                            <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-slate-200/80 hover:bg-slate-50/50 transition-all duration-200 group">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg transition-transform group-hover:scale-105">
-                                        <i class="fas fa-brain"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Aptitude Assessment</h3>
-                                        <p class="text-xs text-slate-400 font-medium mt-0.5">Complete interest tracking rules first.</p>
-                                    </div>
-                                </div>
-                                <div><?= renderModernRowButton($statusMap['Aptitude'] ?? 'Locked') ?></div>
-                            </div>
-
-                            <!-- Item row block: Career Values Assessment -->
-                            <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-slate-200/80 hover:bg-slate-50/50 transition-all duration-200 group">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center text-lg transition-transform group-hover:scale-105">
-                                        <i class="fas fa-lightbulb"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Career Values Assessment</h3>
-                                        <p class="text-xs text-slate-400 font-medium mt-0.5">Evaluate long-term career environment drivers.</p>
-                                    </div>
-                                </div>
-                                <div><?= renderModernRowButton($statusMap['Career Values'] ?? 'Locked') ?></div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Layout Segment Panel Footer: Strategic Action Hub Banner Hint Link -->
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-3xl p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm relative overflow-hidden group">
-                        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:scale-120 transition-transform"></div>
-                        <div class="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row">
-                            <div class="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg shadow-inner">
-                                <i class="fas fa-info-circle"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-sm tracking-tight">Need help with choice routing?</h4>
-                                <p class="text-xs text-blue-100 mt-0.5 max-w-sm">Take your time and answer honestly for the best results. Your future starts with self-discovery.</p>
-                            </div>
-                        </div>
-                        <a href="<?= BASE_URL ?>/index.php?page=faq" class="bg-white text-indigo-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap shadow-sm">
-                            Read Guide Matrix
+                        <a href="<?= BASE_URL ?>/index.php?page=<?= $slug ?>" class="inline-flex shrink-0 items-center gap-2 self-start rounded-xl <?= $c['btn'] ?> px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200">
+                            <i class="fas fa-play text-xs"></i>
+                            <?= $btnLabel ?>
                         </a>
                     </div>
-
                 </div>
-
-            </div>
-        </main>
+            <?php else: ?>
+                <div class="flex h-full flex-col items-center justify-center gap-3 py-4 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
+                        <i class="fas fa-check-circle text-2xl text-emerald-500"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-900">All assessments completed</h3>
+                    <p class="text-sm text-slate-500">You've finished all four assessments. View your career recommendations now.</p>
+                    <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
+                        View Recommendations
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            <?php endif; ?>
+        </section>
     </div>
+
+    <!-- Top Career Recommendation -->
+    <section class="rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <?php if ($recommendation): ?>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md">
+                        <i class="fas <?= $recommendationIcon ?> text-xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.15em] text-indigo-600">Top Recommendation</p>
+                        <h2 class="truncate text-lg font-bold text-slate-900"><?= htmlspecialchars($recommendation['career_name']) ?></h2>
+                        <p class="mt-1 text-sm leading-relaxed text-slate-500"><?= htmlspecialchars(mb_substr($recommendation['description'], 0, 150)) ?><?= mb_strlen($recommendation['description']) > 150 ? '...' : '' ?></p>
+                    </div>
+                </div>
+                <div class="flex shrink-0 flex-col items-center gap-3 sm:items-end">
+                    <div class="flex flex-col items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5">
+                        <span class="text-2xl font-extrabold text-emerald-600"><?= (int)$recommendation['match_score'] ?>%</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Match</span>
+                    </div>
+                    <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 no-underline transition-all duration-200 hover:border-slate-300 hover:bg-slate-50">
+                        View Details
+                        <i class="fas fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+        <?php elseif ($allCompleted): ?>
+            <div class="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:text-left">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-100 bg-amber-50 text-amber-500">
+                    <i class="fas fa-clipboard-list text-xl"></i>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-base font-semibold text-slate-900">Complete All Assessments</h2>
+                    <p class="mt-0.5 text-sm text-slate-500">Finish all four assessments to unlock your personalized career recommendations.</p>
+                </div>
+                <a href="<?= BASE_URL ?>/index.php?page=student-assessments" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:bg-amber-700 sm:ml-auto">
+                    Go to Assessments
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        <?php else: ?>
+            <div class="flex items-center gap-4">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400">
+                    <i class="fas fa-lock text-xl"></i>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-base font-semibold text-slate-900">Career Recommendation</h2>
+                    <p class="mt-0.5 text-sm text-slate-500">Complete all <?= (int)$totalAssessments ?> assessments to unlock your personalized career recommendation.</p>
+                </div>
+                <span class="ml-auto hidden shrink-0 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-300 sm:inline-flex">
+                    <i class="fas fa-lock text-xs"></i>
+                    Locked
+                </span>
+            </div>
+        <?php endif; ?>
+    </section>
+
+
+    <!-- Recent Activity -->
+    <section class="rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-900">Recent Activity</h2>
+            <i class="fas fa-clock-rotate-left text-slate-400"></i>
+        </div>
+        <div class="mt-4 divide-y divide-slate-100">
+            <?php foreach ($assessmentSlugs as $slug):
+                $s = $statusMap[$slug] ?? ['status' => 'Locked', 'completed_at' => null];
+                $statusRaw = $s['status'];
+                $completedAt = $s['completed_at'] ?? null;
+                $statusLower = strtolower($statusRaw);
+                $isComplete = $statusLower === 'completed';
+                $statusDisplay = match ($statusLower) {
+                    'completed' => 'Completed',
+                    'in_progress', 'in progress' => 'In Progress',
+                    'not_started', 'not started' => 'Not Started',
+                    default => 'Locked',
+                };
+                $icon = $faIcons[$slug];
+                $label = $assessmentLabels[$slug];
+            ?>
+            <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl <?= $isComplete ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-400' ?>">
+                    <i class="fas <?= $icon ?> text-sm"></i>
+                </div>
+                <div class="flex min-w-0 flex-1 items-center justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-slate-800"><?= htmlspecialchars($label) ?></p>
+                        <p class="text-xs text-slate-400"><?= $statusDisplay ?></p>
+                    </div>
+                    <span class="shrink-0 text-xs text-slate-400"><?= $isComplete ? dashboardFormatDate($completedAt) : '—' ?></span>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    
 </div>

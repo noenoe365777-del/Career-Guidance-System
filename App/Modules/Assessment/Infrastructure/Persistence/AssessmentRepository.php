@@ -64,6 +64,11 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         return null;
     }
 
+    public function getSlugMap(): array
+    {
+        return $this->slugMap;
+    }
+
     private function mapRow(array $row): array
     {
         $id = (int)($row['id'] ?? 0);
@@ -74,6 +79,7 @@ class AssessmentRepository implements AssessmentRepositoryInterface
             'description' => $row['description'] ?? 'Complete this assessment to understand yourself better.',
             'slug' => $this->slugMap[$id] ?? 'assessment',
             'total_questions' => $this->countQuestions($id),
+            'preview_questions' => $this->countPreviewQuestions($id),
             'status' => $row['status'] ?? 'active',
         ];
     }
@@ -83,6 +89,19 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         try {
             $statement = $this->connection->prepare(
                 "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id"
+            );
+            $statement->execute(['assessment_id' => $assessmentId]);
+            return (int)$statement->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function countPreviewQuestions(int $assessmentId): int
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id AND preview = 1"
             );
             $statement->execute(['assessment_id' => $assessmentId]);
             return (int)$statement->fetchColumn();

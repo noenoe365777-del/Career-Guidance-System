@@ -69,7 +69,6 @@ class AdminController extends Controller
             [
                 'pageTitle' => 'Admin Login',
                 'layout' => 'app',
-                'extraCss' => 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
                 'error' => $error,
             ]
         );
@@ -89,12 +88,12 @@ class AdminController extends Controller
                 'layout' => 'none',
                 'admin' => $admin,
                 'activeMenu' => 'dashboard',
-                'totalUsers' => $data['totalUsers'],
+                'totalStudents' => $data['totalStudents'],
                 'totalAssessments' => $data['totalAssessments'],
                 'totalQuestions' => $data['totalQuestions'],
                 'totalCareers' => $data['totalCareers'],
                 'recentActivity' => $data['recentActivity'],
-                'systemStatus' => $data['systemStatus'],
+                'recentStudents' => $data['recentStudents'],
             ]
         );
     }

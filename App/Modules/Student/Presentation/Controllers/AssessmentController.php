@@ -163,7 +163,18 @@ class AssessmentController extends Controller
         $user = $this->requireAuthenticatedUser();
         $userId = isset($user['id']) ? (int)$user['id'] : null;
 
-        $this->assessmentService->startAssessment($slug, $userId);
+        $assessmentData = $this->assessmentService->startAssessment($slug, $userId);
+        if (!$assessmentData['success']) {
+            $this->redirectTo('student-assessments');
+            return;
+        }
+
+        $assessment = $assessmentData['assessment'];
+        $existing = $this->studentAssessmentRepository->findForUser($userId, (int)$assessment['id']);
+        if ($existing && $existing['status'] === 'completed') {
+            $this->redirectTo('assessment-result', ['slug' => $slug]);
+            return;
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $answers = isset($_POST['answers']) && is_array($_POST['answers'])
