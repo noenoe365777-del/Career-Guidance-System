@@ -29,7 +29,7 @@ class QuestionController extends Controller
         $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
         $sort = isset($_GET['sort']) && $_GET['sort'] !== '' ? trim((string)$_GET['sort']) : null;
 
-        $result = $this->questionService->getAllQuestions($page, 12, $search, $assessmentFilter, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
+        $result = $this->questionService->getAllQuestions($page, 100, $search, $assessmentFilter, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
         $assessments = $this->questionService->getAssessments();
         $questionTypes = $this->questionService->getQuestionTypes();
         $distribution = $this->questionService->getQuestionsCountByAssessment();

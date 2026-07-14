@@ -26,5 +26,7 @@ interface ReportsRepositoryInterface
 
     public function getStudentPerformance(int $limit = 10): array;
 
+    public function getReportsGeneratedCount(): int;
+
     public function getRecentActivities(int $limit = 10): array;
 }

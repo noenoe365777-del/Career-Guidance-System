@@ -70,6 +70,11 @@ class ReportsService
         return $this->reportsRepository->getStudentPerformance($limit);
     }
 
+    public function getReportsGeneratedCount(): int
+    {
+        return $this->reportsRepository->getReportsGeneratedCount();
+    }
+
     public function getRecentActivities(int $limit = 10): array
     {
         return $this->reportsRepository->getRecentActivities($limit);

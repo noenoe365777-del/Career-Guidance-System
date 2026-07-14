@@ -102,6 +102,8 @@ class CareerController extends Controller
             'work_environment' => [],
         ];
 
+        $isDrawer = (isset($_GET['format']) && $_GET['format'] === 'modal');
+
         $this->view(
             'Career/Presentation/Views/career-detail',
             [
@@ -111,6 +113,7 @@ class CareerController extends Controller
                 'career' => $viewCareer,
                 'relatedCareers' => [],
                 'isAdminView' => true,
+                'isDrawer' => $isDrawer,
                 'analytics' => $analytics,
                 'backUrl' => BASE_URL . '/index.php?page=admin-careers',
             ]

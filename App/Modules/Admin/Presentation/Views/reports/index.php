@@ -1,390 +1,357 @@
 <?php
-$pageTitle = $pageTitle ?? 'Reports & Analytics';
+$pageTitle = $pageTitle ?? 'Reports';
 $activeMenu = $activeMenu ?? 'reports';
-$period = $period ?? 'all';
-$summaryStats = $summaryStats ?? [];
+$totalStudents = $totalStudents ?? 0;
+$assessmentCompletions = $assessmentCompletions ?? 0;
+$totalRecommendations = $totalRecommendations ?? 0;
+$reportsGenerated = $reportsGenerated ?? 0;
 $assessmentStats = $assessmentStats ?? [];
 $topCareers = $topCareers ?? [];
-$registrationTrend = $registrationTrend ?? [];
 $educationDistribution = $educationDistribution ?? [];
-$assessmentCompletionTrend = $assessmentCompletionTrend ?? [];
-$studentPerformance = $studentPerformance ?? [];
-$recentActivities = $recentActivities ?? [];
+
 ob_start();
 ?>
 
 <style>
-:root { --primary: #6366F1; --bg-page: #F8FAFC; --radius: 16px; }
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to   { opacity: 1; transform: scale(1); }
-}
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-@keyframes countUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-in { animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
-.d1 { animation-delay: 0.04s; }
-.d2 { animation-delay: 0.08s; }
-.d3 { animation-delay: 0.12s; }
-.d4 { animation-delay: 0.16s; }
-.d5 { animation-delay: 0.20s; }
-.d6 { animation-delay: 0.24s; }
-.d7 { animation-delay: 0.28s; }
-.d8 { animation-delay: 0.32s; }
-.d9 { animation-delay: 0.36s; }
-.d10 { animation-delay: 0.40s; }
-.hover-lift { transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s cubic-bezier(0.22,1,0.36,1); }
-.hover-lift:hover { transform: translateY(-3px); box-shadow: 0 12px 30px -8px rgba(99,102,241,0.12); }
-.slide-up { animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-.table-row { transition: background 0.15s ease; }
-.table-row:nth-child(even) { background: #F8FAFC; }
-.table-row:hover { background: #EEF2FF !important; }
-.stat-value { animation: countUp 0.6s cubic-bezier(0.22,1,0.36,1) both; }
-.sticky-header { position: sticky; top: 0; z-index: 30; }
-.progress-bar-fill { transition: width 1.2s cubic-bezier(0.22,1,0.36,1); }
-.chart-container { position: relative; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+    .anim-in { animation: fadeIn 0.4s ease-out both; }
+    .anim-up { animation: slideUp 0.5s ease-out both; }
+    .anim-scale { animation: scaleIn 0.25s ease-out both; }
+
+    .d1 { animation-delay: 0.04s; }
+    .d2 { animation-delay: 0.08s; }
+    .d3 { animation-delay: 0.12s; }
+    .d4 { animation-delay: 0.16s; }
+    .d5 { animation-delay: 0.20s; }
+    .d6 { animation-delay: 0.24s; }
+    .d7 { animation-delay: 0.28s; }
+    .d8 { animation-delay: 0.32s; }
+    .d9 { animation-delay: 0.36s; }
+    .d10 { animation-delay: 0.40s; }
+
+    .stat-card {
+        transition: all 0.2s ease;
+        border: 1px solid #f1f5f9;
+        background: #ffffff;
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.04);
+    }
+
+    .assess-card {
+        transition: all 0.2s ease;
+        background: #ffffff;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        padding: 1.25rem;
+    }
+    .assess-card:hover {
+        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.04);
+    }
+
+    .career-row {
+        transition: all 0.15s ease;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #f1f5f9;
+        background: #ffffff;
+    }
+    .career-row:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+
+    .edu-chip {
+        padding: 0.6rem 1rem;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .progress-track {
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: #f1f5f9;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.65rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #475569;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn-export:hover { background: #f1f5f9; border-color: #cbd5e1; transform: scale(1.03); }
+    .btn-export:active { transform: scale(0.97); }
+    .btn-export.primary { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .btn-export.primary:hover { background: #4f46e5; }
+
+    .section-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+    }
 </style>
 
-<div class="space-y-6" style="background:var(--bg-page);min-height:100vh">
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-<div class="sticky-header animate-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-[var(--bg-page)] py-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-    <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Reports & Analytics</h1>
-        <p class="mt-1 text-sm text-slate-500">Overview of assessment activity and student performance.</p>
-    </div>
-    <div class="flex items-center gap-2.5 flex-wrap">
-        <select id="periodSelect" onchange="applyPeriod(this.value)"
-                class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 shadow-sm">
-            <option value="today" <?= $period === 'today' ? 'selected' : '' ?>>Today</option>
-            <option value="7d" <?= $period === '7d' ? 'selected' : '' ?>>7 Days</option>
-            <option value="30d" <?= $period === '30d' ? 'selected' : '' ?>>30 Days</option>
-            <option value="all" <?= $period === 'all' ? 'selected' : '' ?>>All Time</option>
-        </select>
-        <button onclick="window.print()"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm active:scale-[0.97]">
-            <i class="bi bi-filetype-pdf"></i> Export PDF
-        </button>
-        <button onclick="exportCSV()"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm active:scale-[0.97]">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
-        </button>
-    </div>
-</div>
-
-<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-<?php
-$statKeys = ['total_students', 'completed_assessments', 'total_recommendations', 'avg_completion_rate', 'active_users', 'avg_score'];
-$cardColors = [
-    'total_students' => ['bg' => 'bg-indigo-50', 'text' => 'text-indigo-600', 'icon' => 'bi-people'],
-    'completed_assessments' => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-600', 'icon' => 'bi-check-circle'],
-    'total_recommendations' => ['bg' => 'bg-amber-50', 'text' => 'text-amber-600', 'icon' => 'bi-star'],
-    'avg_completion_rate' => ['bg' => 'bg-cyan-50', 'text' => 'text-cyan-600', 'icon' => 'bi-graph-up'],
-    'active_users' => ['bg' => 'bg-violet-50', 'text' => 'text-violet-600', 'icon' => 'bi-person-activity'],
-    'avg_score' => ['bg' => 'bg-rose-50', 'text' => 'text-rose-600', 'icon' => 'bi-trophy'],
-];
-$dl = 1;
-foreach ($statKeys as $sk):
-    $s = $summaryStats[$sk] ?? ['value' => 0, 'change' => 0, 'label' => $sk, 'format' => 'number'];
-    $val = $s['value'];
-    $change = $s['change'];
-    $label = $s['label'];
-    $fmt = $s['format'];
-    $cc = $cardColors[$sk];
-    $displayVal = match($fmt) {
-        'percent' => number_format((float)$val, 1) . '%',
-        'decimal' => number_format((float)$val, 2),
-        default => number_format((int)$val),
-    };
-    $changeIsGood = $change >= 0;
-    $changeClass = $changeIsGood ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50';
-    $changeIcon = $changeIsGood ? 'bi-arrow-up' : 'bi-arrow-down';
-    $dly = 'd' . $dl;
-?>
-    <div class="animate-in <?= $dly ?> hover-lift rounded-[var(--radius)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] flex flex-col justify-between stat-hover">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400"><?= htmlspecialchars($label) ?></span>
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg <?= $cc['bg'] ?> <?= $cc['text'] ?> transition-all duration-300">
-                <i class="bi <?= $cc['icon'] ?> text-sm"></i>
+    <!-- Header -->
+    <div class="anim-up d1">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em;" class="text-slate-900">Reports</h1>
+                <p style="font-size: 0.95rem;" class="mt-1.5 text-slate-500">Monitor student assessments and career recommendations.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="btn-export"><i class="bi bi-filetype-pdf"></i> Export PDF</button>
+                <button onclick="exportExcel()" class="btn-export"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
+                <button onclick="generateReport()" class="btn-export primary"><i class="bi bi-file-earmark-plus"></i> Generate Report</button>
             </div>
         </div>
-        <div class="stat-value text-xl font-bold text-slate-900"><?= $displayVal ?></div>
-        <div class="mt-1.5 flex items-center gap-1.5">
-            <?php if ($period !== 'all'): ?>
-            <span class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold <?= $changeClass ?>">
-                <i class="bi <?= $changeIcon ?> text-[9px]"></i>
-                <?= $changeIsGood ? '+' : '' ?><?= number_format(abs($change), 1) ?>%
-            </span>
-            <span class="text-[10px] text-slate-400">vs prev</span>
-            <?php else: ?>
-            <span class="text-[10px] text-slate-400">All time total</span>
-            <?php endif; ?>
-        </div>
     </div>
-<?php $dl++; endforeach; ?>
-</div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="animate-in d7 rounded-[var(--radius)] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Student Registration Trend</h3>
-        <div class="chart-container">
-            <canvas id="registrationChart" height="220"></canvas>
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card anim-up d2">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Students</span>
+                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($totalStudents) ?></p>
+                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Registered students</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">
+                    <i class="bi bi-people text-xl"></i>
+                </div>
+            </div>
         </div>
-        <?php if (empty($registrationTrend)): ?>
-        <div class="flex items-center justify-center h-[220px] text-slate-400 text-sm">No registration data available</div>
-        <?php endif; ?>
-    </div>
-    <div class="animate-in d8 rounded-[var(--radius)] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Assessment Completion Trend</h3>
-        <div class="chart-container">
-            <canvas id="completionTrendChart" height="220"></canvas>
+        <div class="stat-card anim-up d3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Assessment Completions</span>
+                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($assessmentCompletions) ?></p>
+                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Total completed</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-400">
+                    <i class="bi bi-check-circle text-xl"></i>
+                </div>
+            </div>
         </div>
-        <?php if (empty($assessmentCompletionTrend)): ?>
-        <div class="flex items-center justify-center h-[220px] text-slate-400 text-sm">No completion data available</div>
-        <?php endif; ?>
+        <div class="stat-card anim-up d4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Recommendations</span>
+                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($totalRecommendations) ?></p>
+                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Careers recommended</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-400">
+                    <i class="bi bi-star text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card anim-up d5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Reports Generated</span>
+                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($reportsGenerated) ?></p>
+                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Students assessed</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-violet-50 flex items-center justify-center text-violet-400">
+                    <i class="bi bi-file-text text-xl"></i>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="animate-in d9 rounded-[var(--radius)] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Most Popular Assessments</h3>
-        <?php if (empty($assessmentStats)): ?>
-        <div class="flex items-center justify-center h-[200px] text-slate-400 text-sm">No assessment data</div>
-        <?php else: ?>
-        <div class="space-y-4">
-            <?php
-            $maxRate = 0;
-            foreach ($assessmentStats as $a) { $r = (float)$a['completion_rate']; if ($r > $maxRate) $maxRate = $r; }
-            $maxRate = $maxRate > 0 ? $maxRate : 100;
-            foreach ($assessmentStats as $a):
-                $title = htmlspecialchars((string)($a['title'] ?? ''));
-                $rate = (float)$a['completion_rate'];
-                $pct = $maxRate > 0 ? round(($rate / $maxRate) * 100) : 0;
-                $t = strtolower($title);
-                if (str_contains($t, 'personality')) { $bar = 'bg-indigo-500'; $dot = 'bg-indigo-500'; }
-                elseif (str_contains($t, 'interest')) { $bar = 'bg-pink-500'; $dot = 'bg-pink-500'; }
-                elseif (str_contains($t, 'aptitude')) { $bar = 'bg-emerald-500'; $dot = 'bg-emerald-500'; }
-                elseif (str_contains($t, 'value')) { $bar = 'bg-amber-500'; $dot = 'bg-amber-500'; }
-                else { $bar = 'bg-slate-500'; $dot = 'bg-slate-500'; }
-            ?>
+    <!-- Assessment Completion -->
+    <div class="anim-up d6">
+        <div class="flex items-center justify-between mb-4">
             <div>
-                <div class="flex items-center justify-between mb-1.5">
-                    <div class="flex items-center gap-2">
-                        <span class="inline-block h-2 w-2 rounded-full <?= $dot ?>"></span>
-                        <span class="text-xs font-medium text-slate-700"><?= $title ?></span>
+                <h2 style="font-size: 1.15rem; font-weight: 600;" class="text-slate-800">Assessment Completion</h2>
+                <p style="font-size: 0.85rem;" class="text-slate-400 mt-0.5">Completed students per assessment type</p>
+            </div>
+        </div>
+        <?php if (empty($assessmentStats)): ?>
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
+            <div class="mx-auto h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center"><i class="bi bi-journal-check text-xl text-slate-300"></i></div>
+            <p style="font-size: 0.9rem;" class="mt-3 text-slate-500">No completion data available.</p>
+        </div>
+        <?php else: ?>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <?php
+            $icons = ['bi bi-activity', 'bi bi-person-badge', 'bi bi-cpu', 'bi bi-heart'];
+            $colors = ['#10b981', '#6366f1', '#06b6d4', '#f59e0b'];
+            $bgColors = ['from-emerald-500 to-emerald-600', 'from-indigo-500 to-indigo-600', 'from-cyan-500 to-cyan-600', 'from-amber-500 to-amber-600'];
+            $maxCompleted = max(array_map(fn($a) => (int)($a['completed'] ?? 0), $assessmentStats) ?: [1]);
+            foreach ($assessmentStats as $idx => $as):
+                $title = (string)($as['title'] ?? '');
+                $completed = (int)($as['completed'] ?? 0);
+                $taken = (int)($as['total_taken'] ?? 0);
+                $rate = (float)($as['completion_rate'] ?? 0);
+                $pct = $maxCompleted > 0 ? round(($completed / $maxCompleted) * 100) : 0;
+            ?>
+            <div class="assess-card anim-up d<?= 7 + $idx ?>" style="animation-delay: <?= 0.06 * $idx ?>s;">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br <?= $bgColors[$idx % count($bgColors)] ?> text-white shadow-sm">
+                        <i class="<?= $icons[$idx % count($icons)] ?> text-sm"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-800"><?= number_format($rate, 1) ?>%</span>
+                    <h3 style="font-size: 0.95rem; font-weight: 600;" class="text-slate-800"><?= htmlspecialchars($title) ?></h3>
                 </div>
-                <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                    <div class="h-full rounded-full <?= $bar ?> progress-bar-fill" style="width:0%" data-width="<?= $pct ?>"></div>
+                <div class="flex items-end justify-between gap-2 mb-3">
+                    <div>
+                        <p style="font-size: 1.75rem; font-weight: 700;" class="text-slate-900"><?= number_format($completed) ?></p>
+                        <p style="font-size: 0.8rem;" class="text-slate-400">Completed</p>
+                    </div>
+                    <div class="text-right">
+                        <p style="font-size: 1rem; font-weight: 600;" class="text-slate-600"><?= number_format($taken) ?></p>
+                        <p style="font-size: 0.75rem;" class="text-slate-400">Started</p>
+                    </div>
                 </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: 0%; background: <?= $colors[$idx % count($colors)] ?>;" data-width="<?= $pct ?>"></div>
+                </div>
+                <p style="font-size: 0.75rem;" class="mt-1.5 text-slate-400"><?= number_format($rate, 1) ?>% completion rate</p>
             </div>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
     </div>
-    <div class="animate-in d10 rounded-[var(--radius)] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Education Level Distribution</h3>
-        <div class="chart-container">
-            <canvas id="educationChart" height="220"></canvas>
-        </div>
-        <?php if (empty($educationDistribution)): ?>
-        <div class="flex items-center justify-center h-[220px] text-slate-400 text-sm">No education data</div>
-        <?php endif; ?>
-    </div>
-</div>
 
-<div class="animate-in d3 rounded-[var(--radius)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div>
-            <h3 class="text-sm font-bold text-slate-700">Student Performance</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Latest completed assessments</p>
-        </div>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full border-collapse">
-            <thead>
-                <tr class="bg-slate-50 border-b border-slate-100">
-                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Student</th>
-                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Assessment</th>
-                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden sm:table-cell">Date</th>
-                    <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Score</th>
-                    <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Career Match</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($studentPerformance)): ?>
-                <tr><td colspan="5" class="px-5 py-10 text-center text-slate-400">No performance data yet</td></tr>
-                <?php else: ?>
-                <?php foreach ($studentPerformance as $sp): ?>
-                <tr class="table-row border-b border-slate-50 slide-up" style="animation-delay:<?= (float)(0.02 * min(10, array_search($sp, $studentPerformance) + 1)) ?>s">
-                    <td class="px-5 py-3.5">
-                        <div class="flex items-center gap-2.5">
-                            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 shrink-0">
-                                <?= strtoupper(substr(htmlspecialchars((string)($sp['student_name'] ?? '')), 0, 1)) ?>
-                            </div>
-                            <span class="text-sm font-medium text-slate-700"><?= htmlspecialchars((string)($sp['student_name'] ?? '')) ?></span>
-                        </div>
-                    </td>
-                    <td class="px-5 py-3.5 text-sm text-slate-600"><?= htmlspecialchars((string)($sp['assessment_title'] ?? '')) ?></td>
-                    <td class="px-5 py-3.5 text-sm text-slate-500 hidden sm:table-cell">
-                        <?php
-                            $ca = $sp['completed_at'] ?? null;
-                            echo $ca ? date('M j, Y', strtotime((string)$ca)) : '—';
-                        ?>
-                    </td>
-                    <td class="px-5 py-3.5 text-sm text-center font-medium text-slate-700">
-                        <?= number_format((float)($sp['total_score'] ?? 0), 2) ?>
-                    </td>
-                    <td class="px-5 py-3.5 text-sm text-center">
-                        <?php
-                            $cms = (float)($sp['career_match_score'] ?? 0);
-                            $cmPct = $cms > 0 ? round($cms, 0) : 0;
-                        ?>
-                        <?php if ($cmPct > 0): ?>
-                        <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold <?= $cmPct >= 70 ? 'bg-emerald-50 text-emerald-700' : ($cmPct >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700') ?>">
-                            <?= $cmPct ?>%
-                        </span>
-                        <?php else: ?>
-                        <span class="text-xs text-slate-400">—</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <!-- Bottom Grid: Top Careers + Education Distribution -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-<div class="animate-in d4 rounded-[var(--radius)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div>
-            <h3 class="text-sm font-bold text-slate-700">Recent Activities</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Latest platform activities</p>
-        </div>
-    </div>
-    <?php if (empty($recentActivities)): ?>
-    <div class="flex flex-col items-center justify-center py-12">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50">
-            <i class="bi bi-clock-history text-xl text-slate-300"></i>
-        </div>
-        <p class="mt-3 text-sm text-slate-500">No recent activities</p>
-    </div>
-    <?php else: ?>
-    <div class="divide-y divide-slate-50">
-        <?php foreach ($recentActivities as $i => $ra): ?>
-        <?php
-            $raType = $ra['type'] ?? '';
-            $raSubject = htmlspecialchars((string)($ra['subject'] ?? ''), ENT_QUOTES, 'UTF-8');
-            $raDetail = htmlspecialchars((string)($ra['detail'] ?? ''), ENT_QUOTES, 'UTF-8');
-            $raTime = $ra['occurred_at'] ?? '';
-            $ts = strtotime((string)$raTime);
-            $relative = $ts ? time() - $ts : 0;
-            if ($relative < 60) $relStr = 'Just now';
-            elseif ($relative < 3600) $relStr = floor($relative / 60) . 'm ago';
-            elseif ($relative < 86400) $relStr = floor($relative / 3600) . 'h ago';
-            elseif ($relative < 604800) $relStr = floor($relative / 86400) . 'd ago';
-            else $relStr = $ts ? date('M j', $ts) : '';
-
-            $typeIconMap = [
-                'user_registered' => ['icon' => 'bi-person-plus', 'bg' => 'bg-emerald-50', 'color' => 'text-emerald-600', 'label' => 'Student registered'],
-                'assessment_completed' => ['icon' => 'bi-clipboard-check', 'bg' => 'bg-indigo-50', 'color' => 'text-indigo-600', 'label' => 'Assessment completed'],
-                'recommendation_generated' => ['icon' => 'bi-stars', 'bg' => 'bg-amber-50', 'color' => 'text-amber-600', 'label' => 'Recommendation generated'],
-                'assessment_created' => ['icon' => 'bi-file-earmark-plus', 'bg' => 'bg-cyan-50', 'color' => 'text-cyan-600', 'label' => 'Assessment created'],
-            ];
-            $ti = $typeIconMap[$raType] ?? ['icon' => 'bi-info-circle', 'bg' => 'bg-slate-50', 'color' => 'text-slate-500', 'label' => 'Activity'];
-        ?>
-        <div class="flex items-start gap-3.5 px-5 py-3.5 slide-up" style="animation-delay:<?= min(0.24, 0.02 * ($i + 1)) ?>s">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl <?= $ti['bg'] ?> <?= $ti['color'] ?>">
-                <i class="bi <?= $ti['icon'] ?> text-sm"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm text-slate-700">
-                    <span class="font-semibold"><?= $raSubject ?></span>
-                    <span class="text-slate-500"> <?= $ti['label'] ?></span>
-                    <?php if ($raDetail): ?>
-                    <span class="text-slate-400">— <?= $raDetail ?></span>
-                    <?php endif; ?>
-                </p>
-            </div>
-            <span class="shrink-0 text-xs text-slate-400"><?= $relStr ?></span>
-        </div>
-        <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
-</div>
-
-<div class="animate-in d5">
-    <h3 class="text-sm font-bold text-slate-700 mb-4">Top Recommended Careers</h3>
-    <?php if (empty($topCareers)): ?>
-    <div class="rounded-[var(--radius)] bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 mx-auto">
-            <i class="bi bi-briefcase text-xl text-slate-300"></i>
-        </div>
-        <p class="mt-3 text-sm text-slate-500">No career recommendations yet</p>
-    </div>
-    <?php else: ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <?php foreach ($topCareers as $i => $tc): ?>
-        <?php
-            $cName = htmlspecialchars((string)($tc['career_name'] ?? ''));
-            $cCount = (int)($tc['recommendation_count'] ?? 0);
-            $cScore = (float)($tc['avg_score'] ?? 0);
-            $icons = ['bi-laptop', 'bi-database', 'bi-palette', 'bi-bar-chart', 'bi-graph-up-arrow', 'bi-building', 'bi-heart-pulse', 'bi-calculator'];
-            $cIcon = $icons[$i % count($icons)];
-        ?>
-        <div class="hover-lift rounded-[var(--radius)] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] slide-up" style="animation-delay:<?= 0.05 * ($i + 1) ?>s">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 mb-3">
-                <i class="bi <?= $cIcon ?> text-lg"></i>
-            </div>
-            <h4 class="text-sm font-bold text-slate-800"><?= $cName ?></h4>
-            <p class="mt-1 text-xs text-slate-500">Recommended to <span class="font-semibold text-indigo-600"><?= $cCount ?></span> student<?= $cCount === 1 ? '' : 's' ?></p>
-            <div class="mt-2 flex items-center gap-1.5">
-                <div class="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div class="h-full rounded-full bg-indigo-500 progress-bar-fill" style="width:0%" data-width="<?= min(100, round($cScore)) ?>"></div>
+        <!-- Most Recommended Careers -->
+        <div class="anim-up d8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 style="font-size: 1.15rem; font-weight: 600;" class="text-slate-800">Most Recommended Careers</h2>
+                    <p style="font-size: 0.85rem;" class="text-slate-400 mt-0.5">Top 5 careers by recommendation count</p>
                 </div>
-                <span class="text-[11px] font-semibold text-slate-600"><?= number_format($cScore, 0) ?>%</span>
             </div>
+            <?php if (empty($topCareers)): ?>
+            <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+                <div class="mx-auto h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center"><i class="bi bi-briefcase text-xl text-slate-300"></i></div>
+                <p style="font-size: 0.9rem;" class="mt-3 text-slate-500">No career recommendations yet.</p>
+            </div>
+            <?php else:
+                $maxRec = max(array_map(fn($c) => (int)($c['recommendation_count'] ?? 0), $topCareers));
+                $rankColors = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
+            ?>
+            <div class="space-y-2.5">
+                <?php foreach ($topCareers as $i => $tc):
+                    $name = htmlspecialchars((string)($tc['career_name'] ?? ''));
+                    $count = (int)($tc['recommendation_count'] ?? 0);
+                    $score = (float)($tc['avg_score'] ?? 0);
+                    $barWidth = $maxRec > 0 ? round(($count / $maxRec) * 100) : 0;
+                ?>
+                <div class="career-row anim-up d<?= 9 + min($i, 2) ?>" style="animation-delay: <?= 0.05 * $i ?>s;">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: <?= $rankColors[$i % count($rankColors)] ?>;" class="w-5 shrink-0">#<?= $i + 1 ?></span>
+                            <h4 style="font-size: 0.95rem; font-weight: 600;" class="text-slate-800 truncate"><?= $name ?></h4>
+                        </div>
+                        <span style="font-size: 0.85rem; font-weight: 600;" class="text-indigo-600 shrink-0"><?= $count ?> student<?= $count !== 1 ? 's' : '' ?></span>
+                    </div>
+                    <div class="progress-track ml-8">
+                        <div class="progress-fill" style="width: 0%; background: <?= $rankColors[$i % count($rankColors)] ?>;" data-width="<?= $barWidth ?>"></div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
-        <?php endforeach; ?>
+
+        <!-- Education Level Distribution -->
+        <div class="anim-up d9">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 style="font-size: 1.15rem; font-weight: 600;" class="text-slate-800">Education Level Distribution</h2>
+                    <p style="font-size: 0.85rem;" class="text-slate-400 mt-0.5">Students by education level</p>
+                </div>
+            </div>
+            <?php if (empty($educationDistribution)): ?>
+            <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+                <div class="mx-auto h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center"><i class="bi bi-mortarboard text-xl text-slate-300"></i></div>
+                <p style="font-size: 0.9rem;" class="mt-3 text-slate-500">No student profile data available.</p>
+            </div>
+            <?php
+                else:
+                $maxEdu = max(array_map(fn($e) => (int)($e['count'] ?? 0), $educationDistribution));
+            ?>
+            <div class="space-y-3">
+                <?php foreach ($educationDistribution as $ed):
+                    $level = htmlspecialchars((string)($ed['education_level'] ?? ''));
+                    $count = (int)($ed['count'] ?? 0);
+                    $pct = $maxEdu > 0 ? round(($count / $maxEdu) * 100) : 0;
+                ?>
+                <div class="edu-chip anim-up d10">
+                    <span style="font-size: 0.95rem; font-weight: 500;" class="text-slate-700"><?= $level ?></span>
+                    <div class="flex items-center gap-3">
+                        <div class="progress-track w-32 sm:w-40">
+                            <div class="progress-fill" style="width: 0%; background: #6366f1;" data-width="<?= $pct ?>"></div>
+                        </div>
+                        <span style="font-size: 0.95rem; font-weight: 600;" class="text-slate-800 w-10 text-right"><?= number_format($count) ?></span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
     </div>
-    <?php endif; ?>
-</div>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-function applyPeriod(value) {
-    var params = new URLSearchParams(window.location.search);
-    if (value === 'all') { params.delete('period'); }
-    else { params.set('period', value); }
-    params.set('page', 'admin-reports');
-    window.location.search = params.toString();
-}
-
-function exportCSV() {
-    var rows = [['Report', 'Metric', 'Value']];
-    <?php foreach ($summaryStats as $key => $s): ?>
-    rows.push(['Summary', '<?= $key ?>', '<?= $s['value'] ?>']);
-    <?php endforeach; ?>
-    rows.push([]);
-    rows.push(['Student', 'Assessment', 'Date', 'Score', 'Career Match']);
-    <?php foreach ($studentPerformance as $sp): ?>
-    rows.push(['<?= str_replace("'", "\\'", $sp['student_name'] ?? '') ?>', '<?= str_replace("'", "\\'", $sp['assessment_title'] ?? '') ?>', '<?= $sp['completed_at'] ?? '' ?>', '<?= $sp['total_score'] ?? '' ?>', '<?= $sp['career_match_score'] ?? '' ?>%']);
-    <?php endforeach; ?>
+function exportExcel() {
+    var rows = [
+        ['Report', 'Metric', 'Value'],
+        ['Summary', 'Total Students', '<?= $totalStudents ?>'],
+        ['Summary', 'Assessment Completions', '<?= $assessmentCompletions ?>'],
+        ['Summary', 'Total Recommendations', '<?= $totalRecommendations ?>'],
+        ['Summary', 'Reports Generated', '<?= $reportsGenerated ?>'],
+        [],
+        ['Assessment', 'Completed', 'Started', 'Completion Rate'],
+        <?php foreach ($assessmentStats as $as): ?>
+        ['<?= str_replace("'", "\\'", $as['title'] ?? '') ?>', '<?= (int)($as['completed'] ?? 0) ?>', '<?= (int)($as['total_taken'] ?? 0) ?>', '<?= (float)($as['completion_rate'] ?? 0) ?>%'],
+        <?php endforeach; ?>
+        [],
+        ['Career', 'Recommended Students', 'Avg Score'],
+        <?php foreach ($topCareers as $tc): ?>
+        ['<?= str_replace("'", "\\'", $tc['career_name'] ?? '') ?>', '<?= (int)($tc['recommendation_count'] ?? 0) ?>', '<?= number_format((float)($tc['avg_score'] ?? 0), 1) ?>%'],
+        <?php endforeach; ?>
+        [],
+        ['Education Level', 'Students'],
+        <?php foreach ($educationDistribution as $ed): ?>
+        ['<?= str_replace("'", "\\'", $ed['education_level'] ?? '') ?>', '<?= (int)($ed['count'] ?? 0) ?>'],
+        <?php endforeach; ?>
+    ];
     var csv = rows.map(function(r) {
         return r.map(function(c) {
             var s = String(c);
@@ -399,88 +366,19 @@ function exportCSV() {
     URL.revokeObjectURL(a.href);
 }
 
+function generateReport() {
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:2rem;right:2rem;background:#1e293b;color:#fff;padding:0.75rem 1.25rem;border-radius:0.75rem;font-size:0.9rem;font-weight:500;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.15);animation:fadeIn 0.3s ease-out;';
+    toast.textContent = 'Report generated successfully.';
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(function() { toast.remove(); }, 300); }, 2500);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    var baseOpts = { responsive: true, maintainAspectRatio: true, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } } };
-
-    <?php if (!empty($registrationTrend)): ?>
-    new Chart(document.getElementById('registrationChart'), {
-        type: 'line',
-        data: {
-            labels: [<?php foreach ($registrationTrend as $r): ?>'<?= $r['ym'] ?>',<?php endforeach; ?>],
-            datasets: [{
-                label: 'Registrations',
-                data: [<?php foreach ($registrationTrend as $r): ?><?= (int)$r['count'] ?>,<?php endforeach; ?>],
-                borderColor: '#6366f1',
-                backgroundColor: function(ctx) {
-                    var g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 220);
-                    g.addColorStop(0, 'rgba(99,102,241,0.25)');
-                    g.addColorStop(1, 'rgba(99,102,241,0.01)');
-                    return g;
-                },
-                fill: true,
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: '#6366f1',
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#4F46E5',
-            }]
-        },
-        options: { ...baseOpts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-            plugins: { ...baseOpts.plugins, legend: { display: false } } }
-    });
-    <?php endif; ?>
-
-    <?php if (!empty($assessmentCompletionTrend)): ?>
-    var compCtx = document.getElementById('completionTrendChart');
-    if (compCtx) {
-        var compLabels = [<?php foreach ($assessmentCompletionTrend as $r): ?>'<?= $r['ym'] ?>',<?php endforeach; ?>];
-        var compData = [<?php foreach ($assessmentCompletionTrend as $r): ?><?= (int)$r['count'] ?>,<?php endforeach; ?>];
-        new Chart(compCtx, {
-            type: 'bar',
-            data: {
-                labels: compLabels,
-                datasets: [{
-                    label: 'Completions',
-                    data: compData,
-                    backgroundColor: compLabels.map(function(_, i) {
-                        var colors = ['#6366f1','#818cf8','#a5b4fc','#6366f1','#818cf8','#a5b4fc'];
-                        return colors[i % colors.length];
-                    }),
-                    borderRadius: 4,
-                    borderSkipped: false,
-                }]
-            },
-            options: { ...baseOpts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                plugins: { ...baseOpts.plugins, legend: { display: false } } }
-        });
-    }
-    <?php endif; ?>
-
-    <?php if (!empty($educationDistribution)): ?>
-    var eduLabels = [<?php foreach ($educationDistribution as $r): ?>'<?= str_replace("'", "\\'", $r['education_level']) ?>',<?php endforeach; ?>];
-    var eduData = [<?php foreach ($educationDistribution as $r): ?><?= (int)$r['count'] ?>,<?php endforeach; ?>];
-    var eduColors = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899'];
-    new Chart(document.getElementById('educationChart'), {
-        type: 'doughnut',
-        data: {
-            labels: eduLabels,
-            datasets: [{
-                data: eduData,
-                backgroundColor: eduColors.slice(0, eduLabels.length),
-                borderWidth: 2,
-                borderColor: '#fff',
-                hoverOffset: 8,
-            }]
-        },
-        options: { ...baseOpts, cutout: '60%',
-            plugins: { ...baseOpts.plugins, legend: { ...baseOpts.plugins.legend, position: 'bottom' } } }
-    });
-    <?php endif; ?>
-
-    var bars = document.querySelectorAll('.progress-bar-fill');
     setTimeout(function() {
-        bars.forEach(function(bar) {
-            bar.style.width = bar.dataset.width + '%';
+        document.querySelectorAll('.progress-fill').forEach(function(bar) {
+            var w = bar.getAttribute('data-width');
+            if (w) bar.style.width = w + '%';
         });
     }, 300);
 });
@@ -488,12 +386,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 @media print {
-    nav, aside, .offcanvas, .sticky-header select, .sticky-header button { display: none !important; }
-    .sticky-header { position: static !important; padding: 0 !important; margin: 0 !important; background: transparent !important; }
-    .bg-white { border: 1px solid #e2e8f0 !important; break-inside: avoid; }
-    .grid { break-inside: avoid; }
+    .btn-export { display: none !important; }
+    .stat-card, .assess-card, .career-row, .edu-chip { break-inside: avoid; border: 1px solid #e2e8f0 !important; }
     body { font-size: 11px; }
-    .space-y-6 { gap: 1rem !important; }
 }
 </style>
 

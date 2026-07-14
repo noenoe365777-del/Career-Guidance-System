@@ -3,316 +3,271 @@ $admin = $admin ?? [];
 $adminName = trim((string)($admin['full_name'] ?? $admin['username'] ?? 'Admin'));
 $totalStudents = (int)($totalStudents ?? 0);
 $totalAssessments = (int)($totalAssessments ?? 0);
-$totalQuestions = (int)($totalQuestions ?? 0);
 $totalCareers = (int)($totalCareers ?? 0);
+$totalRecommendations = (int)($totalRecommendations ?? 0);
 $recentActivity = $recentActivity ?? [];
-$recentStudents = $recentStudents ?? [];
 
 ob_start();
-
-$timeAgo = function (string $timestamp): string {
-    if ($timestamp === '') return '';
-    $t = strtotime($timestamp);
-    if ($t === false) return '';
-    $diff = time() - $t;
-    if ($diff < 60) return 'Just now';
-    if ($diff < 3600) return floor($diff / 60) . 'm ago';
-    if ($diff < 7200) return '1h ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
-    if ($diff < 172800) return 'Yesterday';
-    return floor($diff / 86400) . 'd ago';
-};
-
-$formatDate = function (string $ts): string {
-    if ($ts === '') return '';
-    $t = strtotime($ts);
-    return $t ? date('M j, Y', $t) : '';
-};
-
-$initials = function (string $name): string {
-    $name = trim($name);
-    if ($name === '') return '?';
-    $parts = preg_split('/\s+/', $name);
-    if (count($parts) >= 2) {
-        return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[count($parts) - 1], 0, 1));
-    }
-    return mb_strtoupper(mb_substr($name, 0, 2));
-};
+if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
+    include __DIR__ . '/partials/summary_stat_card.php';
+}
 ?>
 <style>
-    /* ----- enhanced animations ----- */
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(24px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    @keyframes slideInLeft {
-        from { opacity: 0; transform: translateX(-20px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes slideInRight {
-        from { opacity: 0; transform: translateX(20px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-    .anim-up { animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-    .anim-in { animation: fadeIn 0.5s ease-out both; }
-    .anim-slide-left { animation: slideInLeft 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-    .anim-slide-right { animation: slideInRight 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+    .page-in { animation: fadeIn 0.5s ease-out both; }
+    .card-in { animation: slideUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
     .d1 { animation-delay: 0.05s; }
-    .d2 { animation-delay: 0.10s; }
+    .d2 { animation-delay: 0.1s; }
     .d3 { animation-delay: 0.15s; }
-    .d4 { animation-delay: 0.20s; }
+    .d4 { animation-delay: 0.2s; }
     .d5 { animation-delay: 0.25s; }
-    .d6 { animation-delay: 0.30s; }
+    .d6 { animation-delay: 0.3s; }
+    .d7 { animation-delay: 0.35s; }
+    .d8 { animation-delay: 0.4s; }
+    .d9 { animation-delay: 0.45s; }
 
-    .card-hover {
-        transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .card-hover:hover {
-        transform: translateY(-6px) scale(1.01);
-        box-shadow: 0 20px 40px -12px rgba(91,95,239,0.25);
-    }
+    @keyframes slideUpCard { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes iconBounce { 0% { transform: scale(1); } 25% { transform: scale(1.25) rotate(-5deg); } 50% { transform: scale(0.9) rotate(3deg); } 75% { transform: scale(1.1) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
 
-    .stat-number {
-        font-variant-numeric: tabular-nums;
-        transition: all 0.2s;
-    }
+    .page-in { animation: fadeIn 0.5s ease-out both; }
+    .card-in { animation: slideUpCard 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+
     .stat-card {
-        position: relative;
-        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out, opacity 0.3s ease-out;
+        will-change: transform, box-shadow, opacity;
     }
-    .stat-card::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #5B5FEF, #8B5CF6);
-        opacity: 0.7;
-    }
-    .stat-card:nth-child(2)::after {
-        background: linear-gradient(90deg, #10B981, #34D399);
-    }
-    .stat-card:nth-child(3)::after {
-        background: linear-gradient(90deg, #8B5CF6, #A78BFA);
-    }
-    .stat-card:nth-child(4)::after {
-        background: linear-gradient(90deg, #F59E0B, #FBBF24);
-    }
-
-    .quick-btn {
-        transition: all 0.25s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .quick-btn::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, #5B5FEF, #8B5CF6);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        border-radius: inherit;
-    }
-    .quick-btn:hover::before {
-        opacity: 0.08;
-    }
-    .quick-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -6px rgba(91,95,239,0.3);
+    .stat-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 24px 48px -16px rgba(91,95,239,0.28);
         border-color: #5B5FEF;
+        background: #fafaff;
+    }
+    .stat-card:hover .card-icon-bg {
+        transform: scale(1.15) rotate(5deg);
+    }
+    .stat-card:hover .card-number {
+        transform: scale(1.04);
+    }
+    .stat-card:active { transform: scale(0.97); }
+    .stat-card.active {
+        border-color: #5B5FEF;
+        background: #f8f7ff;
+        box-shadow: 0 8px 28px -8px rgba(91,95,239,0.22);
+    }
+    .stat-card.active .card-icon-bg {
+        background: #5B5FEF !important;
+        color: #fff !important;
+    }
+    .card-icon-bg {
+        transition: transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out;
+    }
+    .card-number {
+        transition: transform 0.3s ease-out;
+    }
+    .card-icon-bg.bounce {
+        animation: iconBounce 0.5s cubic-bezier(0.22,1,0.36,1);
     }
 
     .activity-item {
-        transition: all 0.2s;
+        border-radius: 12px;
+        padding: 14px 16px;
+        transition: background 0.15s ease, transform 0.15s ease;
     }
     .activity-item:hover {
-        background: rgba(91,95,239,0.04);
+        background: #f8fafc;
         transform: translateX(4px);
     }
 
-    .student-item {
-        transition: all 0.2s;
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        cursor: pointer;
     }
-    .student-item:hover {
-        background: rgba(91,95,239,0.04);
-        transform: translateX(-4px);
+    .action-btn:hover {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 12px 28px -12px rgba(91,95,239,0.30);
+        border-color: #5B5FEF;
     }
-
-    /* smooth scroll & selection */
-    * { scroll-behavior: smooth; }
-    ::selection { background: #5B5FEF; color: #fff; }
+    .action-btn:active { transform: scale(0.98); }
 </style>
 
-<div class="max-w-[1440px] mx-auto px-4 sm:px-6 space-y-8">
-
-    <!-- Header – plain, no background, no button -->
-    <div class="anim-up d1">
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 m-0 tracking-tight">
-            👋 Welcome back, <?= htmlspecialchars($adminName) ?>
-        </h1>
-        <p class="mt-1 text-sm text-slate-500 font-medium"><?= date('l, F j, Y') ?></p>
+<div class="page-in" style="max-width: 1280px; margin: 0 auto; padding: 32px 24px;">
+    <div style="margin-bottom: 36px;">
+        <h1 style="font-size: 32px; font-weight: 700; color: #1e293b; margin: 0;">Dashboard</h1>
+        <p style="font-size: 16px; color: #64748b; margin: 10px 0 0 0;">Welcome back, <?= htmlspecialchars($adminName) ?>!</p>
+        <p style="font-size: 14px; color: #94a3b8; margin: 4px 0 0 0;"><?= date('l, F j, Y') ?></p>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="stat-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 card-hover anim-up d1">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-[#5B5FEF] text-xl"><i class="bi bi-people"></i></div>
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Students</span>
-            </div>
-            <div class="stat-number text-3xl font-extrabold text-slate-900"><?= number_format($totalStudents) ?></div>
-            <div class="mt-1 text-xs text-slate-400 flex items-center gap-1">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                Active
-            </div>
-        </div>
-        <div class="stat-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 card-hover anim-up d2">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 text-xl"><i class="bi bi-file-earmark-check"></i></div>
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessments</span>
-            </div>
-            <div class="stat-number text-3xl font-extrabold text-slate-900"><?= number_format($totalAssessments) ?></div>
-            <div class="mt-1 text-xs text-slate-400">Total created</div>
-        </div>
-        <div class="stat-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 card-hover anim-up d3">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-500 text-xl"><i class="bi bi-briefcase"></i></div>
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Careers</span>
-            </div>
-            <div class="stat-number text-3xl font-extrabold text-slate-900"><?= number_format($totalCareers) ?></div>
-            <div class="mt-1 text-xs text-slate-400">Available paths</div>
-        </div>
-        <div class="stat-card bg-white rounded-2xl shadow-sm border border-slate-100 p-6 card-hover anim-up d4">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 text-xl"><i class="bi bi-question-circle"></i></div>
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Questions</span>
-            </div>
-            <div class="stat-number text-3xl font-extrabold text-slate-900"><?= number_format($totalQuestions) ?></div>
-            <div class="mt-1 text-xs text-slate-400">In the bank</div>
-        </div>
+    <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 24px; margin-bottom: 36px;" class="sm-grid-2 xl-grid-4">
+        <?php renderAdminSummaryCard(['title' => 'Total Students', 'value' => '0', 'valueNumber' => (int)$totalStudents, 'counterId' => 'countStudents', 'icon' => 'bi-people-fill', 'iconBg' => '#eef2ff', 'iconColor' => '#5B5FEF', 'delayClass' => 'd1', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-users'", 'filter' => 'students']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Careers', 'value' => '0', 'valueNumber' => (int)$totalCareers, 'counterId' => 'countCareers', 'icon' => 'bi-briefcase-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'delayClass' => 'd2', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-careers'", 'filter' => 'careers']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Assessments', 'value' => '0', 'valueNumber' => (int)$totalAssessments, 'counterId' => 'countAssessments', 'icon' => 'bi-journal-text', 'iconBg' => '#ecfdf5', 'iconColor' => '#059669', 'delayClass' => 'd3', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-assessments'", 'filter' => 'assessments']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'countRecommendations', 'icon' => 'bi-stars', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'delayClass' => 'd4', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-reports'", 'filter' => 'recommendations']); ?>
     </div>
 
-    <!-- Main row: Latest Activity + Recent Students -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Latest Activity -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden anim-slide-left d5">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-base m-0 flex items-center gap-2">
-                    <i class="bi bi-clock-history text-indigo-500"></i>
-                    Latest Activity
-                </h3>
-                <span class="text-xs text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">Live</span>
-            </div>
-            <div class="divide-y divide-slate-50 max-h-[360px] overflow-y-auto">
-                <?php if (empty($recentActivity)): ?>
-                <div class="px-6 py-12 text-center text-sm text-slate-400">No recent activity.</div>
-                <?php else: ?>
-                <?php foreach ($recentActivity as $a):
-                    $type = $a['type'] ?? '';
-                    $subject = htmlspecialchars((string)($a['subject'] ?? ''));
-                    $detail = htmlspecialchars((string)($a['detail'] ?? ''));
-                    $occurred = $a['occurred_at'] ?? '';
-                    $userId = (int)($a['user_id'] ?? 0);
+    <div style="display: grid; grid-template-columns: 1fr; gap: 24px;" class="xl-grid-2col">
+        <section style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Recent Activity</h2>
+            <p style="font-size: 14px; color: #94a3b8; margin: 0 0 20px 0;">Latest activities across the system</p>
 
-                    if ($type === 'user_registered') {
-                        $icon = 'bi-person-plus';
-                        $bg = 'bg-blue-50';
-                        $color = 'text-blue-600';
-                        $desc = 'Registered a new account';
-                    } else {
-                        $icon = 'bi-check-circle';
-                        $bg = 'bg-emerald-50';
-                        $color = 'text-emerald-500';
-                        $desc = 'Completed ' . $detail;
-                    }
+            <?php if (empty($recentActivity)): ?>
+            <div style="padding: 32px 16px; text-align: center; border: 1px dashed #e2e8f0; border-radius: 12px;">
+                <p style="font-size: 14px; color: #94a3b8; margin: 0;">No activity recorded yet.</p>
+            </div>
+            <?php else: ?>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <?php
+                $activityIcons = [
+                    'assessment_completed'     => ['icon' => 'bi-check-circle-fill', 'color' => '#059669', 'bg' => '#ecfdf5'],
+                    'career_added'             => ['icon' => 'bi-briefcase-fill',    'color' => '#7c3aed', 'bg' => '#f3e8ff'],
+                    'question_added'           => ['icon' => 'bi-patch-question-fill','color' => '#2563eb', 'bg' => '#eff6ff'],
+                    'recommendation_generated' => ['icon' => 'bi-stars',             'color' => '#d97706', 'bg' => '#fffbeb'],
+                    'assessment_added'         => ['icon' => 'bi-journal-plus',      'color' => '#0891b2', 'bg' => '#ecfeff'],
+                ];
+                $idx = 0;
+                foreach ($recentActivity as $act):
+                    $type = $act['type'] ?? '';
+                    $info = $activityIcons[$type] ?? ['icon' => 'bi-circle', 'color' => '#64748b', 'bg' => '#f1f5f9'];
+                    $subject = htmlspecialchars((string)($act['subject'] ?? ''));
+                    $desc = htmlspecialchars((string)($act['description'] ?? ''));
+                    $occurred = $act['occurred_at'] ?? '';
+                    $time = $occurred ? date('M d, Y g:i A', strtotime($occurred)) : '';
+                    $idx++;
                 ?>
-                <div class="activity-item flex items-center gap-3.5 px-6 py-3.5 transition-colors">
-                    <span class="flex items-center justify-center w-10 h-10 rounded-full text-xs font-bold bg-[#5B5FEF]/10 text-[#5B5FEF] shrink-0"><?= $initials($subject) ?></span>
-                    <div class="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                        <span class="text-sm font-semibold text-slate-800 truncate"><?= $subject ?></span>
-                        <span class="text-xs text-slate-500 truncate">&middot; <?= $desc ?></span>
+                <div class="activity-item card-in" style="display: flex; align-items: center; gap: 14px; animation-delay: <?= (0.25 + $idx * 0.05) ?>s;">
+                    <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: <?= $info['bg'] ?>; color: <?= $info['color'] ?>; flex-shrink: 0;">
+                        <i class="bi <?= $info['icon'] ?>" style="font-size: 18px;"></i>
                     </div>
-                    <span class="shrink-0 text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full"><?= $timeAgo($occurred) ?></span>
-                </div>
-                <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Recent Students -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden anim-slide-right d6">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-base m-0 flex items-center gap-2">
-                    <i class="bi bi-person-plus text-emerald-500"></i>
-                    Recent Students
-                </h3>
-                <span class="text-xs text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200"><?= count($recentStudents) ?> new</span>
-            </div>
-            <div class="divide-y divide-slate-50 max-h-[360px] overflow-y-auto">
-                <?php if (empty($recentStudents)): ?>
-                <div class="px-6 py-12 text-center text-sm text-slate-400">No students registered yet.</div>
-                <?php else: ?>
-                <?php foreach ($recentStudents as $s):
-                    $name = htmlspecialchars((string)($s['username'] ?? ''));
-                    $edu = htmlspecialchars((string)($s['education_level'] ?? ''));
-                    $regDate = $s['registered_at'] ?? '';
-                    $profileImage = $s['profile_image'] ?? '';
-                ?>
-                <div class="student-item flex items-center gap-3.5 px-6 py-3.5 transition-colors">
-                    <?php if ($profileImage !== '' && file_exists(BASE_PATH . '/public/uploads/profile/' . $profileImage)): ?>
-                        <img src="<?= BASE_URL ?>/uploads/profile/<?= rawurlencode($profileImage) ?>" alt="" class="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-indigo-50">
-                    <?php else: ?>
-                        <span class="flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold bg-slate-100 text-slate-600 shrink-0"><?= $initials($name) ?></span>
-                    <?php endif; ?>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-800 truncate m-0"><?= $name ?: 'Student' ?></p>
-                        <p class="text-xs text-slate-500 m-0 mt-0.5 flex items-center gap-1">
-                            <i class="bi bi-mortarboard text-[10px]"></i>
-                            <?= $edu ?: 'N/A' ?>
+                    <div style="flex: 1; min-width: 0;">
+                        <p style="font-size: 15px; font-weight: 500; color: #1e293b; margin: 0; line-height: 1.4;">
+                            <?php if ($subject): ?><span style="font-weight: 600;"><?= $subject ?></span> <?php endif; ?><?= $desc ?>
                         </p>
                     </div>
-                    <span class="shrink-0 text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full"><?= $formatDate($regDate) ?></span>
+                    <div style="flex-shrink: 0;">
+                        <p style="font-size: 12px; color: #94a3b8; margin: 0; white-space: nowrap;"><?= $time ?></p>
+                    </div>
                 </div>
                 <?php endforeach; ?>
-                <?php endif; ?>
             </div>
-        </div>
-    </div>
+            <?php endif; ?>
+        </section>
 
-    <!-- Quick Actions -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 anim-in">
-        <h3 class="font-bold text-slate-800 text-base m-0 mb-4 flex items-center gap-2">
-            <i class="bi bi-lightning-charge-fill text-amber-400"></i>
-            Quick Actions
-        </h3>
-        <div class="flex flex-wrap gap-3">
-            <a href="<?= BASE_URL ?>/index.php?page=admin-careers" class="quick-btn inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:border-[#5B5FEF] hover:text-[#5B5FEF]">
-                <i class="bi bi-briefcase text-base"></i>
-                Manage Careers
-            </a>
-            <a href="<?= BASE_URL ?>/index.php?page=admin-questions" class="quick-btn inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:border-[#5B5FEF] hover:text-[#5B5FEF]">
-                <i class="bi bi-question-circle text-base"></i>
-                Manage Questions
-            </a>
-            <a href="<?= BASE_URL ?>/index.php?page=admin-users" class="quick-btn inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:border-[#5B5FEF] hover:text-[#5B5FEF]">
-                <i class="bi bi-people text-base"></i>
-                View Users
-            </a>
-            <a href="<?= BASE_URL ?>/index.php?page=admin-reports" class="quick-btn inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 no-underline transition-all duration-200 hover:border-[#5B5FEF] hover:text-[#5B5FEF]">
-                <i class="bi bi-bar-chart text-base"></i>
-                View Reports
-            </a>
-        </div>
-    </div>
+        <section style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Quick Actions</h2>
+            <p style="font-size: 14px; color: #94a3b8; margin: 0 0 20px 0;">Jump to the main admin modules</p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <a href="<?= BASE_URL ?>/index.php?page=admin-careers-create" class="action-btn card-in d5">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #f3e8ff; color: #7c3aed; flex-shrink: 0;">
+                            <i class="bi bi-plus-lg" style="font-size: 20px; font-weight: 700;"></i>
+                        </div>
+                        <div>
+                            <p style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">Add Career</p>
+                            <p style="font-size: 13px; color: #94a3b8; margin: 2px 0 0 0;">Create a new career path</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size: 18px; color: #cbd5e1;"></i>
+                </a>
 
+                <a href="<?= BASE_URL ?>/index.php?page=admin-questions-create" class="action-btn card-in d6">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #eff6ff; color: #2563eb; flex-shrink: 0;">
+                            <i class="bi bi-plus-lg" style="font-size: 20px; font-weight: 700;"></i>
+                        </div>
+                        <div>
+                            <p style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">Add Question</p>
+                            <p style="font-size: 13px; color: #94a3b8; margin: 2px 0 0 0;">Manage assessment questions</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size: 18px; color: #cbd5e1;"></i>
+                </a>
+
+                <a href="<?= BASE_URL ?>/index.php?page=admin-users" class="action-btn card-in d7">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #eef2ff; color: #5B5FEF; flex-shrink: 0;">
+                            <i class="bi bi-people-fill" style="font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <p style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">View Students</p>
+                            <p style="font-size: 13px; color: #94a3b8; margin: 2px 0 0 0;">Review registered learners</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size: 18px; color: #cbd5e1;"></i>
+                </a>
+
+                <a href="<?= BASE_URL ?>/index.php?page=admin-reports" class="action-btn card-in d8">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #fffbeb; color: #d97706; flex-shrink: 0;">
+                            <i class="bi bi-file-earmark-text-fill" style="font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <p style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">View Reports</p>
+                            <p style="font-size: 13px; color: #94a3b8; margin: 2px 0 0 0;">Monitor recommendations and activity</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size: 18px; color: #cbd5e1;"></i>
+                </a>
+            </div>
+        </section>
+    </div>
 </div>
+<style>
+    @media (min-width: 640px) {
+        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (min-width: 1280px) {
+        .xl-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
+        .xl-grid-2col { grid-template-columns: 1.2fr 0.8fr !important; }
+    }
+</style>
+
+<script>
+(function() {
+    function animateCounter(el, target, done) {
+        if (!el) return;
+        var current = 0;
+        var steps = 40;
+        var inc = Math.max(1, Math.ceil(target / steps));
+        var timer = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+                if (done) done();
+            }
+            el.textContent = current.toLocaleString();
+        }, 25);
+    }
+
+    setTimeout(function() {
+        document.querySelectorAll('.stat-card[data-value]').forEach(function(card) {
+            var el = card.querySelector('.card-number');
+            var target = parseInt(card.getAttribute('data-value') || '0', 10);
+            if (!el) return;
+            animateCounter(el, target, function() {
+                var iconBg = card.querySelector('.card-icon-bg');
+                if (iconBg) iconBg.classList.add('bounce');
+            });
+        });
+    }, 300);
+})();
+</script>
+
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/layout.php';
-?>

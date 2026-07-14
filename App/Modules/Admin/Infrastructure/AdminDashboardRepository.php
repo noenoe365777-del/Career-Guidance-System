@@ -112,16 +112,49 @@ class AdminDashboardRepository
     {
         try {
             $sql = "
-                SELECT type, subject, detail, occurred_at, user_id FROM (
-                    SELECT 'user_registered' AS type, u.username AS subject, '' AS detail, u.created_at AS occurred_at, u.user_id
-                    FROM users u
-                    WHERE u.user_role_id = 2
-                    UNION ALL
-                    SELECT 'assessment_completed' AS type, u.username AS subject, a.title AS detail, COALESCE(sa.completed_at, sa.created_at) AS occurred_at, u.user_id
+                SELECT type, subject, description, occurred_at FROM (
+                    SELECT 'assessment_completed' AS type,
+                           u.username AS subject,
+                           CONCAT('completed ', a.title) AS description,
+                           COALESCE(sa.completed_at, sa.started_at) AS occurred_at
                     FROM student_assessments sa
                     JOIN users u ON u.user_id = sa.user_id
                     JOIN assessments a ON a.assessment_id = sa.assessment_id
                     WHERE sa.status = 'completed'
+
+                    UNION ALL
+
+                    SELECT 'career_added' AS type,
+                           'Admin' AS subject,
+                           CONCAT('added ', c.career_name, ' career') AS description,
+                           c.created_at AS occurred_at
+                    FROM careers c
+
+                    UNION ALL
+
+                    SELECT 'question_added' AS type,
+                           'Admin' AS subject,
+                           CONCAT('added a question to ', a.title) AS description,
+                           q.created_at AS occurred_at
+                    FROM questions q
+                    JOIN assessments a ON a.assessment_id = q.assessment_id
+
+                    UNION ALL
+
+                    SELECT 'recommendation_generated' AS type,
+                           u.username AS subject,
+                           'received a career recommendation' AS description,
+                           cr.created_at AS occurred_at
+                    FROM career_recommendations cr
+                    JOIN users u ON u.user_id = cr.user_id
+
+                    UNION ALL
+
+                    SELECT 'assessment_added' AS type,
+                           'Admin' AS subject,
+                           CONCAT('created ', a.title, ' assessment') AS description,
+                           a.created_at AS occurred_at
+                    FROM assessments a
                 ) combined
                 ORDER BY occurred_at DESC
                 LIMIT :limit

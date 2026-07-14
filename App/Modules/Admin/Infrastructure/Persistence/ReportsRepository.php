@@ -345,6 +345,18 @@ class ReportsRepository implements ReportsRepositoryInterface
         }
     }
 
+    public function getReportsGeneratedCount(): int
+    {
+        try {
+            $stmt = $this->connection->query("
+                SELECT COUNT(DISTINCT user_id) FROM student_assessments WHERE status = 'completed'
+            ");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
     public function getRecentActivities(int $limit = 10): array
     {
         try {

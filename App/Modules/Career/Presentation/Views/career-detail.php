@@ -6,10 +6,20 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            <a href="<?= htmlspecialchars($backUrl ?? (BASE_URL . '/index.php?page=careers')) ?>" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors mb-6">
-                <i class="fas fa-arrow-left text-xs"></i>
-                <?= !empty($isAdminView) ? 'Back to Career Management' : 'Back to Careers' ?>
-            </a>
+            <?php if (!empty($isDrawer)): ?>
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div class="text-sm font-semibold text-slate-700">Career details</div>
+                    <button type="button" onclick="if (typeof closeCareerDrawer === 'function') closeCareerDrawer();" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                        <i class="fas fa-times text-xs"></i>
+                        Close
+                    </button>
+                </div>
+            <?php else: ?>
+                <a href="<?= htmlspecialchars($backUrl ?? (BASE_URL . '/index.php?page=careers')) ?>" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors mb-6">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    <?= !empty($isAdminView) ? 'Back to Career Management' : 'Back to Careers' ?>
+                </a>
+            <?php endif; ?>
 
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="max-w-2xl">
@@ -23,7 +33,12 @@
                     <p class="mt-4 text-base sm:text-lg text-slate-500 leading-relaxed"><?= htmlspecialchars($career['description']) ?></p>
                 </div>
                 <div class="flex-shrink-0">
-                    <?php if (!empty($isAdminView)): ?>
+                    <?php if (!empty($isDrawer)): ?>
+                    <button type="button" onclick="if (typeof closeCareerDrawer === 'function') closeCareerDrawer();" class="inline-flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3 rounded-xl shadow-md text-sm hover:bg-slate-800 transition">
+                        <i class="fas fa-times text-xs"></i>
+                        Close
+                    </button>
+                    <?php elseif (!empty($isAdminView)): ?>
                     <span class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-bold px-7 py-3 rounded-xl shadow-md text-sm">
                         <i class="fas fa-shield-alt text-xs"></i>
                         Admin View

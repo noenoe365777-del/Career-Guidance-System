@@ -1,15 +1,47 @@
 <?php
 $users = $users ?? [];
 $search = $search ?? '';
-$assessmentStatus = $assessmentStatus ?? '';
-$educationLevel = $educationLevel ?? null;
-$educationLevels = $educationLevels ?? [];
 $currentPage = $currentPage ?? 1;
 $totalPages = $totalPages ?? 1;
 $totalUsers = $totalUsers ?? 0;
-$message = $message ?? null;
+$studentStats = $studentStats ?? [];
+$recentStudents = $recentStudents ?? [];
+$educationLevels = $educationLevels ?? [];
+$selectedEducationLevel = $selectedEducationLevel ?? null;
+
+$hasStudents = $totalUsers > 0;
+$recentStudentData = [];
+foreach ($recentStudents as $student) {
+    $recentStudentData[] = [
+        'id' => (int)($student['user_id'] ?? 0),
+        'name' => (string)($student['username'] ?? ''),
+        'email' => (string)($student['email'] ?? ''),
+        'education_level' => (string)($student['education_level'] ?? ''),
+        'profile_image' => (string)($student['profile_image'] ?? ''),
+        'created_at' => (string)($student['created_at'] ?? ''),
+    ];
+}
+
+$totalStudents = (int)($studentStats['total_students'] ?? $totalUsers);
+$highSchoolStudents = (int)($studentStats['high_school_students'] ?? 0);
+$undergraduateStudents = (int)($studentStats['undergraduate_students'] ?? 0);
+$graduateStudents = (int)($studentStats['graduate_students'] ?? 0);
+
+$hsId = 0; $ugId = 0; $gId = 0;
+foreach ($educationLevels as $el) {
+    $label = strtolower((string)($el['label'] ?? ''));
+    $id = (int)($el['id'] ?? 0);
+    if (str_contains($label, 'high school')) $hsId = $id;
+    elseif (str_contains($label, 'undergraduate')) $ugId = $id;
+    elseif (str_contains($label, 'graduate')) $gId = $id;
+}
 
 ob_start();
+if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
+    include __DIR__ . '/partials/summary_stat_card.php';
+} elseif (file_exists(__DIR__ . '/../partials/summary_stat_card.php')) {
+    include __DIR__ . '/../partials/summary_stat_card.php';
+}
 
 $initials = function (string $name): string {
     $name = trim($name);
@@ -19,450 +51,640 @@ $initials = function (string $name): string {
     return mb_strtoupper(mb_substr($name, 0, 2));
 };
 
-$hasFilters = $search !== '' || $assessmentStatus !== '' || $educationLevel !== null;
+$cardDefs = [
+    ['key' => 'total', 'label' => 'Total Students', 'count' => $totalStudents, 'icon' => 'bi-people-fill', 'bg' => '#eef2ff', 'color' => '#5B5FEF', 'id' => 0],
+    ['key' => 'hs', 'label' => 'High School', 'count' => $highSchoolStudents, 'icon' => 'bi-mortarboard', 'bg' => '#ecfdf5', 'color' => '#059669', 'id' => $hsId],
+    ['key' => 'ug', 'label' => 'Undergraduate', 'count' => $undergraduateStudents, 'icon' => 'bi-book', 'bg' => '#fffbeb', 'color' => '#d97706', 'id' => $ugId],
+    ['key' => 'g', 'label' => 'Graduate', 'count' => $graduateStudents, 'icon' => 'bi-backpack', 'bg' => '#f3e8ff', 'color' => '#9333ea', 'id' => $gId],
+];
 ?>
 <style>
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes badgePop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes scaleModal { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes iconBounce { 0% { transform: scale(1); } 25% { transform: scale(1.25) rotate(-5deg); } 50% { transform: scale(0.9) rotate(3deg); } 75% { transform: scale(1.1) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
+    @keyframes rowUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideRightClose { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(50px); } }
     @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    @keyframes rowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes highlightFade { 0% { background-color: rgba(91,95,239,0.08); } 100% { background-color: transparent; } }
+    @keyframes iconBounce { 0% { transform: scale(1); } 25% { transform: scale(1.25) rotate(-5deg); } 50% { transform: scale(0.9) rotate(3deg); } 75% { transform: scale(1.1) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
 
-    .page-fade { animation: fadeUp 0.4s ease-out both; }
-    .filter-drop { animation: slideDown 0.25s ease-out both; }
-    .modal-in { animation: scaleModal 0.3s cubic-bezier(0.21,0.98,0.35,1) both; }
-    .modal-overlay { animation: fadeIn 0.2s ease-out both; }
+    .page-in { animation: fadeIn 0.5s ease-out both; }
+    .up-in { animation: slideUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+    .row-in { animation: rowUp 0.4s cubic-bezier(0.2,0.9,0.3,1) both; }
 
-    .row-item { animation: rowIn 0.35s ease-out both; }
-    .r1 { animation-delay: 0.02s; } .r2 { animation-delay: 0.06s; } .r3 { animation-delay: 0.10s; }
-    .r4 { animation-delay: 0.14s; } .r5 { animation-delay: 0.18s; } .r6 { animation-delay: 0.22s; }
-    .r7 { animation-delay: 0.26s; } .r8 { animation-delay: 0.30s; } .r9 { animation-delay: 0.34s; }
-    .r10 { animation-delay: 0.38s; }
+    .d1 { animation-delay: 0.05s; }
+    .d2 { animation-delay: 0.1s; }
+    .d3 { animation-delay: 0.15s; }
+    .d4 { animation-delay: 0.2s; }
 
-    .row-hover { transition: all 0.2s ease; }
-    .row-hover:hover { background: rgba(91,95,239,0.04) !important; }
-
-    .zebra-row:nth-child(even) { background-color: #faf9ff; }
-    .zebra-row:nth-child(odd) { background-color: #ffffff; }
-
-    .table-header-gradient {
-        background: linear-gradient(135deg, #f8f6ff 0%, #f1f5f9 50%, #faf9ff 100%);
+    .stat-card {
+        border-radius: 16px;
+        padding: 24px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out, opacity 0.3s ease-out;
+        will-change: transform, box-shadow, opacity;
+    }
+    .stat-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 24px 48px -16px rgba(91,95,239,0.28);
+        border-color: #5B5FEF;
+        background: #fafaff;
+    }
+    .stat-card:hover .card-icon-bg {
+        transform: scale(1.15) rotate(5deg);
+    }
+    .stat-card:hover .card-number {
+        transform: scale(1.04);
+    }
+    .stat-card:active { transform: scale(0.97); }
+    .stat-card.active {
+        border-color: #5B5FEF;
+        background: #f8f7ff;
+        box-shadow: 0 8px 28px -8px rgba(91,95,239,0.22);
+    }
+    .stat-card.active .card-icon-bg {
+        background: #5B5FEF !important;
+        color: #fff !important;
+    }
+    .card-icon-bg {
+        transition: transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out;
+    }
+    .card-number {
+        transition: transform 0.3s ease-out;
+    }
+    .card-icon-bg.bounce {
+        animation: iconBounce 0.5s cubic-bezier(0.22,1,0.36,1);
     }
 
-    .status-badge {
-        animation: badgePop 0.3s cubic-bezier(0.21,0.98,0.35,1) both;
+    .student-card {
+        border-radius: 14px; padding: 16px 20px;
+        background: #fff;
+        border: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.25s ease;
+    }
+    .student-card:hover {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 12px 28px -8px rgba(0,0,0,0.06);
+        border-color: #e2e8f0;
+    }
+    .student-card.is-hidden {
+        display: none !important;
+        opacity: 0;
+    }
+    .student-card:not(.is-hidden) {
+        display: flex !important;
     }
 
-    .btn-view { transition: all 0.2s cubic-bezier(0.21,0.98,0.35,1); position: relative; overflow: hidden; }
-    .btn-view:hover { transform: scale(1.04); }
+    .btn-view {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 20px; border-radius: 10px;
+        border: 1px solid #e2e8f0; background: #fff;
+        font-size: 14px; font-weight: 600; color: #5B5FEF;
+        cursor: pointer; transition: all 0.15s ease;
+    }
+    .btn-view:hover { background: #eef2ff; border-color: #5B5FEF; transform: scale(1.05); box-shadow: 0 4px 12px rgba(91,95,239,0.12); }
     .btn-view:active { transform: scale(0.96); }
-    .btn-view::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(91,95,239,0.15) 0%, transparent 70%); opacity: 0; transition: opacity 0.3s; }
-    .btn-view:active::after { opacity: 1; }
 
-    .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    .btn-outline {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 18px; border-radius: 10px;
+        border: 1.5px solid #e2e8f0; background: #fff;
+        font-size: 14px; font-weight: 600; color: #475569;
+        text-decoration: none; transition: all 0.15s ease;
+    }
+    .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; transform: scale(1.03); }
+    .btn-outline:active { transform: scale(0.97); }
 
-    .search-highlight { animation: highlightFade 2s ease-out; }
+    .skeleton { background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
 
-    .filter-select { transition: all 0.2s ease; }
-    .filter-select:focus { transform: scale(1.02); }
+    .drawer-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(15,23,42,0.35);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease-out both;
+    }
+    .drawer-panel {
+        position: fixed; top: 0; right: 0; z-index: 10000;
+        width: 100%; max-width: 480px; height: 100vh;
+        background: #fff;
+        box-shadow: -10px 0 40px rgba(0,0,0,0.07);
+        overflow-y: auto;
+        animation: slideRight 0.35s cubic-bezier(0.21,0.98,0.35,1) both;
+    }
+    .drawer-panel.closing { animation: slideRightClose 0.25s ease-in both; }
 
-    .tab-pill { transition: all 0.2s ease; }
-    .tab-pill:hover { transform: translateY(-1px); }
-
-    .progress-ring { transition: stroke-dashoffset 1s ease-out; }
+    .chk-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+    .chk-badge.done { background: #ecfdf5; color: #059669; }
+    .chk-badge.pending { background: #f1f5f9; color: #94a3b8; }
 </style>
 
-<div class="max-w-[1400px] mx-auto space-y-6 page-fade">
-
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="page-in" style="max-width: 1200px; margin: 0 auto; padding: 32px 24px;">
+    <div class="up-in d1" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 32px;">
         <div>
-  
-            <h1 class="text-2xl font-extrabold text-slate-900 mt-1">User Management</h1>
-            <p class="text-sm text-slate-500 mt-1">Monitor registered students and their career guidance progress.</p>
-        </div>
-        <div class="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-4 py-2.5 shadow-sm">
-            <i class="bi bi-people text-[#5B5FEF] text-base"></i>
-            <span class="text-sm font-bold text-slate-800"><?= number_format($totalUsers) ?></span>
-            <span class="text-xs text-slate-400">registered</span>
+            <h1 style="font-size: 32px; font-weight: 700; color: #0f172a; margin: 0;">User Management</h1>
+            <p style="font-size: 15px; color: #64748b; margin: 8px 0 0 0;">Monitor registered students and assessment progress.</p>
         </div>
     </div>
 
-    <!-- Search & Filter Toolbar -->
-    <div class="bg-white rounded-[18px] shadow-sm border border-slate-100 p-5 filter-drop">
-        <form method="get" class="flex flex-col lg:flex-row items-end gap-4 w-full m-0">
-            <input type="hidden" name="page" value="admin-users">
+    <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 24px; margin-bottom: 32px;" class="sm-g-2 lg-g-4">
+        <?php foreach ($cardDefs as $cd):
+            $isActive = ($cd['id'] === $selectedEducationLevel) || ($cd['key'] === 'total' && $selectedEducationLevel === null);
+            $url = $cd['id'] > 0 ? '?page=admin-users&education_level=' . $cd['id'] : '?page=admin-users';
+            if ($search !== '') $url .= '&search=' . urlencode($search);
+        ?>
+        <?php
+            $delayClass = $cd['key'] === 'total' ? 'd1' : ($cd['key'] === 'hs' ? 'd2' : ($cd['key'] === 'ug' ? 'd3' : 'd4'));
+            $counterId = 'count' . ucfirst($cd['key']);
+            renderAdminSummaryCard([
+                'title' => $cd['label'],
+                'value' => '0',
+                'valueNumber' => (int)($cd['count'] ?? 0),
+                'counterId' => $counterId,
+                'icon' => $cd['icon'],
+                'iconBg' => $cd['bg'],
+                'iconColor' => $cd['color'],
+                'delayClass' => $delayClass,
+                'filter' => $cd['key'],
+                'active' => $isActive,
+                'extraClass' => 'summary-stat-card',
+            ]);
+        ?>
 
-            <div class="w-full lg:flex-1">
-                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Search</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400"><i class="bi bi-search text-sm"></i></span>
-                    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search by name or email..."
-                        class="w-full pl-11 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-[#5B5FEF] focus:ring-2 focus:ring-[#5B5FEF]/10">
-                </div>
-            </div>
+        <?php endforeach; ?>
+    </div>
 
-            <div class="w-full sm:w-48">
-                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Education Level</label>
-                <select name="education_level" class="filter-select w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 outline-none transition-all duration-200 focus:border-[#5B5FEF] focus:ring-2 focus:ring-[#5B5FEF]/10">
-                    <option value="">All Levels</option>
-                    <?php foreach ($educationLevels as $el): ?>
-                    <option value="<?= (int)$el['id'] ?>" <?= $educationLevel === (int)$el['id'] ? 'selected' : '' ?>><?= htmlspecialchars($el['label']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="w-full sm:w-48">
-                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assessment Status</label>
-                <select name="assessment_status" class="filter-select w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 outline-none transition-all duration-200 focus:border-[#5B5FEF] focus:ring-2 focus:ring-[#5B5FEF]/10">
-                    <option value="">All</option>
-                    <option value="completed" <?= $assessmentStatus === 'completed' ? 'selected' : '' ?>>Completed</option>
-                    <option value="in_progress" <?= $assessmentStatus === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
-                    <option value="not_started" <?= $assessmentStatus === 'not_started' ? 'selected' : '' ?>>Not Started</option>
-                </select>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-[#5B5FEF] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#4a4ed6] hover:shadow-md border-0 outline-none cursor-pointer">
-                    <i class="bi bi-funnel text-sm"></i>
-                    Filter
-                </button>
-                <?php if ($hasFilters): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-users" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 no-underline transition-all duration-200 hover:bg-slate-50">
-                    <i class="bi bi-x-circle text-sm"></i>
-                    Reset
+    <div class="up-in d2" style="margin-bottom: 28px;">
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 24px;">
+            <div style="position: relative; max-width: 480px;">
+                <span style="position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: #94a3b8; pointer-events: none; display: flex;">
+                    <i class="bi bi-search" style="font-size: 16px;"></i>
+                </span>
+                <input type="text" id="searchInput" value="<?= htmlspecialchars($search) ?>"
+                    placeholder="Search students by name, email or education level..."
+                    style="width: 100%; padding: 11px 16px 11px 40px; font-size: 15px; color: #1e293b; background: #fff; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
+                <?php if ($search !== ''): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=admin-users<?= $selectedEducationLevel ? '&education_level=' . $selectedEducationLevel : '' ?>"
+                   style="position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 0; background: #f1f5f9; color: #94a3b8; cursor: pointer; text-decoration: none;">
+                    <i class="bi bi-x" style="font-size: 14px; font-weight: 700;"></i>
                 </a>
                 <?php endif; ?>
             </div>
-        </form>
+        </div>
     </div>
 
-    <!-- Student List -->
-    <div class="bg-white rounded-[20px] shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-6 pt-5 pb-1">
-            <div class="flex items-center justify-between">
+    <div class="up-in d3">
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 28px 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
                 <div>
-                    <h2 class="text-base font-bold text-slate-800">Registered Students</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Showing <?= count($users) ?> of <?= number_format($totalUsers) ?> students</p>
+                    <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">Registered Students</h2>
+                    <p style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;">Latest 5 registered students</p>
                 </div>
-                <div class="flex items-center gap-2 text-xs text-slate-400">
-                    <i class="bi bi-arrow-repeat text-sm"></i>
-                    <span>Click a row for details</span>
+                <?php if ($totalPages > 1 || $totalUsers > 5): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=admin-users<?= $search ? '&search=' . urlencode($search) : '' ?><?= $selectedEducationLevel ? '&education_level=' . $selectedEducationLevel : '' ?>" class="btn-outline">
+                    <i class="bi bi-people"></i> View All
+                </a>
+                <?php endif; ?>
+            </div>
+
+            <?php if (!$hasStudents): ?>
+            <div style="padding: 56px 20px; text-align: center;">
+                <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 14px; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person-x" style="font-size: 24px; color: #94a3b8;"></i>
+                </div>
+                <p style="font-size: 16px; font-weight: 600; color: #475569; margin: 0;">No students found</p>
+                <p style="font-size: 14px; color: #94a3b8; margin: 6px 0 0 0;">No registered students are available yet.</p>
+            </div>
+            <?php else: ?>
+            <div id="studentList" style="display: flex; flex-direction: column; gap: 12px;">
+                <?php $ri = 0; ?>
+                <?php foreach ($recentStudents as $student):
+                    $ri++;
+                    $uid = (int)($student['user_id'] ?? 0);
+                    $name = (string)($student['username'] ?? '');
+                    $email = (string)($student['email'] ?? '');
+                    $edu = (string)($student['education_level'] ?? '');
+                    $img = (string)($student['profile_image'] ?? '');
+                    $created = $student['created_at'] ? date('M d, Y', strtotime((string)($student['created_at']))) : 'N/A';
+                    $eduDisplay = $edu !== '' ? htmlspecialchars($edu, ENT_QUOTES, 'UTF-8') : 'No education level';
+                    $nameDisplay = htmlspecialchars($name ?: 'Student', ENT_QUOTES, 'UTF-8');
+                    $emailDisplay = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+                    $init = $initials($name);
+                ?>
+                <div class="student-card row-in" style="animation-delay: <?= 0.04 * $ri ?>s; display: flex; align-items: center; gap: 16px;"
+                     data-student-id="<?= $uid ?>"
+                     data-name="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"
+                     data-email="<?= $emailDisplay ?>"
+                     data-education="<?= htmlspecialchars($edu, ENT_QUOTES, 'UTF-8') ?>"
+                     onclick="openDrawer(<?= $uid ?>)">
+                    <?php if ($img !== '' && file_exists(BASE_PATH . '/public/uploads/profile/' . $img)): ?>
+                    <img src="<?= BASE_URL ?>/uploads/profile/<?= rawurlencode($img) ?>" alt="" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    <?php else: ?>
+                    <span style="width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #eef2ff, #f3e8ff); color: #5B5FEF; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);"><?= $init ?></span>
+                    <?php endif; ?>
+                    <div style="flex: 1; min-width: 0;">
+                        <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= $nameDisplay ?: 'Student' ?></p>
+                        <p style="font-size: 14px; color: <?= $edu ? '#64748b' : '#94a3b8' ?>; margin: 3px 0 0 0;">
+                            <?= $eduDisplay ?>
+                        </p>
+                    </div>
+                    <span style="font-size: 13px; color: #94a3b8; flex-shrink: 0; white-space: nowrap; display: none;" class="md-show"><?= $created ?></span>
+                    <button type="button" onclick="event.stopPropagation(); openDrawer(<?= $uid ?>)" class="btn-view">
+                        <i class="bi bi-eye"></i> View
+                    </button>
+                </div>
+                <?php endforeach; ?>
+                <div id="studentEmptyState" style="display: none; padding: 36px 20px; text-align: center; border: 1px dashed #e2e8f0; border-radius: 14px; background: #f8fafc;">
+                    <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-person-x" style="font-size: 24px; color: #94a3b8;"></i>
+                    </div>
+                    <p style="font-size: 16px; font-weight: 600; color: #475569; margin: 0;">No students found</p>
+                    <p style="font-size: 14px; color: #94a3b8; margin: 6px 0 0 0;">Try adjusting your search or filter.</p>
                 </div>
             </div>
-        </div>
-        <div class="overflow-x-auto px-2 pb-2">
-            <table class="w-full text-left border-collapse align-middle">
-                <thead>
-                    <tr class="table-header-gradient">
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-indigo-700 uppercase tracking-wider rounded-l-xl">Student</th>
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email</th>
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Education</th>
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Progress</th>
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Registered</th>
-                        <th class="whitespace-nowrap px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right rounded-r-xl">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm">
-                    <?php if ($users === []): ?>
-                    <tr>
-                        <td colspan="6" class="text-center py-20 px-5">
-                            <div class="flex flex-col items-center justify-center gap-3">
-                                <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
-                                    <i class="bi bi-person-x text-2xl"></i>
-                                </div>
-                                <span class="text-sm font-semibold text-slate-600">No students found</span>
-                                <span class="text-xs text-slate-400">Try changing your search or filters.</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php else: ?>
-                    <?php $ri = 0; ?>
-                    <?php foreach ($users as $user):
-                        $ri++;
-                        $userId = (int)($user['user_id'] ?? 0);
-                        $fullName = htmlspecialchars((string)($user['username'] ?? ''));
-                        $email = htmlspecialchars((string)($user['email'] ?? ''));
-                        $edu = htmlspecialchars((string)($user['education_level'] ?? 'N/A'));
-                        $createdAt = htmlspecialchars(date('M d, Y', strtotime((string)($user['created_at'] ?? date('Y-m-d')))));
-                        $profileImage = (string)($user['profile_image'] ?? '');
-                        $completed = (int)($user['completed_count'] ?? 0);
-                        $total = (int)($user['total_count'] ?? 0);
-                        $progress = $total > 0 ? round(($completed / $total) * 100) : 0;
-                        $statusText = $completed === 0 ? 'Not started' : ($completed >= $total ? 'Completed' : 'In progress');
+            <?php endif; ?>
+
+            <?php if ($totalPages > 1): ?>
+            <nav style="display: flex; justify-content: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+                <ul style="display: inline-flex; align-items: center; gap: 4px; margin: 0; list-style: none; padding: 4px; background: #f8fafc; border-radius: 10px;">
+                    <?php
+                    $queryParams = [];
+                    if ($search !== '') $queryParams[] = 'search=' . urlencode($search);
+                    if ($selectedEducationLevel !== null) $queryParams[] = 'education_level=' . $selectedEducationLevel;
+                    $queryBase = implode('&', $queryParams);
                     ?>
-                    <tr class="zebra-row row-item r<?= min($ri, 10) ?> row-hover cursor-pointer border-b border-slate-50/80 last:border-b-0" onclick="openModal(<?= $userId ?>)">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <?php if ($profileImage !== '' && file_exists(BASE_PATH . '/public/uploads/profile/' . $profileImage)): ?>
-                                    <img src="<?= BASE_URL ?>/uploads/profile/<?= rawurlencode($profileImage) ?>" alt="" class="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-white shadow-sm">
-                                <?php else: ?>
-                                    <span class="flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold bg-gradient-to-br from-indigo-50 to-purple-50 text-[#5B5FEF] shrink-0 shadow-sm ring-2 ring-white"><?= $initials($fullName) ?></span>
-                                <?php endif; ?>
-                                <div>
-                                    <span class="font-semibold text-slate-800"><?= $fullName ?: 'Student' ?></span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-slate-500"><?= $email ?></td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50/50 text-indigo-600 status-badge">
-                                <i class="bi bi-mortarboard text-[10px]"></i>
-                                <?= $edu ?>
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2.5">
-                                <div class="flex-1 max-w-[100px]">
-                                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-700 <?= $progress >= 100 ? 'bg-emerald-500' : ($progress > 0 ? 'bg-amber-400' : 'bg-slate-200') ?>" style="width:<?= max($progress, $total > 0 ? 4 : 0) ?>%"></div>
-                                    </div>
-                                </div>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold status-badge
-                                    <?= $completed === 0 ? 'bg-slate-100 text-slate-500' : ($completed >= $total ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600') ?>">
-                                    <?= $completed ?>/<?= $total ?: '0' ?>
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-slate-400 whitespace-nowrap text-xs"><?= $createdAt ?></td>
-                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <button type="button" onclick="event.stopPropagation(); openModal(<?= $userId ?>)" class="btn-view inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#5B5FEF] transition-all duration-200 hover:border-[#5B5FEF] hover:bg-indigo-50 hover:shadow-sm hover:shadow-indigo-500/10 outline-none cursor-pointer">
-                                <i class="bi bi-eye text-sm"></i>
-                                View Details
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php if ($currentPage > 1): ?>
+                    <li>
+                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $currentPage - 1 ?>"
+                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: none;">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
                     <?php endif; ?>
-                </tbody>
-            </table>
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <li>
+                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $i ?>"
+                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; <?= $i === $currentPage ? 'background:#5B5FEF;color:#fff;' : 'color:#94a3b8;' ?>">
+                            <?= $i ?>
+                        </a>
+                    </li>
+                    <?php endfor; ?>
+                    <?php if ($currentPage < $totalPages): ?>
+                    <li>
+                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $currentPage + 1 ?>"
+                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: none;">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <?php endif; ?>
+                </ul>
+            </nav>
+            <?php endif; ?>
         </div>
     </div>
-
-    <!-- Pagination -->
-    <?php if ($totalPages > 1): ?>
-    <nav class="flex justify-center">
-        <ul class="inline-flex items-center gap-1.5 p-1 bg-white border border-slate-100 rounded-xl shadow-sm">
-            <?php if ($currentPage > 1): ?>
-            <li>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-users&search=<?= urlencode($search) ?>&assessment_status=<?= urlencode($assessmentStatus) ?>&education_level=<?= $educationLevel ?>&page_number=<?= $currentPage - 1 ?>" class="inline-flex items-center justify-center text-xs font-bold rounded-lg transition-all duration-200 no-underline border-0 min-w-[36px] h-9 px-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-800">
-                    <i class="bi bi-chevron-left text-sm"></i>
-                </a>
-            </li>
-            <?php endif; ?>
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <li>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-users&search=<?= urlencode($search) ?>&assessment_status=<?= urlencode($assessmentStatus) ?>&education_level=<?= $educationLevel ?>&page_number=<?= $i ?>"
-                   class="inline-flex items-center justify-center text-xs font-bold rounded-lg transition-all duration-200 no-underline border-0 min-w-[36px] h-9 px-2.5
-                          <?= $i === $currentPage ? 'bg-[#5B5FEF] text-white shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-800' ?>">
-                    <?= $i ?>
-                </a>
-            </li>
-            <?php endfor; ?>
-            <?php if ($currentPage < $totalPages): ?>
-            <li>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-users&search=<?= urlencode($search) ?>&assessment_status=<?= urlencode($assessmentStatus) ?>&education_level=<?= $educationLevel ?>&page_number=<?= $currentPage + 1 ?>" class="inline-flex items-center justify-center text-xs font-bold rounded-lg transition-all duration-200 no-underline border-0 min-w-[36px] h-9 px-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-800">
-                    <i class="bi bi-chevron-right text-sm"></i>
-                </a>
-            </li>
-            <?php endif; ?>
-        </ul>
-    </nav>
-    <?php endif; ?>
-
 </div>
 
-<!-- Student Detail Modal -->
-<div id="studentModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
-    <div id="modalOverlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm modal-overlay" onclick="closeModal()"></div>
-    <div id="modalContent" class="relative w-full max-w-lg bg-white rounded-[20px] shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto modal-in">
-        <div class="p-6 sm:p-8">
-            <!-- Close -->
-            <button type="button" onclick="closeModal()" class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl border-0 bg-transparent text-slate-400 transition-all duration-200 hover:bg-slate-50 hover:text-slate-600 outline-none cursor-pointer">
-                <i class="bi bi-x text-lg"></i>
+<div id="drawerOverlay" class="drawer-overlay hidden" onclick="closeDrawer()"></div>
+<div id="drawerPanel" class="drawer-panel hidden">
+    <div style="padding: 28px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0;">Student Profile</p>
+            <button onclick="closeDrawer()" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 0; background: #f1f5f9; color: #64748b; cursor: pointer;">
+                <i class="bi bi-x-lg" style="font-size: 12px;"></i>
             </button>
+        </div>
 
-            <!-- Skeleton Loader -->
-            <div id="modalSkeleton" class="space-y-5">
-                <div class="flex items-center gap-4">
-                    <div class="skeleton w-16 h-16 rounded-full shrink-0"></div>
-                    <div class="flex-1 space-y-2">
-                        <div class="skeleton h-5 w-40"></div>
-                        <div class="skeleton h-3.5 w-56"></div>
-                    </div>
+        <div id="drawerSkeleton" class="hidden" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+                <div class="skeleton" style="width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                    <div class="skeleton" style="height: 20px; width: 180px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 14px; width: 240px;"></div>
                 </div>
-                <div class="space-y-3">
-                    <div class="skeleton h-4 w-full"></div>
-                    <div class="skeleton h-4 w-3/4"></div>
-                    <div class="skeleton h-4 w-5/6"></div>
-                    <div class="skeleton h-4 w-2/3"></div>
+            </div>
+            <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 16px; width: 75%;"></div>
+        </div>
+
+        <div id="drawerBody" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; margin-bottom: 20px;">
+                <div id="drawerAvatar" style="width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;"></div>
+                <div style="min-width: 0; flex: 1;">
+                    <h3 id="drawerName" style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;"></h3>
+                    <p id="drawerEmail" style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;"></p>
+                    <p id="drawerPhone" style="font-size: 13px; color: #94a3b8; margin: 4px 0 0 0;"></p>
                 </div>
             </div>
 
-            <!-- Modal Body -->
-            <div id="modalBody" class="hidden">
-                <div class="flex items-center gap-4 mb-6 pb-5 border-b border-slate-100">
-                    <div id="modalAvatar" class="w-16 h-16 rounded-full shrink-0"></div>
-                    <div class="min-w-0">
-                        <h3 id="modalName" class="text-lg font-bold text-slate-900 truncate"></h3>
-                        <p id="modalEmail" class="text-sm text-slate-500 mt-0.5"></p>
-                    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+                    <p style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Education Level</p>
+                    <p id="drawerEducation" style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 6px 0 0 0;"></p>
                 </div>
+                <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+                    <p style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Registration Date</p>
+                    <p id="drawerRegistered" style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 6px 0 0 0;"></p>
+                </div>
+            </div>
 
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="rounded-xl bg-slate-50 p-4">
-                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Education</p>
-                            <p id="modalEducation" class="text-sm font-semibold text-slate-800 mt-1"></p>
-                        </div>
-                        <div class="rounded-xl bg-slate-50 p-4">
-                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Registered</p>
-                            <p id="modalRegistered" class="text-sm font-semibold text-slate-800 mt-1"></p>
-                        </div>
+            <div style="margin-bottom: 20px;">
+                <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 12px 0;">Assessment Progress</p>
+                <div style="border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 14px; font-weight: 500; color: #334155;">Interest Assessment</span>
+                        <span id="drawerInterestStatus" class="chk-badge"></span>
                     </div>
-
-                    <div class="rounded-xl bg-slate-50 p-4">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assessment Progress</p>
-                        <div class="flex items-center gap-3 mt-2">
-                            <div class="flex-1">
-                                <div class="w-full h-2.5 bg-white rounded-full overflow-hidden">
-                                    <div id="modalProgressBar" class="h-full rounded-full bg-emerald-500 transition-all duration-700" style="width:0%"></div>
-                                </div>
-                            </div>
-                            <span id="modalProgressText" class="text-sm font-bold text-slate-800 shrink-0"></span>
-                        </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 14px; font-weight: 500; color: #334155;">Personality Assessment</span>
+                        <span id="drawerPersonalityStatus" class="chk-badge"></span>
                     </div>
-
-                    <div class="rounded-xl bg-slate-50 p-4">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Latest Assessment</p>
-                        <p id="modalLatestAssessment" class="text-sm font-semibold text-slate-800 mt-1">None</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 14px; font-weight: 500; color: #334155;">Aptitude Assessment</span>
+                        <span id="drawerAptitudeStatus" class="chk-badge"></span>
                     </div>
-
-                    <div class="rounded-xl bg-slate-50 p-4">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Career Match</p>
-                        <p id="modalTopCareer" class="text-sm font-semibold text-slate-800 mt-1">None</p>
-                        <p id="modalMatchScore" class="text-xs text-slate-500 mt-0.5 hidden"></p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+                        <span style="font-size: 14px; font-weight: 500; color: #334155;">Work Values</span>
+                        <span id="drawerValuesStatus" class="chk-badge"></span>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-6 pt-4 border-t border-slate-100">
-                <button type="button" onclick="closeModal()" class="w-full rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 outline-none cursor-pointer">
+            <div style="margin-bottom: 20px;">
+                <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 12px 0;">Assessment Scores</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: linear-gradient(135deg, #eef2ff, #eef2ff 80%); border-radius: 12px; padding: 14px;">
+                        <p style="font-size: 11px; font-weight: 600; color: #818cf8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Interest</p>
+                        <p id="drawerInterestScore" style="font-size: 22px; font-weight: 700; color: #4f46e5; margin: 6px 0 0 0;"></p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ecfdf5, #ecfdf5 80%); border-radius: 12px; padding: 14px;">
+                        <p style="font-size: 11px; font-weight: 600; color: #34d399; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Personality</p>
+                        <p id="drawerPersonalityScore" style="font-size: 22px; font-weight: 700; color: #059669; margin: 6px 0 0 0;"></p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ecfeff, #ecfeff 80%); border-radius: 12px; padding: 14px;">
+                        <p style="font-size: 11px; font-weight: 600; color: #22d3ee; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Aptitude</p>
+                        <p id="drawerAptitudeScore" style="font-size: 22px; font-weight: 700; color: #0891b2; margin: 6px 0 0 0;"></p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fffbeb, #fffbeb 80%); border-radius: 12px; padding: 14px;">
+                        <p style="font-size: 11px; font-weight: 600; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Work Values</p>
+                        <p id="drawerValuesScore" style="font-size: 22px; font-weight: 700; color: #d97706; margin: 6px 0 0 0;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Assessment Completion</p>
+                    <span id="drawerCompletionPct" style="font-size: 14px; font-weight: 700; color: #0f172a;"></span>
+                </div>
+                <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                    <div id="drawerProgressFill" style="height: 100%; border-radius: 999px; background: #5B5FEF; width: 0%; transition: width 0.6s ease;"></div>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px 0;">Recommended Career</p>
+                <div id="drawerCareerBlock">
+                    <p id="drawerCareer" style="font-size: 17px; font-weight: 700; color: #0f172a; margin: 0;"></p>
+                    <p id="drawerCareerScore" style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;"></p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+                    <p style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Latest Login</p>
+                    <p id="drawerLastLogin" style="font-size: 14px; font-weight: 600; color: #0f172a; margin: 6px 0 0 0;"></p>
+                </div>
+                <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+                    <p style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;">Account Status</p>
+                    <p id="drawerStatus" style="font-size: 14px; font-weight: 600; color: #0f172a; margin: 6px 0 0 0;"></p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="closeDrawer()" style="padding: 12px 0; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 15px; font-weight: 600; color: #475569; cursor: pointer;">
                     Close
+                </button>
+                <button type="button" style="padding: 12px 0; border-radius: 12px; border: 1px solid #5B5FEF; background: #fff; font-size: 15px; font-weight: 600; color: #5B5FEF; cursor: pointer;">
+                    Edit Student
                 </button>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    @media (min-width: 640px) {
+        .sm-g-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (min-width: 768px) {
+        .md-show { display: block !important; }
+    }
+    @media (min-width: 1024px) {
+        .lg-g-4 { grid-template-columns: repeat(4, 1fr) !important; }
+    }
+    input#searchInput:focus {
+        border-color: #5B5FEF !important;
+        box-shadow: 0 0 0 3px rgba(91,95,239,0.10) !important;
+    }
+    #drawerSkeleton.hidden, #drawerBody.hidden { display: none !important; }
+    #drawerSkeleton:not(.hidden) { display: block !important; }
+    #drawerBody:not(.hidden) { display: block !important; }
+    .drawer-overlay.hidden, .drawer-panel.hidden { display: none !important; }
+</style>
+
 <script>
-const studentsData = <?= json_encode(array_map(function($u) {
-    return [
-        'user_id' => (int)($u['user_id'] ?? 0),
-        'username' => $u['username'] ?? '',
-        'email' => $u['email'] ?? '',
-        'education_level' => $u['education_level'] ?? 'N/A',
-        'created_at' => $u['created_at'] ?? '',
-        'profile_image' => $u['profile_image'] ?? '',
-        'completed_count' => (int)($u['completed_count'] ?? 0),
-        'total_count' => (int)($u['total_count'] ?? 0),
-    ];
-}, $users)) ?>;
+var studentCards = Array.from(document.querySelectorAll('.student-card'));
+var studentEmptyState = document.getElementById('studentEmptyState');
+var currentFilter = 'all';
+var currentSearch = '';
 
 function getInitials(name) {
     if (!name || name.trim() === '') return '?';
-    const parts = name.trim().split(/\s+/);
+    var parts = name.trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return name.substring(0, 2).toUpperCase();
 }
 
-function openModal(userId) {
-    const modal = document.getElementById('studentModal');
-    const overlay = document.getElementById('modalOverlay');
-    const content = document.getElementById('modalContent');
-    const skeleton = document.getElementById('modalSkeleton');
-    const body = document.getElementById('modalBody');
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+function openDrawer(userId) {
+    var overlay = document.getElementById('drawerOverlay');
+    var panel = document.getElementById('drawerPanel');
+    var skeleton = document.getElementById('drawerSkeleton');
+    var body = document.getElementById('drawerBody');
+    overlay.classList.remove('hidden');
+    panel.classList.remove('hidden', 'closing');
     skeleton.classList.remove('hidden');
     body.classList.add('hidden');
+    document.body.style.overflow = 'hidden';
 
-    // Fetch detail data
-    fetch('<?= BASE_URL ?>/index.php?page=admin-users-view&id=' + userId + '&format=json')
-        .then(r => r.json())
-        .then(data => {
+    fetch('<?= BASE_URL ?>/index.php?page=admin-users-view&id=' + userId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             skeleton.classList.add('hidden');
             body.classList.remove('hidden');
 
-            const img = data.profile_image && data.profile_image.trim() !== ''
-                ? '<img src="<?= BASE_URL ?>/uploads/profile/' + encodeURIComponent(data.profile_image) + '" alt="" class="w-16 h-16 rounded-full object-cover">'
-                : '<span class="flex items-center justify-center w-16 h-16 rounded-full text-lg font-bold bg-[#5B5FEF]/10 text-[#5B5FEF]">' + getInitials(data.username) + '</span>';
-            document.getElementById('modalAvatar').innerHTML = img;
-            document.getElementById('modalName').textContent = data.username || 'Student';
-            document.getElementById('modalEmail').textContent = data.email || '';
-
-            document.getElementById('modalEducation').textContent = data.education_level || 'N/A';
-            const d = data.created_at ? new Date(data.created_at) : null;
-            document.getElementById('modalRegistered').textContent = d ? d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-
-            const comp = parseInt(data.completed_count || 0);
-            const total = parseInt(data.total_count || 0);
-            const pct = total > 0 ? Math.round((comp / total) * 100) : 0;
-            document.getElementById('modalProgressText').textContent = comp + '/' + total;
-            document.getElementById('modalProgressBar').style.width = pct + '%';
-            document.getElementById('modalProgressBar').className = 'h-full rounded-full transition-all duration-700 ' + (pct >= 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-400' : 'bg-slate-200');
-
-            document.getElementById('modalLatestAssessment').textContent = data.latest_assessment || 'None';
-
-            const careerEl = document.getElementById('modalTopCareer');
-            const scoreEl = document.getElementById('modalMatchScore');
-            if (data.top_career) {
-                careerEl.textContent = data.top_career;
-                scoreEl.textContent = 'Match score: ' + (parseFloat(data.match_score) || 0).toFixed(1) + '%';
-                scoreEl.classList.remove('hidden');
+            var imgHtml;
+            if (data.profile_image && data.profile_image.trim() !== '') {
+                imgHtml = '<img src="<?= BASE_URL ?>/uploads/profile/' + encodeURIComponent(data.profile_image) + '" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.06);">';
             } else {
-                careerEl.textContent = 'None';
-                scoreEl.classList.add('hidden');
+                imgHtml = '<span style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;background:linear-gradient(135deg,#eef2ff,#f3e8ff);color:#5B5FEF;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' + getInitials(data.username) + '</span>';
+            }
+            document.getElementById('drawerAvatar').innerHTML = imgHtml;
+            document.getElementById('drawerName').textContent = data.username || 'Student';
+            document.getElementById('drawerEmail').textContent = data.email || '';
+            document.getElementById('drawerPhone').textContent = data.phone ? 'Phone: ' + data.phone : 'Phone: N/A';
+            document.getElementById('drawerEducation').textContent = data.education_level || 'N/A';
+            var regDate = data.created_at ? new Date(data.created_at) : null;
+            document.getElementById('drawerRegistered').textContent = regDate ? regDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+            document.getElementById('drawerLastLogin').textContent = data.last_login ? new Date(data.last_login).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+            document.getElementById('drawerStatus').textContent = data.status_name || 'Active';
+
+            function setStatus(el, completed) {
+                el.innerHTML = completed ? '<i class="bi bi-check-circle-fill"></i> Completed' : '<i class="bi bi-circle"></i> Pending';
+                el.className = 'chk-badge ' + (completed ? 'done' : 'pending');
+            }
+            setStatus(document.getElementById('drawerInterestStatus'), parseInt(data.interest_completed || 0) === 1);
+            setStatus(document.getElementById('drawerPersonalityStatus'), parseInt(data.personality_completed || 0) === 1);
+            setStatus(document.getElementById('drawerAptitudeStatus'), parseInt(data.aptitude_completed || 0) === 1);
+            setStatus(document.getElementById('drawerValuesStatus'), parseInt(data.values_completed || 0) === 1);
+
+            function fmt(v) { var n = parseFloat(v); return !isNaN(n) ? n.toFixed(1) + '%' : 'Pending'; }
+            document.getElementById('drawerInterestScore').textContent = fmt(data.interest_score);
+            document.getElementById('drawerPersonalityScore').textContent = fmt(data.personality_score);
+            document.getElementById('drawerAptitudeScore').textContent = fmt(data.aptitude_score);
+            document.getElementById('drawerValuesScore').textContent = fmt(data.values_score);
+
+            var completed = parseInt(data.completed_count || 0);
+            var total = parseInt(data.total_count || 0);
+            var pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+            document.getElementById('drawerCompletionPct').textContent = completed + ' / ' + total + ' (' + pct + '%)';
+            document.getElementById('drawerProgressFill').style.width = pct + '%';
+
+            if (data.top_career) {
+                document.getElementById('drawerCareer').textContent = data.top_career;
+                document.getElementById('drawerCareerScore').textContent = 'Recommendation Score: ' + fmt(data.match_score);
+            } else {
+                document.getElementById('drawerCareer').textContent = 'No recommendation yet';
+                document.getElementById('drawerCareerScore').textContent = '';
             }
         })
-        .catch(() => {
+        .catch(function() {
             skeleton.classList.add('hidden');
             body.classList.remove('hidden');
-            document.getElementById('modalName').textContent = 'Error loading data';
+            document.getElementById('drawerName').textContent = 'Error loading student data';
         });
 }
 
-function closeModal() {
-    const modal = document.getElementById('studentModal');
-    const content = document.getElementById('modalContent');
-    content.style.transform = 'scale(0.95)';
-    content.style.opacity = '0';
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        content.style.transform = '';
-        content.style.opacity = '';
-    }, 200);
+function closeDrawer() {
+    var panel = document.getElementById('drawerPanel');
+    panel.classList.add('closing');
+    setTimeout(function() {
+        document.getElementById('drawerOverlay').classList.add('hidden');
+        panel.classList.add('hidden');
+        panel.classList.remove('closing');
+        document.body.style.overflow = '';
+    }, 250);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Highlight matching text
-    const searchVal = '<?= htmlspecialchars($search) ?>';
-    if (searchVal) {
-        const regex = new RegExp('(' + searchVal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-        document.querySelectorAll('td').forEach(td => {
-            if (!td.closest('.btn-view')) {
-                td.innerHTML = td.innerHTML.replace(regex, '<span class="search-highlight font-semibold text-[#5B5FEF]">$1</span>');
-            }
-        });
+function applyStudentFilters() {
+    var searchValue = (document.getElementById('searchInput') ? document.getElementById('searchInput').value : '').trim().toLowerCase();
+    var visibleCount = 0;
+
+    if (!studentCards.length) {
+        return;
     }
-});
+
+    studentCards.forEach(function(card) {
+        var name = (card.getAttribute('data-name') || '').toLowerCase();
+        var email = (card.getAttribute('data-email') || '').toLowerCase();
+        var education = (card.getAttribute('data-education') || '').toLowerCase();
+        var shouldShow = true;
+
+        if (currentFilter === 'hs' && !education.includes('high school')) {
+            shouldShow = false;
+        } else if (currentFilter === 'ug' && !education.includes('undergraduate')) {
+            shouldShow = false;
+        } else if (currentFilter === 'g' && !education.includes('graduate')) {
+            shouldShow = false;
+        }
+
+        if (shouldShow && searchValue) {
+            shouldShow = name.includes(searchValue) || email.includes(searchValue) || education.includes(searchValue);
+        }
+
+        if (shouldShow) {
+            visibleCount++;
+            card.classList.remove('is-hidden');
+            card.style.display = 'flex';
+        } else {
+            card.classList.add('is-hidden');
+            card.style.display = 'none';
+        }
+    });
+
+    if (studentEmptyState) {
+        studentEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+}
+
+(function() {
+    function animateCounter(el, target, done) {
+        if (!el) return;
+        var current = 0;
+        var steps = 40;
+        var inc = Math.max(1, Math.ceil(target / steps));
+        var timer = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+                if (done) done();
+            }
+            el.textContent = current.toLocaleString();
+        }, 25);
+    }
+
+    setTimeout(function() {
+        document.querySelectorAll('.stat-card[data-value]').forEach(function(card) {
+            var el = card.querySelector('.card-number');
+            var target = parseInt(card.getAttribute('data-value') || '0', 10);
+            if (!el) return;
+            animateCounter(el, target, function() {
+                var iconBg = card.querySelector('.card-icon-bg');
+                if (iconBg) iconBg.classList.add('bounce');
+            });
+        });
+    }, 300);
+})();
+
+(function() {
+    var input = document.getElementById('searchInput');
+    if (!input) return;
+
+    var activeCard = document.querySelector('.summary-stat-card.active');
+    if (activeCard) {
+        currentFilter = activeCard.getAttribute('data-filter') || 'all';
+    }
+    applyStudentFilters();
+
+    document.querySelectorAll('.stat-card[data-filter]').forEach(function(card) {
+        card.addEventListener('click', function() {
+            currentFilter = card.getAttribute('data-filter') || 'all';
+            document.querySelectorAll('.stat-card[data-filter]').forEach(function(item) {
+                item.classList.toggle('active', item === card);
+            });
+            applyStudentFilters();
+        });
+    });
+
+    input.addEventListener('input', function() {
+        applyStudentFilters();
+    });
+})();
 </script>
+
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';
-?>

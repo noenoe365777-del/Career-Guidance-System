@@ -30,6 +30,16 @@ class UserService
         return $this->userRepository->getEducationLevels();
     }
 
+    public function getStudentSummaryStats(): array
+    {
+        return $this->userRepository->getStudentSummaryStats();
+    }
+
+    public function getRecentStudents(int $limit = 5): array
+    {
+        return $this->userRepository->getRecentStudents($limit);
+    }
+
     public function getTotalUsers(): int
     {
         return $this->userRepository->getTotalUsers();

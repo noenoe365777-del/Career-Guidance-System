@@ -1,520 +1,530 @@
 <?php
 $questions = $questions ?? [];
+$assessments = $assessments ?? [];
+$distribution = $distribution ?? [];
 $search = $search ?? '';
 $assessmentFilter = $assessmentFilter ?? 0;
 $questionTypeFilter = $questionTypeFilter ?? '';
 $difficultyFilter = $difficultyFilter ?? '';
 $statusFilter = $statusFilter ?? '';
 $sort = $sort ?? '';
-$currentPage = $currentPage ?? 1;
-$totalPages = $totalPages ?? 1;
 $totalQuestions = $totalQuestions ?? 0;
 $totalAssessments = $totalAssessments ?? 0;
 $averageQuestions = $averageQuestions ?? 0;
 $lastUpdatedDate = $lastUpdatedDate ?? null;
-$assessments = $assessments ?? [];
 $questionTypes = $questionTypes ?? [];
-$difficultyOptions = $difficultyOptions ?? [];
-$statusOptions = $statusOptions ?? [];
-$distribution = $distribution ?? [];
-$recentActivity = $recentActivity ?? [];
 $message = $message ?? null;
 
 $pageTitle = 'Question Management';
 $activeMenu = 'questions';
 
-function fmtDate($v): string {
-    if (!$v) return '—';
-    $t = strtotime((string)$v);
-    return $t ? date('M j, Y', $t) : (string)$v;
+$assessmentCountMap = [];
+foreach ($distribution as $d) {
+    $id = (int)($d['assessment_id'] ?? 0);
+    $assessmentCountMap[$id] = (int)($d['question_count'] ?? 0);
 }
+
+$interestCount = $assessmentCountMap[2] ?? 0;
+$personalityCount = $assessmentCountMap[1] ?? 0;
+$aptitudeValuesCount = ($assessmentCountMap[3] ?? 0) + ($assessmentCountMap[4] ?? 0);
+
+$tabs = [['id' => 0, 'title' => 'All']];
+foreach ($assessments as $a) {
+    $tabs[] = [
+        'id' => (int)($a['assessment_id'] ?? 0),
+        'title' => (string)($a['title'] ?? ''),
+    ];
+}
+
+$assessmentNames = [];
+foreach ($assessments as $a) {
+    $id = (int)($a['assessment_id'] ?? 0);
+    $assessmentNames[$id] = (string)($a['title'] ?? '');
+}
+
+$iconMap = [1 => 'bi bi-person-badge', 2 => 'bi bi-activity', 3 => 'bi bi-cpu', 4 => 'bi bi-heart'];
 
 ob_start();
 ?>
 
 <style>
-:root {
-    --bg-page: #f8fafc;
-    --radius: 18px;
-}
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideRight { from { opacity: 0; transform: translateX(320px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+    .anim-in { animation: fadeIn 0.4s ease-out both; }
+    .anim-up { animation: slideUp 0.5s ease-out both; }
+    .anim-right { animation: slideRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .anim-scale { animation: scaleIn 0.25s ease-out both; }
 
-.animate-in { animation: fadeInUp 0.45s cubic-bezier(0.2,0.8,0.2,1) both; }
-.d1 { animation-delay: 0.04s; }
-.d2 { animation-delay: 0.08s; }
-.d3 { animation-delay: 0.12s; }
-.d4 { animation-delay: 0.16s; }
-.d5 { animation-delay: 0.20s; }
-.d6 { animation-delay: 0.24s; }
+    .d1 { animation-delay: 0.04s; }
+    .d2 { animation-delay: 0.08s; }
+    .d3 { animation-delay: 0.12s; }
+    .d4 { animation-delay: 0.16s; }
+    .d5 { animation-delay: 0.20s; }
+    .d6 { animation-delay: 0.24s; }
+    .d7 { animation-delay: 0.28s; }
 
-.hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 25px -10px rgba(15, 23, 42, 0.16);
-}
+    .stat-card {
+        transition: all 0.2s ease;
+        border: 1px solid #f1f5f9;
+        background: #ffffff;
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.04);
+    }
 
-.toast { animation: slideDown 0.25s ease; }
+    .tab-btn {
+        padding: 0.55rem 1.25rem;
+        border-radius: 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    .tab-btn:hover { background: #f1f5f9; color: #334155; }
+    .tab-btn.active { background: #6366f1; color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.25); }
+    .tab-btn.active:hover { background: #4f46e5; }
+
+    .question-card {
+        transition: all 0.2s ease;
+        background: #ffffff;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        padding: 1.25rem;
+    }
+    .question-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px -10px rgba(0,0,0,0.08);
+        border-color: #e2e8f0;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        color: #94a3b8;
+        transition: all 0.15s ease;
+        text-decoration: none;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    .action-btn:hover { transform: scale(1.05); }
+    .action-btn.view:hover { background: #eef2ff; color: #6366f1; }
+    .action-btn.edit:hover { background: #eff6ff; color: #3b82f6; }
+    .action-btn.dup:hover { background: #f5f3ff; color: #8b5cf6; }
+    .action-btn.danger:hover { background: #fef2f2; color: #ef4444; }
+
+    .assessment-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.7rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+    .input-field {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        border-radius: 0.75rem;
+        padding: 0.65rem 1rem 0.65rem 2.5rem;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
+        width: 100%;
+        outline: none;
+    }
+    .input-field:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    .input-field::placeholder { color: #94a3b8; }
+
+    .drawer-overlay {
+        background: rgba(15, 23, 42, 0.3);
+        backdrop-filter: blur(2px);
+    }
+
+    .drawer-content::-webkit-scrollbar { width: 5px; }
+    .drawer-content::-webkit-scrollbar-track { background: transparent; }
+    .drawer-content::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+
+    .option-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.6rem;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+    }
 </style>
 
-<div class="space-y-6" style="min-height:100vh;background:var(--bg-page)">
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+    <!-- Header -->
+    <div class="anim-up d1">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em;" class="text-slate-900">Question Management</h1>
+                <p style="font-size: 0.95rem;" class="mt-1.5 text-slate-500">Manage assessment questions used for career recommendations.</p>
+            </div>
+            <a href="<?= BASE_URL ?>/index.php?page=admin-questions-create"
+               class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all no-underline shadow-lg shadow-indigo-200 active:scale-[0.97]">
+                <i class="bi bi-plus-lg text-sm"></i>
+                Add Question
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
     <?php if ($message !== null): ?>
-    <div class="toast space-y-3">
+    <div class="anim-up d2">
         <?php if ($message === 'created'): ?>
-        <div class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-sm">
-            <i class="bi bi-check-circle-fill text-emerald-500"></i>
-            <span>Question saved successfully.</span>
-        </div>
+            <div class="flex items-center gap-3 p-4 border border-emerald-100 bg-emerald-50/50 rounded-2xl text-emerald-800 text-sm font-medium"><i class="bi bi-check-circle-fill text-base text-emerald-500"></i><div>Question created successfully.</div></div>
         <?php elseif ($message === 'updated'): ?>
-        <div class="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 shadow-sm">
-            <i class="bi bi-info-circle-fill text-blue-500"></i>
-            <span>Question updated successfully.</span>
-        </div>
+            <div class="flex items-center gap-3 p-4 border border-blue-100 bg-blue-50/50 rounded-2xl text-blue-800 text-sm font-medium"><i class="bi bi-info-circle-fill text-base text-blue-500"></i><div>Question updated successfully.</div></div>
         <?php elseif ($message === 'deleted'): ?>
-        <div class="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 shadow-sm">
-            <i class="bi bi-check-circle-fill text-amber-500"></i>
-            <span>Question deleted successfully.</span>
-        </div>
+            <div class="flex items-center gap-3 p-4 border border-amber-100 bg-amber-50/50 rounded-2xl text-amber-800 text-sm font-medium"><i class="bi bi-exclamation-triangle-fill text-base text-amber-500"></i><div>Question deleted successfully.</div></div>
         <?php elseif ($message === 'duplicated'): ?>
-        <div class="flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-800 shadow-sm">
-            <i class="bi bi-copy text-violet-500"></i>
-            <span>Question duplicated successfully.</span>
-        </div>
+            <div class="flex items-center gap-3 p-4 border border-violet-100 bg-violet-50/50 rounded-2xl text-violet-800 text-sm font-medium"><i class="bi bi-files text-base text-violet-500"></i><div>Question duplicated successfully.</div></div>
         <?php elseif ($message === 'not_found'): ?>
-        <div class="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 shadow-sm">
-            <i class="bi bi-x-circle-fill text-rose-500"></i>
-            <span>Question not found.</span>
-        </div>
+            <div class="flex items-center gap-3 p-4 border border-rose-100 bg-rose-50/50 rounded-2xl text-rose-800 text-sm font-medium"><i class="bi bi-x-circle-fill text-base text-rose-500"></i><div>Question not found.</div></div>
         <?php endif; ?>
     </div>
     <?php endif; ?>
 
-    <div class="animate-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Question Management</h1>
-
-        </div>
-        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-create" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">
-            <i class="bi bi-plus-lg"></i>
-            Add Question
-        </a>
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="animate-in d1 hover-lift rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card anim-up d2">
             <div class="flex items-center justify-between">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Total Questions</p>
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><i class="bi bi-question-circle"></i></div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= number_format((int)$totalQuestions) ?></p>
-        </div>
-        <div class="animate-in d2 hover-lift rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Total Assessments</p>
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-600"><i class="bi bi-journal-check"></i></div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= number_format((int)$totalAssessments) ?></p>
-        </div>
-        <div class="animate-in d3 hover-lift rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Avg per Assessment</p>
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><i class="bi bi-bar-chart"></i></div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= $averageQuestions ?></p>
-        </div>
-        <div class="animate-in d4 hover-lift rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Last Updated</p>
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"><i class="bi bi-clock"></i></div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= $lastUpdatedDate ? htmlspecialchars(fmtDate($lastUpdatedDate), ENT_QUOTES, 'UTF-8') : '—' ?></p>
-        </div>
-    </div>
-
-    <div class="animate-in d5 rounded-[var(--radius)] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <form method="get" class="grid gap-4 xl:grid-cols-[1.3fr_0.8fr_0.8fr_0.7fr_0.7fr_0.7fr_auto] xl:items-end">
-            <input type="hidden" name="page" value="admin-questions">
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Search</label>
-                <div class="relative">
-                    <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
-                    <input type="text" name="search" value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>" placeholder="Search questions..." class="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Questions</span>
+                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format((int)$totalQuestions) ?></p>
+                </div>
+                <div class="h-11 w-11 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">
+                    <i class="bi bi-question-circle text-lg"></i>
                 </div>
             </div>
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Assessment</label>
-                <select name="assessment_id" class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                    <option value="">All Assessments</option>
-                    <?php foreach ($assessments as $assessment): ?>
-                        <?php $assessmentId = (int)($assessment['assessment_id'] ?? 0); ?>
-                        <option value="<?= $assessmentId ?>" <?= (int)$assessmentFilter === $assessmentId ? 'selected' : '' ?>><?= htmlspecialchars((string)($assessment['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
-                    <?php endforeach; ?>
-                </select>
+        </div>
+        <div class="stat-card anim-up d3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Interest Questions</span>
+                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($interestCount) ?></p>
+                </div>
+                <div class="h-11 w-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-400">
+                    <i class="bi bi-activity text-lg"></i>
+                </div>
             </div>
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Question Type</label>
-                <select name="question_type" class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                    <option value="">All Types</option>
-                    <?php foreach ($questionTypes as $key => $label): ?>
-                        <option value="<?= htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8') ?>" <?= $questionTypeFilter === (string)$key ? 'selected' : '' ?>><?= htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8') ?></option>
-                    <?php endforeach; ?>
-                </select>
+        </div>
+        <div class="stat-card anim-up d4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Personality Questions</span>
+                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($personalityCount) ?></p>
+                </div>
+                <div class="h-11 w-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-400">
+                    <i class="bi bi-person-badge text-lg"></i>
+                </div>
             </div>
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Difficulty</label>
-                <select name="difficulty" class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                    <option value="">All Levels</option>
-                    <?php foreach ($difficultyOptions as $option): ?>
-                        <option value="<?= htmlspecialchars((string)($option['value'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" <?= $difficultyFilter === (string)($option['value'] ?? '') ? 'selected' : '' ?>><?= htmlspecialchars((string)($option['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
-                    <?php endforeach; ?>
-                </select>
+        </div>
+        <div class="stat-card anim-up d5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Aptitude &amp; Values</span>
+                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($aptitudeValuesCount) ?></p>
+                </div>
+                <div class="h-11 w-11 rounded-xl bg-sky-50 flex items-center justify-center text-sky-400">
+                    <i class="bi bi-cpu text-lg"></i>
+                </div>
             </div>
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Status</label>
-                <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                    <option value="">All Statuses</option>
-                    <?php foreach ($statusOptions as $option): ?>
-                        <option value="<?= htmlspecialchars((string)($option['value'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" <?= $statusFilter === (string)($option['value'] ?? '') ? 'selected' : '' ?>><?= htmlspecialchars((string)($option['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-500">Sort</label>
-                <select name="sort" class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                    <option value="newest" <?= $sort === 'newest' || $sort === '' ? 'selected' : '' ?>>Newest</option>
-                    <option value="oldest" <?= $sort === 'oldest' ? 'selected' : '' ?>>Oldest</option>
-                    <option value="alpha" <?= $sort === 'alpha' ? 'selected' : '' ?>>A–Z</option>
-                </select>
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">Apply</button>
-                <?php if ($search !== '' || (int)$assessmentFilter > 0 || $questionTypeFilter !== '' || $difficultyFilter !== '' || $statusFilter !== ''): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-questions" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</a>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="anim-up d5">
+        <form id="questionSearchForm" method="get" action="<?= BASE_URL ?>/index.php">
+            <input type="hidden" name="page" value="admin-questions">
+            <?php if ((int)$assessmentFilter > 0): ?>
+            <input type="hidden" name="assessment_id" value="<?= (int)$assessmentFilter ?>">
+            <?php endif; ?>
+            <div class="relative max-w-md">
+                <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-300 z-10"></i>
+                <input id="questionSearch" type="text" name="search" value="<?= htmlspecialchars($search) ?>"
+                       placeholder="Search questions..."
+                       class="input-field">
+                <?php if ($search !== ''): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=admin-questions<?= (int)$assessmentFilter > 0 ? '&assessment_id=' . (int)$assessmentFilter : '' ?>"
+                   class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                    <i class="bi bi-x-lg text-xs"></i>
+                </a>
                 <?php endif; ?>
             </div>
         </form>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[1.7fr,0.8fr]">
-        <div class="space-y-6">
-            <div class="rounded-[var(--radius)] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900">Question Library</h2>
-                        <p class="text-sm text-slate-500">A responsive view of the live question bank.</p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
-                            <input id="selectAll" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                            <span>Select all</span>
-                        </label>
-                        <button type="submit" form="bulkActionsForm" formaction="<?= BASE_URL ?>/index.php?page=admin-questions-bulk-delete" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-600">Delete</button>
-                        <button type="submit" form="bulkActionsForm" formaction="<?= BASE_URL ?>/index.php?page=admin-questions-duplicate" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600">Duplicate</button>
-                        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-export&search=<?= urlencode($search) ?>&assessment_id=<?= urlencode((string)$assessmentFilter) ?>&question_type=<?= urlencode((string)$questionTypeFilter) ?>&difficulty=<?= urlencode((string)$difficultyFilter) ?>&status=<?= urlencode((string)$statusFilter) ?>&sort=<?= urlencode($sort) ?>" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-600">Export</a>
-                        <button type="button" onclick="openImportModal()" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-violet-200 hover:text-violet-600">Import</button>
-                    </div>
-                </div>
-
-                <?php if ($questions === []): ?>
-                    <div class="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
-                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><i class="bi bi-question-circle text-2xl"></i></div>
-                        <h3 class="mt-4 text-lg font-semibold text-slate-900">No questions found</h3>
-                        <p class="mt-2 text-sm text-slate-500">Try adjusting the search or add a new question from the header.</p>
-                    </div>
-                <?php else: ?>
-                    <form id="bulkActionsForm" method="post" class="mt-6">
-                        <div class="hidden overflow-hidden rounded-2xl border border-slate-200 md:block">
-                            <div class="grid grid-cols-[40px_1.4fr_0.9fr_0.8fr_0.7fr_0.6fr_0.8fr_150px] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                                <div></div>
-                                <div>Question</div>
-                                <div>Assessment</div>
-                                <div>Type</div>
-                                <div>Difficulty</div>
-                                <div>Options</div>
-                                <div>Updated</div>
-                                <div class="text-right">Actions</div>
-                            </div>
-                            <?php foreach ($questions as $question): ?>
-                                <?php
-                                    $questionId = (int)($question['question_id'] ?? 0);
-                                    $questionText = (string)($question['question_text'] ?? '');
-                                    $assessmentTitle = (string)($question['assessment_title'] ?? '');
-                                    $questionType = (string)($question['question_type'] ?? 'single_choice');
-                                    $difficulty = (string)($question['difficulty'] ?? 'easy');
-                                    $optionCount = (int)($question['option_count'] ?? 0);
-                                    $updated = $question['created_at'] ?? null;
-                                    $typeLabel = is_array($questionTypes) ? ($questionTypes[$questionType] ?? ucfirst(str_replace('_', ' ', $questionType))) : ucfirst(str_replace('_', ' ', $questionType));
-                                    $difficultyLabel = $difficulty === 'medium' ? 'Medium' : ($difficulty === 'hard' ? 'Hard' : 'Easy');
-                                    $difficultyCss = $difficulty === 'hard' ? 'bg-amber-50 text-amber-700' : ($difficulty === 'medium' ? 'bg-cyan-50 text-cyan-700' : 'bg-emerald-50 text-emerald-700');
-                                ?>
-                                <div class="grid grid-cols-[40px_1.4fr_0.9fr_0.8fr_0.7fr_0.6fr_0.8fr_150px] gap-3 border-t border-slate-100 bg-white px-4 py-3 text-sm transition hover:bg-indigo-50/40">
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="ids[]" value="<?= $questionId ?>" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="font-semibold text-slate-900"><?= htmlspecialchars($questionText, ENT_QUOTES, 'UTF-8') ?></div>
-                                    </div>
-                                    <div class="truncate text-slate-600"><?= htmlspecialchars($assessmentTitle, ENT_QUOTES, 'UTF-8') ?></div>
-                                    <div class="truncate text-slate-600"><?= htmlspecialchars((string)$typeLabel, ENT_QUOTES, 'UTF-8') ?></div>
-                                    <div><span class="rounded-full px-2.5 py-1 text-xs font-semibold <?= $difficultyCss ?>"><?= htmlspecialchars($difficultyLabel, ENT_QUOTES, 'UTF-8') ?></span></div>
-                                    <div class="text-slate-600"><?= $optionCount ?></div>
-                                    <div class="text-slate-600"><?= htmlspecialchars(fmtDate($updated), ENT_QUOTES, 'UTF-8') ?></div>
-                                    <div class="flex justify-end gap-1">
-                                        <button type="button" onclick="openQuestionDrawer(<?= $questionId ?>)" class="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600" title="View"><i class="bi bi-eye"></i></button>
-                                        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-edit&id=<?= $questionId ?>" class="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600" title="Edit"><i class="bi bi-pencil"></i></a>
-                                        <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-duplicate" class="m-0 inline-flex">
-                                            <input type="hidden" name="id" value="<?= $questionId ?>">
-                                            <button type="submit" class="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600" title="Duplicate"><i class="bi bi-copy"></i></button>
-                                        </form>
-                                        <button type="button" onclick="openDeleteModal(<?= $questionId ?>)" class="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-rose-200 hover:text-rose-600" title="Delete"><i class="bi bi-trash"></i></button>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-
-                        <div class="space-y-3 md:hidden">
-                            <?php foreach ($questions as $question): ?>
-                                <?php
-                                    $questionId = (int)($question['question_id'] ?? 0);
-                                    $questionText = (string)($question['question_text'] ?? '');
-                                    $assessmentTitle = (string)($question['assessment_title'] ?? '');
-                                    $questionType = (string)($question['question_type'] ?? 'single_choice');
-                                    $difficulty = (string)($question['difficulty'] ?? 'easy');
-                                    $optionCount = (int)($question['option_count'] ?? 0);
-                                    $updated = $question['created_at'] ?? null;
-                                    $typeLabel = is_array($questionTypes) ? ($questionTypes[$questionType] ?? ucfirst(str_replace('_', ' ', $questionType))) : ucfirst(str_replace('_', ' ', $questionType));
-                                    $difficultyLabel = $difficulty === 'medium' ? 'Medium' : ($difficulty === 'hard' ? 'Hard' : 'Easy');
-                                    $difficultyCss = $difficulty === 'hard' ? 'bg-amber-50 text-amber-700' : ($difficulty === 'medium' ? 'bg-cyan-50 text-cyan-700' : 'bg-emerald-50 text-emerald-700');
-                                ?>
-                                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                    <div class="flex items-start gap-3">
-                                        <input type="checkbox" name="ids[]" value="<?= $questionId ?>" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                        <div class="min-w-0 flex-1">
-                                            <div class="font-semibold text-slate-900"><?= htmlspecialchars($questionText, ENT_QUOTES, 'UTF-8') ?></div>
-                                            <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                                                <span class="rounded-full bg-slate-100 px-2.5 py-1"><?= htmlspecialchars($assessmentTitle, ENT_QUOTES, 'UTF-8') ?></span>
-                                                <span class="rounded-full bg-slate-100 px-2.5 py-1"><?= htmlspecialchars((string)$typeLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                                <span class="rounded-full px-2.5 py-1 <?= $difficultyCss ?>"><?= htmlspecialchars($difficultyLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                            </div>
-                                            <div class="mt-3 flex items-center justify-between text-sm text-slate-500">
-                                                <span><?= $optionCount ?> options</span>
-                                                <span><?= htmlspecialchars(fmtDate($updated), ENT_QUOTES, 'UTF-8') ?></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4 flex flex-wrap gap-2">
-                                        <button type="button" onclick="openQuestionDrawer(<?= $questionId ?>)" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600">View</button>
-                                        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-edit&id=<?= $questionId ?>" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600">Edit</a>
-                                        <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-duplicate" class="m-0 inline-flex">
-                                            <input type="hidden" name="id" value="<?= $questionId ?>">
-                                            <button type="submit" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600">Duplicate</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </form>
-                <?php endif; ?>
-
-                <?php if ($totalPages > 1): ?>
-                    <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p class="text-sm text-slate-500">Page <?= $currentPage ?> of <?= $totalPages ?></p>
-                        <nav class="flex items-center gap-1">
-                            <?php if ($currentPage > 1): ?>
-                                <a href="<?= BASE_URL ?>/index.php?page=admin-questions&search=<?= urlencode($search) ?>&assessment_id=<?= urlencode((string)$assessmentFilter) ?>&question_type=<?= urlencode((string)$questionTypeFilter) ?>&difficulty=<?= urlencode((string)$difficultyFilter) ?>&status=<?= urlencode((string)$statusFilter) ?>&sort=<?= urlencode($sort) ?>&page_number=<?= $currentPage - 1 ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-500 hover:bg-slate-100"><i class="bi bi-chevron-left"></i></a>
-                            <?php endif; ?>
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <a href="<?= BASE_URL ?>/index.php?page=admin-questions&search=<?= urlencode($search) ?>&assessment_id=<?= urlencode((string)$assessmentFilter) ?>&question_type=<?= urlencode((string)$questionTypeFilter) ?>&difficulty=<?= urlencode((string)$difficultyFilter) ?>&status=<?= urlencode((string)$statusFilter) ?>&sort=<?= urlencode($sort) ?>&page_number=<?= $i ?>" class="inline-flex h-8 min-w-[32px] items-center justify-center rounded-lg px-2 text-sm font-medium <?= $i === $currentPage ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-100' ?>"><?= $i ?></a>
-                            <?php endfor; ?>
-                            <?php if ($currentPage < $totalPages): ?>
-                                <a href="<?= BASE_URL ?>/index.php?page=admin-questions&search=<?= urlencode($search) ?>&assessment_id=<?= urlencode((string)$assessmentFilter) ?>&question_type=<?= urlencode((string)$questionTypeFilter) ?>&difficulty=<?= urlencode((string)$difficultyFilter) ?>&status=<?= urlencode((string)$statusFilter) ?>&sort=<?= urlencode($sort) ?>&page_number=<?= $currentPage + 1 ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-500 hover:bg-slate-100"><i class="bi bi-chevron-right"></i></a>
-                            <?php endif; ?>
-                        </nav>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <div class="space-y-6">
-            <div class="rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Distribution by Assessment</h3>
-                        <p class="text-sm text-slate-500">Live question counts by assessment.</p>
-                    </div>
-                    <div class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-700"><?= count($distribution) ?> groups</div>
-                </div>
-                <div class="mt-5 space-y-4">
-                    <?php foreach ($distribution as $item): ?>
-                        <?php $title = (string)($item['title'] ?? 'Untitled'); $count = (int)($item['question_count'] ?? 0); $max = max(1, (int)max(array_column($distribution, 'question_count'))); ?>
-                        <div>
-                            <div class="mb-1.5 flex items-center justify-between text-sm">
-                                <span class="font-medium text-slate-700"><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="text-slate-500"><?= $count ?></span>
-                            </div>
-                            <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-                                <div class="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style="width: <?= round(($count / $max) * 100) ?>%"></div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="rounded-[var(--radius)] border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Recent Activity</h3>
-                        <p class="text-sm text-slate-500">Latest additions and question updates.</p>
-                    </div>
-                </div>
-                <div class="mt-5 space-y-3">
-                    <?php foreach ($recentActivity as $activity): ?>
-                        <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-sm font-semibold text-slate-800"><?= htmlspecialchars((string)($activity['subject'] ?? 'Question'), ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-700"><?= htmlspecialchars((string)($activity['action_type'] ?? 'created'), ENT_QUOTES, 'UTF-8') ?></span>
-                            </div>
-                            <p class="mt-2 text-sm text-slate-500"><?= htmlspecialchars((string)($activity['assessment_name'] ?? 'Assessment'), ENT_QUOTES, 'UTF-8') ?></p>
-                            <p class="mt-2 text-xs text-slate-400"><?= htmlspecialchars(fmtDate((string)($activity['occurred_at'] ?? '')), ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
+    <!-- Tabs -->
+    <div class="anim-up d6">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            <?php foreach ($tabs as $tab): ?>
+                <?php
+                    $tabId = (int)$tab['id'];
+                    $isActive = $tabId === (int)$assessmentFilter;
+                    $tabUrl = BASE_URL . '/index.php?page=admin-questions';
+                    if ($tabId > 0) $tabUrl .= '&assessment_id=' . $tabId;
+                    if ($search !== '') $tabUrl .= ($tabId > 0 ? '&' : '?') . 'search=' . urlencode($search);
+                ?>
+                <a href="<?= $tabUrl ?>"
+                   class="tab-btn no-underline <?= $isActive ? 'active' : '' ?>"
+                   data-tab-id="<?= $tabId ?>">
+                    <?= htmlspecialchars($tab['title']) ?>
+                </a>
+            <?php endforeach; ?>
         </div>
     </div>
+
+    <!-- Question Cards Grid -->
+    <?php if ($questions === []): ?>
+    <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-16 text-center shadow-sm anim-up d7">
+        <div class="mx-auto h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center">
+            <i class="bi bi-file-text text-2xl text-slate-300"></i>
+        </div>
+        <h3 style="font-size: 1.1rem;" class="mt-4 font-semibold text-slate-800">No questions found</h3>
+        <p style="font-size: 0.9rem;" class="mt-1.5 text-slate-500">Start by adding assessment questions.</p>
+        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-create"
+           class="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all no-underline shadow-lg shadow-indigo-200">
+            <i class="bi bi-plus-lg text-sm"></i>
+            Add Question
+        </a>
+    </div>
+    <?php else: ?>
+    <div class="grid gap-5 sm:grid-cols-2" style="gap: 1.25rem;">
+        <?php
+        $displayIndex = 0;
+        foreach ($questions as $q):
+            $qId = (int)($q['question_id'] ?? 0);
+            $qText = (string)($q['question_text'] ?? '');
+            $qType = (string)($q['question_type'] ?? '');
+            $aId = (int)($q['assessment_id'] ?? 0);
+            $qOrder = (int)($q['question_order'] ?? 0);
+            $qCreated = $q['created_at'] ?? null;
+            $aTitle = $assessmentNames[$aId] ?? (string)($q['assessment_title'] ?? 'Unknown');
+
+            $badgeColors = [1 => 'bg-violet-50 text-violet-700 border-violet-200', 2 => 'bg-emerald-50 text-emerald-700 border-emerald-200', 3 => 'bg-sky-50 text-sky-700 border-sky-200', 4 => 'bg-amber-50 text-amber-700 border-amber-200'];
+            $badgeColor = $badgeColors[$aId] ?? 'bg-slate-50 text-slate-600 border-slate-200';
+            $icon = $iconMap[$aId] ?? 'bi bi-question';
+        ?>
+        <div class="question-card anim-up d<?= 7 + min($displayIndex % 4, 2) ?>" style="animation-delay: <?= min(0.3, 0.035 * $displayIndex) ?>s;">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <span class="assessment-badge <?= $badgeColor ?>">
+                    <i class="<?= $icon ?> text-xs"></i>
+                    <?= htmlspecialchars($aTitle) ?>
+                </span>
+            </div>
+
+            <p style="font-size: 1.05rem; line-height: 1.5;" class="font-medium text-slate-800"><?= htmlspecialchars($qText) ?></p>
+
+            <div class="mt-4 flex items-center gap-4 text-xs text-slate-400">
+                <?php if ($qOrder > 0): ?>
+                <span class="flex items-center gap-1.5">
+                    <i class="bi bi-hash"></i>
+                    Question #<?= $qOrder ?>
+                </span>
+                <?php endif; ?>
+                <?php if ($qCreated): ?>
+                <span class="flex items-center gap-1.5">
+                    <i class="bi bi-calendar3"></i>
+                    <?= date('F j, Y', strtotime($qCreated)) ?>
+                </span>
+                <?php endif; ?>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-1">
+                <button type="button" onclick="openViewDrawer(<?= $qId ?>)" title="View" class="action-btn view"><i class="bi bi-eye"></i></button>
+                <a href="<?= BASE_URL ?>/index.php?page=admin-questions-edit&id=<?= $qId ?>" title="Edit" class="action-btn edit"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-duplicate" class="m-0 inline-flex">
+                    <input type="hidden" name="id" value="<?= $qId ?>">
+                    <button type="submit" title="Duplicate" class="action-btn dup"><i class="bi bi-files"></i></button>
+                </form>
+                <button type="button" onclick="openDeleteModal(<?= $qId ?>, '<?= htmlspecialchars(addslashes(truncateText($qText, 60))) ?>')" title="Delete" class="action-btn danger"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <?php
+        $displayIndex++;
+        endforeach;
+        ?>
+    </div>
+    <?php endif; ?>
+
 </div>
 
-<div id="questionDrawer" class="fixed inset-0 z-50 hidden items-start justify-end bg-slate-950/40 backdrop-blur-sm">
-    <div class="h-full w-full max-w-xl bg-white shadow-2xl">
-        <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
+<!-- View Drawer -->
+<div id="viewDrawer" class="fixed inset-0 z-50 hidden overflow-hidden">
+    <div class="absolute inset-0 drawer-overlay" onclick="closeViewDrawer()"></div>
+    <div class="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl ring-1 ring-slate-200 drawer-content anim-right">
+        <div class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between gap-4">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Question Preview</p>
-                <h3 id="drawerTitle" class="mt-1 text-lg font-semibold text-slate-900">Question details</h3>
+                <p style="font-size: 0.75rem;" class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Question Details</p>
+                <h2 style="font-size: 1.1rem;" class="font-semibold text-slate-900 mt-0.5">View Question</h2>
             </div>
-            <button type="button" onclick="closeQuestionDrawer()" class="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:text-slate-800"><i class="bi bi-x-lg"></i></button>
+            <button type="button" onclick="closeViewDrawer()" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-900 transition cursor-pointer">
+                <i class="bi bi-x-lg text-sm"></i>
+            </button>
         </div>
-        <div id="drawerBody" class="space-y-4 overflow-y-auto px-6 py-6"></div>
-        <div class="border-t border-slate-100 px-6 py-4">
-            <a id="drawerEditLink" href="#" class="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">Edit Question</a>
+        <div id="viewDrawerContent" class="p-6 space-y-6">
+            <div class="flex items-center justify-center py-16">
+                <div class="flex flex-col items-center gap-3 text-slate-400">
+                    <i class="bi bi-arrow-repeat text-2xl animate-spin"></i>
+                    <span style="font-size: 0.85rem;">Loading question details...</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/35 backdrop-blur-sm">
-    <div class="mx-4 w-full max-w-sm rounded-[var(--radius)] bg-white p-6 shadow-2xl">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-xl text-red-500"><i class="bi bi-exclamation-triangle"></i></div>
-            <h3 class="mt-4 text-lg font-semibold text-slate-900">Delete Question</h3>
-            <p class="mt-2 text-sm text-slate-500">This action cannot be undone. The question and its options will be permanently removed.</p>
+<!-- Delete Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 drawer-overlay" onclick="closeDeleteModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 z-10 anim-scale">
+        <div class="flex flex-col items-center text-center gap-3">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-500">
+                <i class="bi bi-exclamation-triangle text-2xl"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 1.05rem;" class="font-bold text-slate-800">Delete Question</h3>
+                <p style="font-size: 0.85rem;" class="text-slate-500 mt-1.5">Are you sure you want to delete <strong id="deleteQuestionText" class="text-slate-700">this question</strong>? This action cannot be undone.</p>
+            </div>
         </div>
         <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-delete" class="mt-6">
             <input type="hidden" name="id" id="deleteQuestionId" value="">
             <div class="flex items-center gap-3">
-                <button type="button" onclick="closeDeleteModal()" class="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</button>
-                <button type="submit" class="flex-1 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
+                <button type="button" onclick="closeDeleteModal()" style="font-size: 0.85rem;" class="flex-1 px-4 py-2.5 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all border-0 outline-none cursor-pointer">Cancel</button>
+                <button type="submit" style="font-size: 0.85rem;" class="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white bg-red-500 hover:bg-red-600 transition-all border-0 outline-none cursor-pointer">Delete</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/35 backdrop-blur-sm">
-    <div class="mx-4 w-full max-w-lg rounded-[var(--radius)] bg-white p-6 shadow-2xl">
-        <div class="flex items-start justify-between gap-3">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Import Questions</p>
-                <h3 class="text-lg font-semibold text-slate-900">Upload a CSV file</h3>
-            </div>
-            <button type="button" onclick="closeImportModal()" class="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:text-slate-800"><i class="bi bi-x-lg"></i></button>
-        </div>
-        <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-import" enctype="multipart/form-data" class="mt-5 space-y-4">
-            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                <p class="font-medium text-slate-700">Expected columns</p>
-                <p class="mt-1">question_text, assessment_id or assessment, question_type, options</p>
-            </div>
-            <input type="file" name="import_file" accept=".csv" class="block w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
-            <div class="flex justify-end gap-2">
-                <button type="button" onclick="closeImportModal()" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</button>
-                <button type="submit" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">Import</button>
-            </div>
-        </form>
-    </div>
-</div>
+<?php
+function truncateText($text, $max = 60) {
+    if (strlen($text) <= $max) return $text;
+    return substr($text, 0, $max) . '...';
+}
+?>
 
 <script>
-function openQuestionDrawer(id) {
-    fetch('<?= BASE_URL ?>/index.php?page=admin-questions-view&id=' + id + '&format=json')
-        .then(function(response) { return response.json(); })
-        .then(function(payload) {
-            var question = payload.question || {};
-            var options = payload.options || [];
-            document.getElementById('drawerTitle').textContent = question.question_text || 'Question preview';
-            document.getElementById('drawerEditLink').href = '<?= BASE_URL ?>/index.php?page=admin-questions-edit&id=' + (question.question_id || id);
-            var optionsHtml = '';
-            if (options.length > 0) {
-                optionsHtml = '<div class="rounded-2xl border border-slate-200 bg-slate-50 p-4"><h4 class="text-sm font-semibold text-slate-700">Options</h4><ul class="mt-3 space-y-2">';
-                options.forEach(function(option) {
-                    optionsHtml += '<li class="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-600">' + escapeHtml(option.option_text || '') + '</li>';
+var questionSearchTimer = null;
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('questionSearch');
+    var searchForm = document.getElementById('questionSearchForm');
+    if (searchInput && searchForm) {
+        searchInput.addEventListener('input', function() {
+            if (questionSearchTimer) clearTimeout(questionSearchTimer);
+            questionSearchTimer = setTimeout(function() { searchForm.submit(); }, 400);
+        });
+    }
+});
+
+function openViewDrawer(id) {
+    var drawer = document.getElementById('viewDrawer');
+    var content = document.getElementById('viewDrawerContent');
+    if (!drawer || !content) return;
+
+    drawer.classList.remove('hidden');
+    content.innerHTML = '<div class="flex items-center justify-center py-16"><div class="flex flex-col items-center gap-3 text-slate-400"><i class="bi bi-arrow-repeat text-2xl animate-spin"></i><span style="font-size:0.85rem;">Loading question details...</span></div></div>';
+
+    fetch('<?= BASE_URL ?>/index.php?page=admin-questions-view&id=' + encodeURIComponent(id) + '&format=json')
+        .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function(data) {
+            var q = data.question || {};
+            var opts = data.options || [];
+            var assessmentName = q.assessment_title || 'Unknown';
+            var created = q.created_at ? new Date(q.created_at.replace(' ', 'T')).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+            var updated = q.updated_at ? new Date(q.updated_at.replace(' ', 'T')).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+            var typeLabels = { 'single_choice': 'Single Choice', 'multiple_choice': 'Multiple Choice', 'likert': 'Likert Scale', 'true_false': 'True/False' };
+            var typeLabel = typeLabels[q.question_type] || q.question_type || '—';
+            var baseUrl = '<?= BASE_URL ?>';
+
+            var html = '';
+
+            html += '<div class="space-y-5">';
+
+            html += '<div><label style="font-size:0.8rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Question</label><p style="font-size:1.05rem;line-height:1.6;" class="mt-1.5 font-medium text-slate-800">' + escapeHtml(q.question_text || '') + '</p></div>';
+
+            html += '<div class="grid grid-cols-2 gap-4">';
+            html += '<div class="rounded-xl bg-slate-50 p-3.5"><label style="font-size:0.75rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Assessment</label><p style="font-size:0.9rem;" class="mt-1 font-medium text-slate-700">' + escapeHtml(assessmentName) + '</p></div>';
+            html += '<div class="rounded-xl bg-slate-50 p-3.5"><label style="font-size:0.75rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Question Type</label><p style="font-size:0.9rem;" class="mt-1 font-medium text-slate-700">' + escapeHtml(typeLabel) + '</p></div>';
+            html += '</div>';
+
+            if (opts.length > 0) {
+                html += '<div><label style="font-size:0.8rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Answer Options</label><div class="mt-2 space-y-2">';
+                opts.forEach(function(opt, idx) {
+                    var val = opt.option_value !== undefined && opt.option_value !== null ? ' (Score: ' + opt.option_value + ')' : '';
+                    html += '<div class="option-row"><span class="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold shrink-0">' + (idx + 1) + '</span><span style="font-size:0.85rem;" class="text-slate-700 flex-1">' + escapeHtml(opt.option_text || '') + '</span><span style="font-size:0.8rem;" class="text-slate-400 font-medium">' + val + '</span></div>';
                 });
-                optionsHtml += '</ul></div>';
-            } else {
-                optionsHtml = '<div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No options saved for this question yet.</div>';
+                html += '</div></div>';
             }
-            document.getElementById('drawerBody').innerHTML = '<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Question</p><p class="mt-2 text-base font-medium text-slate-800">' + escapeHtml(question.question_text || '') + '</p></div><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Assessment</p><p class="mt-2 text-sm font-medium text-slate-700">' + escapeHtml(question.assessment_title || '') + '</p></div><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Type</p><p class="mt-2 text-sm font-medium text-slate-700">' + escapeHtml(question.question_type || '') + '</p></div>' + optionsHtml;
-            document.getElementById('questionDrawer').classList.remove('hidden');
-            document.getElementById('questionDrawer').classList.add('flex');
+
+            html += '<div class="grid grid-cols-2 gap-4">';
+            html += '<div class="rounded-xl bg-slate-50 p-3.5"><label style="font-size:0.75rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Created</label><p style="font-size:0.9rem;" class="mt-1 font-medium text-slate-700">' + escapeHtml(created) + '</p></div>';
+            html += '<div class="rounded-xl bg-slate-50 p-3.5"><label style="font-size:0.75rem;" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Last Updated</label><p style="font-size:0.9rem;" class="mt-1 font-medium text-slate-700">' + escapeHtml(updated) + '</p></div>';
+            html += '</div>';
+
+            html += '</div>';
+
+            html += '<div class="flex items-center gap-3 pt-4 border-t border-slate-100">';
+            html += '<a href="' + baseUrl + '/index.php?page=admin-questions-edit&id=' + encodeURIComponent(q.question_id || id) + '" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all no-underline"><i class="bi bi-pencil"></i> Edit Question</a>';
+            html += '<button type="button" onclick="closeViewDrawer()" style="font-size:0.85rem;" class="px-4 py-2.5 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all border-0 outline-none cursor-pointer">Close</button>';
+            html += '</div>';
+
+            content.innerHTML = html;
+        })
+        .catch(function() {
+            content.innerHTML = '<div class="p-8 text-center text-rose-600">Unable to load question details.</div>';
         });
 }
-function closeQuestionDrawer() {
-    document.getElementById('questionDrawer').classList.add('hidden');
-    document.getElementById('questionDrawer').classList.remove('flex');
+
+function closeViewDrawer() {
+    document.getElementById('viewDrawer').classList.add('hidden');
 }
-function openDeleteModal(id) {
+
+function openDeleteModal(id, text) {
     document.getElementById('deleteQuestionId').value = id;
+    document.getElementById('deleteQuestionText').textContent = text;
     document.getElementById('deleteModal').classList.remove('hidden');
     document.getElementById('deleteModal').classList.add('flex');
 }
+
 function closeDeleteModal() {
     document.getElementById('deleteModal').classList.add('hidden');
     document.getElementById('deleteModal').classList.remove('flex');
 }
-function openImportModal() {
-    document.getElementById('importModal').classList.remove('hidden');
-    document.getElementById('importModal').classList.add('flex');
-}
-function closeImportModal() {
-    document.getElementById('importModal').classList.add('hidden');
-    document.getElementById('importModal').classList.remove('flex');
-}
-function escapeHtml(value) {
+
+function escapeHtml(str) {
     var div = document.createElement('div');
-    div.textContent = value || '';
+    div.textContent = str;
     return div.innerHTML;
 }
-document.getElementById('selectAll')?.addEventListener('change', function() {
-    var boxes = document.querySelectorAll('input[name="ids[]"]');
-    boxes.forEach(function(box) { box.checked = document.getElementById('selectAll').checked; });
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeViewDrawer(); closeDeleteModal(); }
 });
-document.addEventListener('click', function(event) {
-    if (event.target === document.getElementById('deleteModal')) closeDeleteModal();
-    if (event.target === document.getElementById('importModal')) closeImportModal();
-    if (event.target === document.getElementById('questionDrawer')) closeQuestionDrawer();
-});
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeDeleteModal();
-        closeImportModal();
-        closeQuestionDrawer();
-    }
+document.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
 });
 </script>
 

@@ -20,10 +20,9 @@ class AdminDashboardService
         return [
             'totalStudents' => $this->adminDashboardRepository->getTotalStudents(),
             'totalAssessments' => $this->adminDashboardRepository->getTotalAssessments(),
-            'totalQuestions' => $this->adminDashboardRepository->getTotalQuestions(),
             'totalCareers' => $this->adminDashboardRepository->getTotalCareers(),
+            'totalRecommendations' => $this->adminDashboardRepository->getTotalRecommendations(),
             'recentActivity' => $this->adminDashboardRepository->getRecentActivity(5),
-            'recentStudents' => $this->adminDashboardRepository->getRecentStudents(5),
         ];
     }
 }

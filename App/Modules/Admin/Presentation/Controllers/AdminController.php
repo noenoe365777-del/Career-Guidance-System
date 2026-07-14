@@ -90,10 +90,9 @@ class AdminController extends Controller
                 'activeMenu' => 'dashboard',
                 'totalStudents' => $data['totalStudents'],
                 'totalAssessments' => $data['totalAssessments'],
-                'totalQuestions' => $data['totalQuestions'],
                 'totalCareers' => $data['totalCareers'],
+                'totalRecommendations' => $data['totalRecommendations'],
                 'recentActivity' => $data['recentActivity'],
-                'recentStudents' => $data['recentStudents'],
             ]
         );
     }
