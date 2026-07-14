@@ -9,7 +9,7 @@ $pageTitles = [
     'change-password' => 'Change Password',
     'edit-profile' => 'Edit Profile'
 ];
-$currentPageLabel = $pageTitles[$currentPage] ?? ($pageTitle ?? 'Dashboard');
+$currentPageLabel = 'Dashboard';
 
 $user = $_SESSION['user'] ?? [];
 $studentName = trim((string)($user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Student'));

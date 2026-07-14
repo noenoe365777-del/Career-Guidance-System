@@ -77,6 +77,15 @@ class Router
         'assessment-progress'              => 'student',
         'assessment-result'                => 'student',
         'assessment-detailed-answers'      => 'student',
+        'assessment-api-start'             => 'student',
+        'assessment-api-question'          => 'student',
+        'assessment-api-save-answer'       => 'student',
+        'assessment-api-finish'            => 'student',
+        'student-assessments-v2'           => 'student',
+        'v2-assessment-api-start'          => 'student',
+        'v2-assessment-api-question'       => 'student',
+        'v2-assessment-api-save'           => 'student',
+        'v2-assessment-api-finish'         => 'student',
         'recommendation'                   => 'student',
     ];
 

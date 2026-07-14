@@ -9,18 +9,7 @@ $recentStudents = $recentStudents ?? [];
 $educationLevels = $educationLevels ?? [];
 $selectedEducationLevel = $selectedEducationLevel ?? null;
 
-$hasStudents = $totalUsers > 0;
-$recentStudentData = [];
-foreach ($recentStudents as $student) {
-    $recentStudentData[] = [
-        'id' => (int)($student['user_id'] ?? 0),
-        'name' => (string)($student['username'] ?? ''),
-        'email' => (string)($student['email'] ?? ''),
-        'education_level' => (string)($student['education_level'] ?? ''),
-        'profile_image' => (string)($student['profile_image'] ?? ''),
-        'created_at' => (string)($student['created_at'] ?? ''),
-    ];
-}
+$hasStudents = count($recentStudents) > 0;
 
 $totalStudents = (int)($studentStats['total_students'] ?? $totalUsers);
 $highSchoolStudents = (int)($studentStats['high_school_students'] ?? 0);
@@ -120,7 +109,7 @@ $cardDefs = [
     }
 
     .student-card {
-        border-radius: 14px; padding: 16px 20px;
+        border-radius: 12px; padding: 14px 18px;
         background: #fff;
         border: 1px solid #f1f5f9;
         cursor: pointer;
@@ -137,6 +126,9 @@ $cardDefs = [
     }
     .student-card:not(.is-hidden) {
         display: flex !important;
+    }
+    .student-card.anim-in {
+        animation: rowUp 0.4s cubic-bezier(0.2,0.9,0.3,1) both;
     }
 
     .btn-view {
@@ -259,7 +251,7 @@ $cardDefs = [
                 <p style="font-size: 14px; color: #94a3b8; margin: 6px 0 0 0;">No registered students are available yet.</p>
             </div>
             <?php else: ?>
-            <div id="studentList" style="display: flex; flex-direction: column; gap: 12px;">
+            <div id="studentList" style="display: flex; flex-direction: column; gap: 10px;">
                 <?php $ri = 0; ?>
                 <?php foreach ($recentStudents as $student):
                     $ri++;
@@ -273,75 +265,45 @@ $cardDefs = [
                     $nameDisplay = htmlspecialchars($name ?: 'Student', ENT_QUOTES, 'UTF-8');
                     $emailDisplay = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
                     $init = $initials($name);
+                    $delay = 0.05 * $ri;
                 ?>
-                <div class="student-card row-in" style="animation-delay: <?= 0.04 * $ri ?>s; display: flex; align-items: center; gap: 16px;"
+                <div class="student-card row-in" style="animation-delay: <?= $delay ?>s; display: flex; align-items: center; gap: 16px; padding: 14px 18px;"
                      data-student-id="<?= $uid ?>"
                      data-name="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"
                      data-email="<?= $emailDisplay ?>"
                      data-education="<?= htmlspecialchars($edu, ENT_QUOTES, 'UTF-8') ?>"
                      onclick="openDrawer(<?= $uid ?>)">
                     <?php if ($img !== '' && file_exists(BASE_PATH . '/public/uploads/profile/' . $img)): ?>
-                    <img src="<?= BASE_URL ?>/uploads/profile/<?= rawurlencode($img) ?>" alt="" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    <img src="<?= BASE_URL ?>/uploads/profile/<?= rawurlencode($img) ?>" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
                     <?php else: ?>
-                    <span style="width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #eef2ff, #f3e8ff); color: #5B5FEF; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);"><?= $init ?></span>
+                    <span style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #eef2ff, #f3e8ff); color: #5B5FEF; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"><?= $init ?></span>
                     <?php endif; ?>
-                    <div style="flex: 1; min-width: 0;">
-                        <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= $nameDisplay ?: 'Student' ?></p>
-                        <p style="font-size: 14px; color: <?= $edu ? '#64748b' : '#94a3b8' ?>; margin: 3px 0 0 0;">
-                            <?= $eduDisplay ?>
-                        </p>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                        <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= $nameDisplay ?></p>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <span style="font-size: 13px; font-weight: 500; color: <?= $edu ? '#64748b' : '#94a3b8' ?>; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="bi bi-mortarboard-fill" style="font-size: 12px;"></i>
+                                <?= $eduDisplay ?>
+                            </span>
+                            <span style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="bi bi-calendar3" style="font-size: 11px;"></i>
+                                <?= $created ?>
+                            </span>
+                        </div>
                     </div>
-                    <span style="font-size: 13px; color: #94a3b8; flex-shrink: 0; white-space: nowrap; display: none;" class="md-show"><?= $created ?></span>
-                    <button type="button" onclick="event.stopPropagation(); openDrawer(<?= $uid ?>)" class="btn-view">
+                    <button type="button" onclick="event.stopPropagation(); openDrawer(<?= $uid ?>)" class="btn-view" style="flex-shrink: 0;">
                         <i class="bi bi-eye"></i> View
                     </button>
                 </div>
                 <?php endforeach; ?>
-                <div id="studentEmptyState" style="display: none; padding: 36px 20px; text-align: center; border: 1px dashed #e2e8f0; border-radius: 14px; background: #f8fafc;">
-                    <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-person-x" style="font-size: 24px; color: #94a3b8;"></i>
+                <div id="studentEmptyState" style="display: none; padding: 36px 20px; text-align: center; border: 1px dashed #e2e8f0; border-radius: 12px; background: #f8fafc;">
+                    <div style="width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-search" style="font-size: 20px; color: #94a3b8;"></i>
                     </div>
-                    <p style="font-size: 16px; font-weight: 600; color: #475569; margin: 0;">No students found</p>
-                    <p style="font-size: 14px; color: #94a3b8; margin: 6px 0 0 0;">Try adjusting your search or filter.</p>
+                    <p style="font-size: 15px; font-weight: 600; color: #475569; margin: 0;">No students match your criteria</p>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0 0;">Try adjusting your search or filter.</p>
                 </div>
             </div>
-            <?php endif; ?>
-
-            <?php if ($totalPages > 1): ?>
-            <nav style="display: flex; justify-content: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
-                <ul style="display: inline-flex; align-items: center; gap: 4px; margin: 0; list-style: none; padding: 4px; background: #f8fafc; border-radius: 10px;">
-                    <?php
-                    $queryParams = [];
-                    if ($search !== '') $queryParams[] = 'search=' . urlencode($search);
-                    if ($selectedEducationLevel !== null) $queryParams[] = 'education_level=' . $selectedEducationLevel;
-                    $queryBase = implode('&', $queryParams);
-                    ?>
-                    <?php if ($currentPage > 1): ?>
-                    <li>
-                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $currentPage - 1 ?>"
-                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: none;">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li>
-                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $i ?>"
-                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; <?= $i === $currentPage ? 'background:#5B5FEF;color:#fff;' : 'color:#94a3b8;' ?>">
-                            <?= $i ?>
-                        </a>
-                    </li>
-                    <?php endfor; ?>
-                    <?php if ($currentPage < $totalPages): ?>
-                    <li>
-                        <a href="<?= BASE_URL ?>/index.php?page=admin-users&<?= $queryBase ?><?= $queryBase ? '&' : '' ?>page_number=<?= $currentPage + 1 ?>"
-                           style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: none;">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-            </nav>
             <?php endif; ?>
         </div>
     </div>
@@ -591,6 +553,7 @@ function closeDrawer() {
 function applyStudentFilters() {
     var searchValue = (document.getElementById('searchInput') ? document.getElementById('searchInput').value : '').trim().toLowerCase();
     var visibleCount = 0;
+    var animIndex = 0;
 
     if (!studentCards.length) {
         return;
@@ -618,6 +581,11 @@ function applyStudentFilters() {
             visibleCount++;
             card.classList.remove('is-hidden');
             card.style.display = 'flex';
+            card.classList.remove('anim-in');
+            card.style.animationDelay = (0.05 * animIndex) + 's';
+            animIndex++;
+            void card.offsetWidth;
+            card.classList.add('anim-in');
         } else {
             card.classList.add('is-hidden');
             card.style.display = 'none';
@@ -664,10 +632,13 @@ function applyStudentFilters() {
     if (!input) return;
 
     var activeCard = document.querySelector('.summary-stat-card.active');
-    if (activeCard) {
-        currentFilter = activeCard.getAttribute('data-filter') || 'all';
+    var hasSearch = input.value.trim() !== '';
+    if (activeCard || hasSearch) {
+        if (activeCard) {
+            currentFilter = activeCard.getAttribute('data-filter') || 'all';
+        }
+        applyStudentFilters();
     }
-    applyStudentFilters();
 
     document.querySelectorAll('.stat-card[data-filter]').forEach(function(card) {
         card.addEventListener('click', function() {

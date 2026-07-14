@@ -6,6 +6,8 @@ namespace App\Modules\Student\Presentation\Controllers;
 
 use App\Modules\Assessment\Application\Services\AssessmentResultService;
 use App\Modules\Assessment\Application\Services\AssessmentService;
+use App\Modules\Assessment\Infrastructure\Persistence\AssessmentEngineRepository;
+use App\Modules\Assessment\Infrastructure\Persistence\NewAssessmentRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\QuestionRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\StudentAnswerRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
@@ -18,6 +20,8 @@ class AssessmentController extends Controller
     private StudentAssessmentRepository $studentAssessmentRepository;
     private StudentAnswerRepository $studentAnswerRepository;
     private QuestionRepository $questionRepository;
+    private AssessmentEngineRepository $engineRepo;
+    private NewAssessmentRepository $newRepo;
 
     public function __construct()
     {
@@ -26,16 +30,18 @@ class AssessmentController extends Controller
         $this->studentAssessmentRepository = new StudentAssessmentRepository();
         $this->studentAnswerRepository = new StudentAnswerRepository();
         $this->questionRepository = new QuestionRepository();
+        $this->engineRepo = new AssessmentEngineRepository();
+        $this->newRepo = new NewAssessmentRepository();
     }
 
     public function index(): void
     {
         $user = $this->requireAuthenticatedUser();
-        $userId = isset($user['id']) ? (int)$user['id'] : null;
-        $assessments = $this->assessmentService->getAssessments($userId);
+        $userId = (int)($user['id'] ?? 0);
+        $assessments = $this->engineRepo->getAssessmentsWithProgress($userId);
 
         $this->view(
-            'Assessment/Presentation/Views/student/assessment-dashboard-loggedin',
+            'Assessment/Presentation/Views/student/assessment_dashboard',
             [
                 'pageTitle' => 'My Assessments',
                 'assessments' => $assessments,
@@ -204,5 +210,455 @@ class AssessmentController extends Controller
                 'backToPage' => 'student-assessments',
             ]
         );
+    }
+
+    public function apiStart(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $assessmentId = (int)($input['assessment_id'] ?? 0);
+
+        if ($assessmentId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid assessment ID']);
+            exit;
+        }
+
+        $assessment = $this->engineRepo->getAssessmentById($assessmentId);
+        if (!$assessment) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Assessment not found']);
+            exit;
+        }
+
+        $attempt = $this->engineRepo->getOrCreateAttempt($userId, $assessmentId);
+
+        $totalQ = $this->engineRepo->countAssessmentQuestions($assessmentId);
+        $randomMode = (bool)($assessment['random_mode'] ?? false);
+        $questions = $this->engineRepo->getQuestions($assessmentId, $randomMode, $totalQ);
+
+        $questionIds = array_map(fn($q) => (int)$q['question_id'], $questions);
+        $_SESSION['assessment_q_order_' . $attempt['student_assessment_id']] = $questionIds;
+
+        $currentIdx = (int)$attempt['current_question'];
+        if ($currentIdx >= count($questionIds)) {
+            $currentIdx = 0;
+        }
+
+        $nextQId = $questionIds[$currentIdx] ?? null;
+
+        echo json_encode([
+            'success' => true,
+            'attempt_id' => (int)$attempt['student_assessment_id'],
+            'assessment' => [
+                'id' => $assessmentId,
+                'name' => $assessment['title'],
+                'icon' => $assessment['icon'] ?? 'bi-collection',
+                'time_limit' => (int)$assessment['time_limit'],
+            ],
+            'total_questions' => count($questionIds),
+            'current_index' => $currentIdx,
+            'started_at' => $attempt['started_at'],
+        ]);
+        exit;
+    }
+
+    public function apiQuestion(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $attemptId = (int)($_GET['attempt_id'] ?? 0);
+        $index = (int)($_GET['index'] ?? 0);
+
+        if ($attemptId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid attempt']);
+            exit;
+        }
+
+        $attempt = $this->engineRepo->getAttemptById($attemptId);
+        if (!$attempt || (int)$attempt['user_id'] !== $userId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Access denied']);
+            exit;
+        }
+
+        $questionIds = $_SESSION['assessment_q_order_' . $attemptId] ?? [];
+        if (empty($questionIds)) {
+            $assessment = $this->engineRepo->getAssessmentById((int)$attempt['assessment_id']);
+            $totalQ = $this->engineRepo->countAssessmentQuestions((int)$attempt['assessment_id']);
+            $randomMode = (bool)($assessment['random_mode'] ?? false);
+            $questions = $this->engineRepo->getQuestions((int)$attempt['assessment_id'], $randomMode, $totalQ);
+            $questionIds = array_map(fn($q) => (int)$q['question_id'], $questions);
+            $_SESSION['assessment_q_order_' . $attemptId] = $questionIds;
+        }
+
+        if ($index < 0 || $index >= count($questionIds)) {
+            echo json_encode(['success' => false, 'done' => true, 'message' => 'Assessment complete']);
+            exit;
+        }
+
+        $qId = $questionIds[$index];
+        $question = $this->engineRepo->getQuestionById($qId);
+        if (!$question) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Question not found']);
+            exit;
+        }
+
+        $options = $this->engineRepo->getOptionsForQuestion($qId);
+        $existingAnswer = $this->engineRepo->getAnswerForQuestion($attemptId, $qId);
+
+        $hasPrev = $index > 0;
+        $hasNext = $index < count($questionIds) - 1;
+        $isLast = !$hasNext;
+
+        $answeredCount = $this->engineRepo->getAnsweredCount($attemptId);
+
+        echo json_encode([
+            'success' => true,
+            'question' => [
+                'id' => (int)$question['question_id'],
+                'number' => $index + 1,
+                'text' => $question['question_text'],
+                'type' => $question['question_type'],
+            ],
+            'options' => array_map(fn($o) => [
+                'id' => (int)$o['option_id'],
+                'text' => $o['option_text'],
+                'value' => (float)($o['option_value'] ?? 0),
+            ], $options),
+            'selected_option_id' => $existingAnswer ? (int)$existingAnswer['option_id'] : null,
+            'progress' => [
+                'current' => $index + 1,
+                'total' => count($questionIds),
+                'answered' => $answeredCount,
+                'percent' => count($questionIds) > 0 ? round((($index + 1) / count($questionIds)) * 100) : 0,
+            ],
+            'navigation' => [
+                'has_prev' => $hasPrev,
+                'has_next' => $hasNext,
+                'is_last' => $isLast,
+            ],
+        ]);
+        exit;
+    }
+
+    public function apiSaveAnswer(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $attemptId = (int)($input['attempt_id'] ?? 0);
+        $questionId = (int)($input['question_id'] ?? 0);
+        $optionId = (int)($input['option_id'] ?? 0);
+
+        if ($attemptId <= 0 || $questionId <= 0 || $optionId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+            exit;
+        }
+
+        $attempt = $this->engineRepo->getAttemptById($attemptId);
+        if (!$attempt || (int)$attempt['user_id'] !== $userId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Access denied']);
+            exit;
+        }
+
+        $stmt = \App\Config\Database::getConnection()->prepare("SELECT option_value FROM question_options WHERE option_id = :oid");
+        $stmt->execute([':oid' => $optionId]);
+        $opt = $stmt->fetch();
+        $score = $opt ? (float)$opt['option_value'] : 0;
+
+        $this->engineRepo->saveAnswer($attemptId, $questionId, $optionId, $score);
+
+        $questionIds = $_SESSION['assessment_q_order_' . $attemptId] ?? [];
+        $currentIdx = array_search($questionId, $questionIds);
+        $answeredCount = $this->engineRepo->getAnsweredCount($attemptId);
+        $totalQ = count($questionIds);
+
+        $progress = $totalQ > 0 ? round(($answeredCount / $totalQ) * 100, 2) : 0;
+        $nextIdx = $currentIdx !== false ? $currentIdx + 1 : $answeredCount;
+
+        $this->engineRepo->updateAttempt($attemptId, [
+            'current_question' => $nextIdx,
+            'progress' => $progress,
+        ]);
+
+        echo json_encode([
+            'success' => true,
+            'answered_count' => $answeredCount,
+            'progress' => $progress,
+        ]);
+        exit;
+    }
+
+    public function apiFinish(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $attemptId = (int)($input['attempt_id'] ?? 0);
+
+        if ($attemptId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid attempt']);
+            exit;
+        }
+
+        $attempt = $this->engineRepo->getAttemptById($attemptId);
+        if (!$attempt || (int)$attempt['user_id'] !== $userId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Access denied']);
+            exit;
+        }
+
+        if ($attempt['status'] === 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Already completed']);
+            exit;
+        }
+
+        $result = $this->engineRepo->completeAttempt($attemptId);
+
+        if (!$result['success']) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $result['message'] ?? 'Failed to complete']);
+            exit;
+        }
+
+        unset($_SESSION['assessment_q_order_' . $attemptId]);
+
+        $timeTaken = '';
+        if ($attempt['started_at']) {
+            $start = strtotime($attempt['started_at']);
+            $end = strtotime($result['completed_at']);
+            $diff = $end - $start;
+            $minutes = floor($diff / 60);
+            $seconds = $diff % 60;
+            $timeTaken = ($minutes > 0 ? $minutes . ' min ' : '') . $seconds . ' sec';
+        }
+
+        echo json_encode([
+            'success' => true,
+            'score' => $result['score'],
+            'answered' => $result['answered'],
+            'total' => $result['total'],
+            'time_taken' => $timeTaken,
+            'assessment_name' => $attempt['assessment_name'],
+        ]);
+        exit;
+    }
+
+    public function v2Index(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+
+        $assessments = $this->newRepo->getAssessmentConfig();
+        $results = $this->newRepo->getResultsForUser($userId);
+        $allDone = $this->newRepo->allAssessmentsCompleted($userId);
+
+        $this->view(
+            'Assessment/Presentation/Views/student/assessment_v2_dashboard',
+            [
+                'pageTitle' => 'Assessments',
+                'assessments' => $assessments,
+                'results' => $results,
+                'allDone' => $allDone,
+                'user' => $user,
+                'layout' => 'dashboard',
+            ]
+        );
+    }
+
+    public function v2ApiStart(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $assessmentId = (int)($input['assessment_id'] ?? 0);
+
+        if ($assessmentId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid assessment']);
+            exit;
+        }
+
+        $result = $this->newRepo->getOrCreateResult($userId, $assessmentId);
+
+        if ($result['status'] === 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Already completed', 'redirect' => true]);
+            exit;
+        }
+
+        $limits = [1 => 8, 2 => 8, 3 => 10, 4 => 6];
+        $limit = $limits[$assessmentId] ?? 8;
+
+        $questions = $this->newRepo->getQuestions($assessmentId, $limit);
+        $ids = array_map(fn($q) => (int)$q['id'], $questions);
+        $_SESSION['v2_q_order_' . $result['id']] = $ids;
+
+        $answered = $this->newRepo->getAnsweredCount($userId, $assessmentId);
+
+        echo json_encode([
+            'success' => true,
+            'result_id' => (int)$result['id'],
+            'assessment_id' => $assessmentId,
+            'total_questions' => count($questions),
+            'answered' => $answered,
+            'started_at' => $result['started_at'],
+        ]);
+        exit;
+    }
+
+    public function v2ApiQuestion(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $resultId = (int)($_GET['result_id'] ?? 0);
+        $index = (int)($_GET['index'] ?? 0);
+
+        if ($resultId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid result']);
+            exit;
+        }
+
+        $ids = $_SESSION['v2_q_order_' . $resultId] ?? [];
+        if ($index < 0 || $index >= count($ids)) {
+            echo json_encode(['success' => false, 'done' => true]);
+            exit;
+        }
+
+        $question = $this->newRepo->getQuestionById((int)$ids[$index]);
+        if (!$question) {
+            http_response_code(404);
+            echo json_encode(['success' => false]);
+            exit;
+        }
+
+        $existingAnswer = null;
+        $stmt = \App\Config\Database::getConnection()->prepare("SELECT selected_answer FROM answers WHERE user_id = :uid AND question_id = :qid");
+        $stmt->execute([':uid' => $userId, ':qid' => $question['id']]);
+        $row = $stmt->fetch();
+        if ($row) $existingAnswer = $row['selected_answer'];
+
+        $answered = $this->newRepo->getAnsweredCount($userId, (int)$question['assessment_id']);
+
+        echo json_encode([
+            'success' => true,
+            'question' => [
+                'id' => (int)$question['id'],
+                'number' => $index + 1,
+                'text' => $question['question'],
+                'options' => [
+                    ['key' => 'A', 'text' => $question['option_a']],
+                    ['key' => 'B', 'text' => $question['option_b']],
+                    ['key' => 'C', 'text' => $question['option_c']],
+                    ['key' => 'D', 'text' => $question['option_d']],
+                ],
+            ],
+            'selected' => $existingAnswer,
+            'progress' => [
+                'current' => $index + 1,
+                'total' => count($ids),
+                'answered' => $answered,
+            ],
+            'navigation' => [
+                'has_prev' => $index > 0,
+                'is_last' => $index >= count($ids) - 1,
+            ],
+        ]);
+        exit;
+    }
+
+    public function v2ApiSave(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $questionId = (int)($input['question_id'] ?? 0);
+        $answer = strtoupper(trim((string)($input['answer'] ?? '')));
+
+        if ($questionId <= 0 || !in_array($answer, ['A','B','C','D'], true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid data']);
+            exit;
+        }
+
+        $question = $this->newRepo->getQuestionById($questionId);
+        if (!$question) {
+            http_response_code(404);
+            echo json_encode(['success' => false]);
+            exit;
+        }
+
+        $score = 0.0;
+        $optionVals = ['A' => 1.0, 'B' => 2.0, 'C' => 3.0, 'D' => 4.0];
+        if (isset($optionVals[$answer])) {
+            $score = $optionVals[$answer];
+        }
+        if ($question['correct_answer'] !== null && $answer === $question['correct_answer']) {
+            $score = (float)($question['weight'] ?? 1.0);
+        } elseif ($question['correct_answer'] !== null) {
+            $score = 0.0;
+        }
+
+        $this->newRepo->saveAnswer($userId, $questionId, $answer, $score);
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    public function v2ApiFinish(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $assessmentId = (int)($input['assessment_id'] ?? 0);
+
+        if ($assessmentId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid assessment']);
+            exit;
+        }
+
+        $result = $this->newRepo->getResult($userId, $assessmentId);
+        if (!$result || $result['status'] === 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Already completed']);
+            exit;
+        }
+
+        $data = $this->newRepo->completeAssessment($userId, $assessmentId);
+
+        $names = [1 => 'Personality', 2 => 'Interest', 3 => 'Aptitude', 4 => 'Career Values'];
+        $allDone = $this->newRepo->allAssessmentsCompleted($userId);
+
+        echo json_encode([
+            'success' => true,
+            'percentage' => $data['percentage'],
+            'answered' => $data['answered'],
+            'assessment_name' => $names[$assessmentId] ?? 'Assessment',
+            'all_completed' => $allDone,
+        ]);
+        exit;
     }
 }

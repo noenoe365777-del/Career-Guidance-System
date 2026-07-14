@@ -11,38 +11,69 @@ $activeMenu = 'careers';
 $recommendedCareersCount = count(array_filter($careers, fn($c) => (int)($c['recommendation_count'] ?? 0) > 0));
 
 ob_start();
+if (file_exists(__DIR__ . '/../partials/summary_stat_card.php')) {
+    include __DIR__ . '/../partials/summary_stat_card.php';
+}
+$careerCardDefs = [
+    ['key' => 'total', 'label' => 'Total Careers', 'count' => (int)($summaryStats['total_careers'] ?? 0), 'icon' => 'bi-briefcase', 'bg' => '#eef2ff', 'color' => '#5B5FEF', 'hint' => 'In career catalog'],
+    ['key' => 'recommended', 'label' => 'Recommended Careers', 'count' => $recommendedCareersCount, 'icon' => 'bi-people', 'bg' => '#ecfdf5', 'color' => '#059669', 'hint' => 'Have student recommendations'],
+];
+$mostRecommendedName = htmlspecialchars((string)($summaryStats['most_recommended_name'] ?? 'N/A'));
+$mostRecommendedCount = (int)($summaryStats['most_recommended_count'] ?? 0);
+$mostRecommendedHint = $mostRecommendedCount . ' student' . ($mostRecommendedCount !== 1 ? 's' : '') . ' recommended';
 ?>
 
 <style>
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUpCard { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes iconBounce { 0% { transform: scale(1); } 25% { transform: scale(1.25) rotate(-5deg); } 50% { transform: scale(0.9) rotate(3deg); } 75% { transform: scale(1.1) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
     @keyframes slideRight { from { opacity: 0; transform: translateX(360px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
+    .page-in { animation: fadeIn 0.5s ease-out both; }
+    .card-in { animation: slideUpCard 0.5s cubic-bezier(0.22,1,0.36,1) both; }
     .anim-in { animation: fadeIn 0.4s ease-out both; }
-    .anim-up { animation: slideUp 0.5s ease-out both; }
     .anim-right { animation: slideRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
     .anim-scale { animation: scaleIn 0.25s ease-out both; }
 
-    .d1 { animation-delay: 0.04s; }
-    .d2 { animation-delay: 0.08s; }
-    .d3 { animation-delay: 0.12s; }
-    .d4 { animation-delay: 0.16s; }
-    .d5 { animation-delay: 0.20s; }
-    .d6 { animation-delay: 0.24s; }
-    .d7 { animation-delay: 0.28s; }
+    .d1 { animation-delay: 0.05s; }
+    .d2 { animation-delay: 0.10s; }
+    .d3 { animation-delay: 0.15s; }
+    .d4 { animation-delay: 0.20s; }
+    .d5 { animation-delay: 0.25s; }
+    .d6 { animation-delay: 0.30s; }
+    .d7 { animation-delay: 0.35s; }
 
     .stat-card {
-        transition: all 0.2s ease;
-        border: 1px solid #f1f5f9;
-        background: #ffffff;
-        border-radius: 1rem;
-        padding: 1.5rem;
+        border-radius: 16px;
+        padding: 24px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out, opacity 0.3s ease-out;
+        will-change: transform, box-shadow, opacity;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.04);
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 24px 48px -16px rgba(91,95,239,0.28);
+        border-color: #5B5FEF;
+        background: #fafaff;
     }
+    .stat-card:hover .card-icon-bg { transform: scale(1.15) rotate(5deg); }
+    .stat-card:hover .card-number { transform: scale(1.04); }
+    .stat-card:active { transform: scale(0.97); }
+    .stat-card.active {
+        border-color: #5B5FEF;
+        background: #f8f7ff;
+        box-shadow: 0 8px 28px -8px rgba(91,95,239,0.22);
+    }
+    .stat-card.active .card-icon-bg { background: #5B5FEF !important; color: #fff !important; }
+    .stat-card.active .card-number { color: #5B5FEF !important; }
+    .card-icon-bg { transition: transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out; }
+    .card-number { transition: transform 0.3s ease-out; }
+    .card-icon-bg.bounce { animation: iconBounce 0.5s cubic-bezier(0.22,1,0.36,1); }
 
     .career-card {
         transition: all 0.25s ease;
@@ -161,40 +192,36 @@ ob_start();
     <?php endif; ?>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="stat-card anim-up d2">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Careers</span>
-                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format((int)($summaryStats['total_careers'] ?? 0)) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">In career catalog</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3" style="gap: 24px;">
+        <?php foreach ($careerCardDefs as $i => $cd):
+            $delayClass = 'd' . ($i + 1);
+            $counterId = 'careerCount' . ucfirst($cd['key']);
+            renderAdminSummaryCard([
+                'title' => $cd['label'],
+                'value' => '0',
+                'valueNumber' => (int)($cd['count'] ?? 0),
+                'counterId' => $counterId,
+                'icon' => $cd['icon'],
+                'iconBg' => $cd['bg'],
+                'iconColor' => $cd['color'],
+                'hint' => $cd['hint'] ?? '',
+                'delayClass' => $delayClass,
+                'filter' => $cd['key'],
+                'active' => false,
+                'extraClass' => '',
+            ]);
+        endforeach; ?>
+
+        <!-- Most Recommended (text card) -->
+        <div class="stat-card card-in d3" style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;box-shadow:0 6px 18px rgba(15,23,42,0.04);cursor:default;text-align:left;transition:transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div style="flex:1;min-width:0;">
+                    <p style="font-size:16px;font-weight:600;color:#64748b;margin:0;">Most Recommended</p>
+                    <p style="font-size:20px;font-weight:700;color:#0f172a;margin:8px 0 0 0;" title="<?= $mostRecommendedName ?>"><?= $mostRecommendedName ?></p>
+                    <p style="font-size:13px;color:#94a3b8;margin:6px 0 0 0;"><?= $mostRecommendedHint ?></p>
                 </div>
-                <div class="h-11 w-11 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">
-                    <i class="bi bi-briefcase text-lg"></i>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card anim-up d3">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Recommended Careers</span>
-                    <p style="font-size: 1.75rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($recommendedCareersCount) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Have student recommendations</p>
-                </div>
-                <div class="h-11 w-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-400">
-                    <i class="bi bi-people text-lg"></i>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card anim-up d4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Most Recommended</span>
-                    <p style="font-size: 1.25rem;" class="mt-1.5 font-bold text-slate-900"><?= htmlspecialchars((string)($summaryStats['most_recommended_name'] ?? 'N/A')) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400"><?= (int)($summaryStats['most_recommended_count'] ?? 0) ?> student<?= (int)($summaryStats['most_recommended_count'] ?? 0) !== 1 ? 's' : '' ?> recommended</p>
-                </div>
-                <div class="h-11 w-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-400">
-                    <i class="bi bi-trophy text-lg"></i>
+                <div class="card-icon-bg" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#fffbeb;color:#d97706;flex-shrink:0;transition:transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out;">
+                    <i class="bi bi-trophy" style="font-size:24px;"></i>
                 </div>
             </div>
         </div>
@@ -445,6 +472,35 @@ document.addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') { closeCareerDrawer(); closeDeleteModal(); }
 });
+
+(function() {
+    function animateCounter(el, target, done) {
+        if (!el) return;
+        var current = 0;
+        var steps = 40;
+        var inc = Math.max(1, Math.ceil(target / steps));
+        var timer = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+                if (done) done();
+            }
+            el.textContent = current.toLocaleString();
+        }, 25);
+    }
+    setTimeout(function() {
+        document.querySelectorAll('.stat-card[data-value]').forEach(function(card) {
+            var el = card.querySelector('.card-number');
+            var target = parseInt(card.getAttribute('data-value') || '0', 10);
+            if (!el) return;
+            animateCounter(el, target, function() {
+                var iconBg = card.querySelector('.card-icon-bg');
+                if (iconBg) iconBg.classList.add('bounce');
+            });
+        });
+    }, 300);
+})();
 </script>
 
 <?php

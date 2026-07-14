@@ -21,6 +21,8 @@ class UserController extends Controller
 
     $recentStudents = $this->userService->getRecentStudents(5);
 
+
+
         AdminAuthMiddleware::requireAdmin();
         $this->requirePermission('view_users');
 
@@ -30,7 +32,7 @@ class UserController extends Controller
 
         $result = $this->userService->listUsers($page, 12, $search, null, null, $educationLevel);
         $stats = $this->userService->getStudentSummaryStats();
-        $recentStudents = $this->userService->getRecentStudents(5);
+       
         $educationLevels = $this->userService->getEducationLevels();
 
         $this->view(

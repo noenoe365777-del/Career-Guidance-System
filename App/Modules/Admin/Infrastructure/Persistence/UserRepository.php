@@ -165,26 +165,36 @@ class UserRepository implements UserRepositoryInterface
             return [];
         }
     }
+public function getRecentStudents(int $limit = 5): array
+{
+    $sql = "
+        SELECT
+            u.user_id,
+            u.username,
+            u.email,
+            u.created_at,
+            sp.profile_image,
+            m.label AS education_level
+        FROM users u
+        LEFT JOIN student_profiles sp
+            ON sp.user_id = u.user_id
+        LEFT JOIN master_data m
+            ON m.id = sp.education_level_id
+            AND m.category='education_level'
+        WHERE u.user_role_id = 2
+        ORDER BY u.created_at DESC
+        LIMIT :limit
+    ";
 
-    public function getRecentStudents(int $limit = 5): array
-    {
-        try {
-            $stmt = $this->connection->prepare(
-                "SELECT u.user_id, u.username, u.email, u.created_at, sp.profile_image, m.label AS education_level
-                FROM users u
-                LEFT JOIN student_profiles sp ON sp.user_id = u.user_id
-                LEFT JOIN master_data m ON m.id = sp.education_level_id AND m.category = 'education_level'
-                WHERE u.user_role_id = 2
-                ORDER BY u.created_at DESC, u.user_id DESC
-                LIMIT :limit"
-            );
-            $stmt->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException) {
-            return [];
-        }
-    }
+    $stmt = $this->connection->prepare($sql);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+   
+    return $rows;
+}
 
     public function getUserById(int $id): ?array
     {

@@ -187,11 +187,54 @@ return [
     'detailedAnswers'
 ],
 
+'assessment-api-start' => [
+    StudentAssessmentController::class,
+    'apiStart'
+],
+
+'assessment-api-question' => [
+    StudentAssessmentController::class,
+    'apiQuestion'
+],
+
+'assessment-api-save-answer' => [
+    StudentAssessmentController::class,
+    'apiSaveAnswer'
+],
+
+'assessment-api-finish' => [
+    StudentAssessmentController::class,
+    'apiFinish'
+],
+
+'student-assessments-v2' => [
+    StudentAssessmentController::class,
+    'v2Index'
+],
+
+'v2-assessment-api-start' => [
+    StudentAssessmentController::class,
+    'v2ApiStart'
+],
+
+'v2-assessment-api-question' => [
+    StudentAssessmentController::class,
+    'v2ApiQuestion'
+],
+
+'v2-assessment-api-save' => [
+    StudentAssessmentController::class,
+    'v2ApiSave'
+],
+
+'v2-assessment-api-finish' => [
+    StudentAssessmentController::class,
+    'v2ApiFinish'
+],
+
 'recommendation' => [
     RecommendationController::class,
     'index'
 ],
-
-
 
 ];

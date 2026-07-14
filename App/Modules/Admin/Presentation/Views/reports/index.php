@@ -10,39 +10,69 @@ $topCareers = $topCareers ?? [];
 $educationDistribution = $educationDistribution ?? [];
 
 ob_start();
+if (file_exists(__DIR__ . '/../partials/summary_stat_card.php')) {
+    include __DIR__ . '/../partials/summary_stat_card.php';
+}
+$reportCardDefs = [
+    ['key' => 'students', 'label' => 'Total Students', 'count' => $totalStudents, 'icon' => 'bi-people', 'bg' => '#eef2ff', 'color' => '#5B5FEF', 'hint' => 'Registered students'],
+    ['key' => 'completions', 'label' => 'Assessment Completions', 'count' => $assessmentCompletions, 'icon' => 'bi-check-circle', 'bg' => '#ecfdf5', 'color' => '#059669', 'hint' => 'Total completed'],
+    ['key' => 'recommendations', 'label' => 'Total Recommendations', 'count' => $totalRecommendations, 'icon' => 'bi-star', 'bg' => '#fffbeb', 'color' => '#d97706', 'hint' => 'Careers recommended'],
+    ['key' => 'reports', 'label' => 'Reports Generated', 'count' => $reportsGenerated, 'icon' => 'bi-file-text', 'bg' => '#f3e8ff', 'color' => '#7c3aed', 'hint' => 'Students assessed'],
+];
 ?>
 
 <style>
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUpCard { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes iconBounce { 0% { transform: scale(1); } 25% { transform: scale(1.25) rotate(-5deg); } 50% { transform: scale(0.9) rotate(3deg); } 75% { transform: scale(1.1) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
     @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
+    .page-in { animation: fadeIn 0.5s ease-out both; }
+    .card-in { animation: slideUpCard 0.5s cubic-bezier(0.22,1,0.36,1) both; }
     .anim-in { animation: fadeIn 0.4s ease-out both; }
-    .anim-up { animation: slideUp 0.5s ease-out both; }
     .anim-scale { animation: scaleIn 0.25s ease-out both; }
 
-    .d1 { animation-delay: 0.04s; }
-    .d2 { animation-delay: 0.08s; }
-    .d3 { animation-delay: 0.12s; }
-    .d4 { animation-delay: 0.16s; }
-    .d5 { animation-delay: 0.20s; }
-    .d6 { animation-delay: 0.24s; }
-    .d7 { animation-delay: 0.28s; }
-    .d8 { animation-delay: 0.32s; }
-    .d9 { animation-delay: 0.36s; }
-    .d10 { animation-delay: 0.40s; }
+    .d1 { animation-delay: 0.05s; }
+    .d2 { animation-delay: 0.10s; }
+    .d3 { animation-delay: 0.15s; }
+    .d4 { animation-delay: 0.20s; }
+    .d5 { animation-delay: 0.25s; }
+    .d6 { animation-delay: 0.30s; }
+    .d7 { animation-delay: 0.35s; }
+    .d8 { animation-delay: 0.40s; }
+    .d9 { animation-delay: 0.45s; }
+    .d10 { animation-delay: 0.50s; }
 
     .stat-card {
-        transition: all 0.2s ease;
-        border: 1px solid #f1f5f9;
-        background: #ffffff;
-        border-radius: 1rem;
-        padding: 1.5rem;
+        border-radius: 16px;
+        padding: 24px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out, opacity 0.3s ease-out;
+        will-change: transform, box-shadow, opacity;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.04);
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 24px 48px -16px rgba(91,95,239,0.28);
+        border-color: #5B5FEF;
+        background: #fafaff;
     }
+    .stat-card:hover .card-icon-bg { transform: scale(1.15) rotate(5deg); }
+    .stat-card:hover .card-number { transform: scale(1.04); }
+    .stat-card:active { transform: scale(0.97); }
+    .stat-card.active {
+        border-color: #5B5FEF;
+        background: #f8f7ff;
+        box-shadow: 0 8px 28px -8px rgba(91,95,239,0.22);
+    }
+    .stat-card.active .card-icon-bg { background: #5B5FEF !important; color: #fff !important; }
+    .stat-card.active .card-number { color: #5B5FEF !important; }
+    .card-icon-bg { transition: transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out; }
+    .card-number { transition: transform 0.3s ease-out; }
+    .card-icon-bg.bounce { animation: iconBounce 0.5s cubic-bezier(0.22,1,0.36,1); }
 
     .assess-card {
         transition: all 0.2s ease;
@@ -138,55 +168,25 @@ ob_start();
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="stat-card anim-up d2">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Students</span>
-                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($totalStudents) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Registered students</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">
-                    <i class="bi bi-people text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card anim-up d3">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Assessment Completions</span>
-                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($assessmentCompletions) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Total completed</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-400">
-                    <i class="bi bi-check-circle text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card anim-up d4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Total Recommendations</span>
-                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($totalRecommendations) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Careers recommended</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-400">
-                    <i class="bi bi-star text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card anim-up d5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span style="font-size: 0.75rem;" class="font-semibold uppercase tracking-wider text-slate-400">Reports Generated</span>
-                    <p style="font-size: 2.1rem;" class="mt-1.5 font-bold text-slate-900"><?= number_format($reportsGenerated) ?></p>
-                    <p style="font-size: 0.8rem;" class="mt-0.5 text-slate-400">Students assessed</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-violet-50 flex items-center justify-center text-violet-400">
-                    <i class="bi bi-file-text text-xl"></i>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style="gap: 24px;">
+        <?php foreach ($reportCardDefs as $i => $cd):
+            $delayClass = 'd' . ($i + 1);
+            $counterId = 'reportCount' . ucfirst($cd['key']);
+            renderAdminSummaryCard([
+                'title' => $cd['label'],
+                'value' => '0',
+                'valueNumber' => (int)($cd['count'] ?? 0),
+                'counterId' => $counterId,
+                'icon' => $cd['icon'],
+                'iconBg' => $cd['bg'],
+                'iconColor' => $cd['color'],
+                'hint' => $cd['hint'] ?? '',
+                'delayClass' => $delayClass,
+                'filter' => $cd['key'],
+                'active' => false,
+                'extraClass' => '',
+            ]);
+        endforeach; ?>
     </div>
 
     <!-- Assessment Completion -->
@@ -382,6 +382,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 300);
 });
+
+(function() {
+    function animateCounter(el, target, done) {
+        if (!el) return;
+        var current = 0;
+        var steps = 40;
+        var inc = Math.max(1, Math.ceil(target / steps));
+        var timer = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+                if (done) done();
+            }
+            el.textContent = current.toLocaleString();
+        }, 25);
+    }
+    setTimeout(function() {
+        document.querySelectorAll('.stat-card[data-value]').forEach(function(card) {
+            var el = card.querySelector('.card-number');
+            var target = parseInt(card.getAttribute('data-value') || '0', 10);
+            if (!el) return;
+            animateCounter(el, target, function() {
+                var iconBg = card.querySelector('.card-icon-bg');
+                if (iconBg) iconBg.classList.add('bounce');
+            });
+        });
+    }, 300);
+})();
 </script>
 
 <style>
