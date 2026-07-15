@@ -111,15 +111,9 @@ function dashboardFormatDate(?string $value): string
                 </div>
             </div>
             <?php if ($allCompleted): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
-                    <i class="fas fa-trophy text-xs"></i>
-                    View Career Recommendation
-                </a>
+               
             <?php else: ?>
-                <a href="<?= BASE_URL ?>/index.php?page=student-assessments" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
-                    <i class="fas fa-arrow-right text-xs"></i>
-                    Continue Assessment
-                </a>
+               
             <?php endif; ?>
         </div>
     </section>
@@ -220,7 +214,7 @@ function dashboardFormatDate(?string $value): string
                                 </div>
                             </div>
                         </div>
-                        <a href="<?= BASE_URL ?>/index.php?page=<?= $slug ?>" class="inline-flex shrink-0 items-center gap-2 self-start rounded-xl <?= $c['btn'] ?> px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200">
+                        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="inline-flex shrink-0 items-center gap-2 self-start rounded-xl <?= $c['btn'] ?> px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200">
                             <i class="fas fa-play text-xs"></i>
                             <?= $btnLabel ?>
                         </a>
@@ -233,7 +227,7 @@ function dashboardFormatDate(?string $value): string
                     </div>
                     <h3 class="text-base font-semibold text-slate-900">All assessments completed</h3>
                     <p class="text-sm text-slate-500">You've finished all four assessments. View your career recommendations now.</p>
-                    <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
+                    <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
                         View Recommendations
                         <i class="fas fa-arrow-right text-xs"></i>
                     </a>
@@ -261,7 +255,7 @@ function dashboardFormatDate(?string $value): string
                         <span class="text-2xl font-extrabold text-emerald-600"><?= (int)$recommendation['match_score'] ?>%</span>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Match</span>
                     </div>
-                    <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 no-underline transition-all duration-200 hover:border-slate-300 hover:bg-slate-50">
+                    <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 no-underline transition-all duration-200 hover:border-slate-300 hover:bg-slate-50">
                         View Details
                         <i class="fas fa-arrow-right text-[10px]"></i>
                     </a>
@@ -276,7 +270,7 @@ function dashboardFormatDate(?string $value): string
                     <h2 class="text-base font-semibold text-slate-900">Complete All Assessments</h2>
                     <p class="mt-0.5 text-sm text-slate-500">Finish all four assessments to unlock your personalized career recommendations.</p>
                 </div>
-                <a href="<?= BASE_URL ?>/index.php?page=student-assessments" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:bg-amber-700 sm:ml-auto">
+                <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:bg-amber-700 sm:ml-auto">
                     Go to Assessments
                     <i class="fas fa-arrow-right text-xs"></i>
                 </a>

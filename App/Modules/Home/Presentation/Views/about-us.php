@@ -78,7 +78,7 @@
             <p class="text-slate-600 leading-relaxed mb-6">
                 To support students in making confident and informed career decisions for their future.
             </p>
-            <a href="<?= BASE_URL ?>/index.php?page=assessments"
+            <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2"
                class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-start via-brand-mid to-brand-end text-white font-bold px-7 py-3 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm">
                 <i class="fas fa-pencil-alt text-xs"></i>
                 Take Assessment

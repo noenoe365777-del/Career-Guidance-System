@@ -31,13 +31,18 @@
         <nav class="space-y-1">
             <?php 
             $currentPage = $currentPage ?? ($_GET['page'] ?? 'dashboard');
-            $activePage = $currentPage === 'change-password' ? 'settings' : $currentPage;
+            $activePage = match ($currentPage) {
+                'change-password' => 'settings',
+                'assessment-v2-result' => 'student-assessments-v2',
+                'career-recommendation' => 'career-recommendation',
+                default => $currentPage,
+            };
             $currentStudentUserId = \App\Modules\Student\Support\StudentFeaturePermissionHelper::currentStudentUserId();
 
             $navItems = [
                 ['id' => 'dashboard', 'feature_key' => 'view_dashboard', 'label' => 'Dashboard', 'icon' => 'bi-house'],
                 ['id' => 'student-assessments-v2', 'feature_key' => 'take_assessment', 'label' => 'Assessments', 'icon' => 'bi-clipboard-check'],
-                ['id' => 'recommendation', 'feature_key' => 'view_recommendations', 'label' => 'Career Maps', 'icon' => 'bi-briefcase'],
+                ['id' => 'career-recommendation', 'feature_key' => 'view_recommendations', 'label' => 'Career Maps', 'icon' => 'bi-briefcase'],
                 ['id' => 'notifications', 'feature_key' => '', 'label' => 'Notifications', 'icon' => 'bi-bell'],
                 ['id' => 'settings', 'feature_key' => 'edit_profile', 'label' => 'Settings', 'icon' => 'bi-gear']
             ];

@@ -4,24 +4,54 @@ declare(strict_types=1);
 
 namespace App\Modules\Recommendation\Presentation\Controllers;
 
+use App\Modules\Assessment\Infrastructure\Persistence\NewAssessmentRepository;
 use App\Modules\Recommendation\Application\Services\RecommendationService;
 use App\Modules\Recommendation\Infrastructure\Persistence\RecommendationRepository;
 use App\Shared\Core\Controller;
 
-class RecommendationController extends Controller
+class CareerRecommendationController extends Controller
 {
+    private NewAssessmentRepository $assessmentRepo;
     private RecommendationService $recommendationService;
     private RecommendationRepository $recommendationRepo;
 
     public function __construct()
     {
+        $this->assessmentRepo = new NewAssessmentRepository();
         $this->recommendationService = new RecommendationService();
         $this->recommendationRepo = new RecommendationRepository();
     }
 
     public function index(): void
     {
-        $this->redirectTo('career-recommendation');
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+
+        if (!$this->assessmentRepo->allAssessmentsCompleted($userId)) {
+            $_SESSION['error'] = 'Complete all assessments before viewing recommendations.';
+            $this->redirectTo('student-assessments-v2');
+        }
+
+        $recommendations = $this->recommendationService->generateForUser($userId);
+
+        $scores = $this->recommendationRepo->getStudentScores($userId);
+        $interpretation = $this->getOverallInterpretation($scores);
+        $strengths = $this->getOverallStrengths($scores);
+        $growthAreas = $this->getOverallGrowthAreas($scores);
+
+        $this->view(
+            'Recommendation/Presentation/Views/career_recommendation',
+            [
+                'pageTitle' => 'Career Recommendations',
+                'recommendations' => $recommendations,
+                'hasRecommendations' => !empty($recommendations),
+                'user' => $user,
+                'layout' => 'dashboard',
+                'interpretation' => $interpretation,
+                'strengths' => $strengths,
+                'growthAreas' => $growthAreas,
+            ]
+        );
     }
 
     private function getOverallInterpretation(?array $scores): array

@@ -60,6 +60,13 @@ class AssessmentService
         return $this->questionRepository->getQuestionsBySlug($slug, $previewOnly);
     }
 
+    public function getAssessmentQuestionsByAssessmentId(int $assessmentId, int $limit = 5): array
+{
+    $questions = $this->questionRepository->getQuestionsByAssessmentId($assessmentId);
+
+    return array_slice($questions, 0, $limit);
+}
+
     public function startAssessment(string $slug, ?int $userId = null): array
     {
         $assessment = $this->assessmentRepository->getBySlug($slug);

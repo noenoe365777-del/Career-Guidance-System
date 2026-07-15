@@ -42,11 +42,11 @@
         </div>
 
         <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="<?= BASE_URL ?>/index.php?page=student-assessments"
+            <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2"
                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.97] no-underline">
                 <i class="bi bi-grid"></i> Back to Dashboard
             </a>
-            <a href="<?= BASE_URL ?>/index.php?page=recommendation"
+            <a href="<?= BASE_URL ?>/index.php?page=career-recommendation"
                class="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white transition-all active:scale-[0.97] no-underline"
                style="background:linear-gradient(135deg,#5B5FEF,#7B7FF5)">
                 View Career Recommendation <i class="bi bi-arrow-right"></i>

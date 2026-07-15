@@ -11,6 +11,7 @@ use App\Modules\Assessment\Infrastructure\Persistence\NewAssessmentRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\QuestionRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\StudentAnswerRepository;
 use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
+use App\Modules\Recommendation\Application\Services\RecommendationService;
 use App\Shared\Core\Controller;
 
 class AssessmentController extends Controller
@@ -652,6 +653,11 @@ class AssessmentController extends Controller
         $names = [1 => 'Personality', 2 => 'Interest', 3 => 'Aptitude', 4 => 'Career Values'];
         $allDone = $this->newRepo->allAssessmentsCompleted($userId);
 
+        if ($allDone) {
+            $recService = new RecommendationService();
+            $recService->generateForUser($userId);
+        }
+
         echo json_encode([
             'success' => true,
             'percentage' => $data['percentage'],
@@ -661,4 +667,125 @@ class AssessmentController extends Controller
         ]);
         exit;
     }
+
+    public function v2Result(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+
+        $assessmentId = (int)($_GET['id'] ?? 0);
+        if ($assessmentId <= 0) {
+            $this->redirectTo('student-assessments-v2');
+        }
+
+        $result = $this->newRepo->getAssessmentResult($userId, $assessmentId);
+        if (!$result) {
+            $this->redirectTo('student-assessments-v2');
+        }
+
+        $answers = $this->newRepo->getStudentAnswers($userId, $assessmentId);
+        $totalQuestions = $this->newRepo->getTotalQuestionsForAssessment($assessmentId);
+        $answeredCount = count($answers);
+        $correctCount = $this->newRepo->getCorrectAnswerCount($userId, $assessmentId);
+        $percentage = (float)$result['percentage'];
+        $assessmentType = $this->newRepo->getAssessmentTypeLabel($assessmentId);
+
+        $scoreData = [
+            'total' => $totalQuestions,
+            'answered' => $answeredCount,
+            'correct' => $correctCount,
+            'percentage' => $percentage,
+            'score' => (float)$result['score'],
+        ];
+
+        $studentScores = $this->getStudentScoresRow($userId);
+        $summary = $this->getAssessmentSummary($assessmentId, $percentage, $studentScores);
+
+        $this->view(
+            'Assessment/Presentation/Views/student/assessment_v2_result',
+            [
+                'pageTitle' => $result['assessment_name'] . ' - Result',
+                'user' => $user,
+                'layout' => 'dashboard',
+                'assessment' => $result,
+                'answers' => $answers,
+                'scoreData' => $scoreData,
+                'assessmentType' => $assessmentType,
+                'summary' => $summary,
+            ]
+        );
+    }
+
+    private function getStudentScoresRow(int $userId): array
+    {
+        $stmt = \App\Config\Database::getConnection()->prepare(
+            "SELECT personality_type, interest_type, aptitude_type, values_type,
+                    personality_score, interest_score, aptitude_score, values_score
+             FROM student_assessment_scores WHERE student_id = :sid LIMIT 1"
+        );
+        $stmt->execute([':sid' => $userId]);
+        return $stmt->fetch() ?: [];
+    }
+
+    private function getAssessmentSummary(int $assessmentId, float $percentage, array $scores): array
+    {
+        $summaries = [
+            1 => [
+                'title' => 'Personality Type',
+                'type' => $scores['personality_type'] ?? ($percentage >= 80 ? 'Extrovert' : ($percentage >= 60 ? 'Ambivert' : 'Introvert')),
+                'descriptions' => [
+                    'Extrovert' => 'You thrive in social settings, enjoy teamwork, and are energized by interacting with others. You prefer active, people-oriented environments.',
+                    'Ambivert' => 'You have a balanced personality with both introverted and extroverted traits. You adapt well to different social situations and work styles.',
+                    'Introvert' => 'You prefer quiet environments, deep focus, and work well independently. You value meaningful one-on-one interactions over large groups.',
+                ],
+            ],
+            2 => [
+                'title' => 'Interest Category',
+                'type' => $scores['interest_type'] ?? ($percentage >= 80 ? 'Creative / Investigative' : ($percentage >= 60 ? 'Balanced' : 'Practical')),
+                'descriptions' => [
+                    'Creative / Investigative' => 'You enjoy exploring new ideas, solving complex problems, and expressing yourself creatively. Careers involving innovation and discovery suit you well.',
+                    'Balanced' => 'You have a versatile range of interests. You can adapt to various types of work and environments, making you flexible in your career path.',
+                    'Practical' => 'You prefer hands-on work, structured environments, and tasks with clear outcomes. You value stability and tangible results.',
+                ],
+            ],
+            3 => [
+                'title' => 'Aptitude Level',
+                'type' => $scores['aptitude_type'] ?? ($percentage >= 70 ? 'Advanced' : ($percentage >= 50 ? 'Competent' : 'Beginner')),
+                'descriptions' => [
+                    'Advanced' => 'Your problem-solving and analytical skills are highly developed. You excel at logical reasoning, numerical analysis, and critical thinking.',
+                    'Competent' => 'You have solid analytical and reasoning skills. With continued practice, you can further strengthen your problem-solving abilities.',
+                    'Beginner' => 'You are developing your aptitude skills. Focus on practicing logical puzzles, numerical exercises, and critical thinking to build your abilities.',
+                ],
+            ],
+            4 => [
+                'title' => 'Values Clarity',
+                'type' => $scores['values_type'] ?? ($percentage >= 75 ? 'Defined' : ($percentage >= 50 ? 'Developing' : 'Undefined')),
+                'descriptions' => [
+                    'Defined' => 'You have clear career values and know what matters to you in a workplace. This clarity helps guide your career decisions effectively.',
+                    'Developing' => 'You are developing your career values. Continue exploring what matters most to you in your professional life through experiences.',
+                    'Undefined' => 'Your career values are still taking shape. This is a great time to reflect on what you value and explore different work environments.',
+                ],
+            ],
+        ];
+
+        $data = $summaries[$assessmentId] ?? [
+            'title' => 'Summary',
+            'type' => $percentage >= 70 ? 'Strong' : ($percentage >= 50 ? 'Moderate' : 'Developing'),
+            'descriptions' => [
+                'Strong' => 'You performed well in this assessment area.',
+                'Moderate' => 'You have a solid foundation in this area with room to grow.',
+                'Developing' => 'This area offers opportunities for development and growth.',
+            ],
+        ];
+
+        $typeLabel = $data['type'];
+        $desc = $data['descriptions'][$typeLabel] ?? 'Your results reflect your current standing in this assessment area.';
+
+        return [
+            'title' => $data['title'],
+            'value' => $typeLabel,
+            'description' => $desc,
+        ];
+    }
+
 }

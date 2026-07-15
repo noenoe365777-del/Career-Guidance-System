@@ -243,7 +243,13 @@ class AuthController extends Controller
         $client->setClientSecret($this->googleConfig['client_secret']);
         $client->setRedirectUri($this->googleConfig['redirect_uri']);
 
-        $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+        try {
+            $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+        } catch (\Exception $e) {
+            $_SESSION['error'] = 'Google login is temporarily unavailable. Please try again later.';
+            header('Location: ' . BASE_URL . '/index.php?page=login');
+            exit;
+        }
 
         if (isset($token['error'])) {
             $_SESSION['error'] = 'Google login failed.';

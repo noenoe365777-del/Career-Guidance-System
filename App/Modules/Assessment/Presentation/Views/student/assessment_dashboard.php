@@ -110,7 +110,7 @@ $slugMap = [1 => 'personality', 2 => 'interest', 3 => 'aptitude', 4 => 'values']
                 <?php endif; ?>
             </div>
             <?php if ($allDone): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=recommendation" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:from-indigo-700 hover:to-violet-700 active:scale-[0.97] no-underline">
+                <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:from-indigo-700 hover:to-violet-700 active:scale-[0.97] no-underline">
                     View Recommendation <i class="bi bi-arrow-right"></i>
                 </a>
             <?php else: ?>
@@ -124,8 +124,6 @@ $slugMap = [1 => 'personality', 2 => 'interest', 3 => 'aptitude', 4 => 'values']
 
 <div id="assessmentQuestionContainer" class="hidden mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8"><?php require __DIR__ . '/assessment_question.php'; ?></div>
 <div id="assessmentCompleteContainer" class="hidden mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8"><?php require __DIR__ . '/assessment_complete.php'; ?></div>
-
-<script src="<?= BASE_URL ?>/assets/js/assessment-engine.js"></script>
 
 <style>
 @keyframes slideUpCard { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }

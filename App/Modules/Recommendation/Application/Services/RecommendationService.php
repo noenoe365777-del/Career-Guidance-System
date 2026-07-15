@@ -6,6 +6,7 @@ namespace App\Modules\Recommendation\Application\Services;
 
 use App\Modules\Recommendation\Domain\Entities\CareerRecommendation;
 use App\Modules\Recommendation\Infrastructure\Persistence\RecommendationRepository;
+use PDO;
 
 class RecommendationService
 {
@@ -58,6 +59,12 @@ class RecommendationService
             return [];
         }
 
+        $this->repairLegacyLabels($userId, $scores);
+        $scores = $this->recommendationRepo->getStudentScores($userId);
+        if (!$scores) {
+            return [];
+        }
+
         $educationLevel = $this->recommendationRepo->getEducationLevel($userId);
         $allCareers = $this->recommendationRepo->getAllCareers();
         if (empty($allCareers)) {
@@ -65,22 +72,22 @@ class RecommendationService
         }
 
         $eligibleCareers = $this->filterByEducation($allCareers, $educationLevel);
+        if (empty($eligibleCareers)) {
+            $eligibleCareers = $allCareers;
+        }
 
         $results = [];
         foreach ($eligibleCareers as $career) {
             $score = $this->calculateWeightedMatch($scores, $career);
-            if ($score >= 60) {
-                $matchDetails = $this->getMatchDetails($scores, $career);
-                $results[] = [
-                    'career' => $career,
-                    'total_score' => $score,
-                    'match_details' => $matchDetails,
-                ];
-            }
+            $matchDetails = $this->getMatchDetails($scores, $career);
+            $results[] = [
+                'career' => $career,
+                'total_score' => $score,
+                'match_details' => $matchDetails,
+            ];
         }
 
         usort($results, fn(array $a, array $b): int => $b['total_score'] <=> $a['total_score']);
-
         $top5 = array_slice($results, 0, 5);
 
         $this->recommendationRepo->deleteUserRecommendations($userId);
@@ -89,7 +96,13 @@ class RecommendationService
         foreach ($top5 as $r) {
             $career = $r['career'];
             $reason = $this->buildReason($r['match_details']);
-            $this->recommendationRepo->saveRecommendation($userId, $career['career_id'], $r['total_score'], $reason);
+
+            $this->recommendationRepo->saveRecommendation(
+                $userId,
+                $career['career_id'],
+                $r['total_score'],
+                $reason
+            );
 
             $recommendations[] = new CareerRecommendation([
                 'user_id' => $userId,
@@ -110,6 +123,43 @@ class RecommendationService
         return $recommendations;
     }
 
+    private function repairLegacyLabels(int $userId, array $scores): void
+    {
+        $oldGeneric = ['Moderate', 'High', 'Low'];
+        $needsRepair = false;
+        foreach (['personality_type', 'interest_type', 'aptitude_type', 'values_type'] as $col) {
+            if (in_array(trim($scores[$col] ?? ''), $oldGeneric, true)) {
+                $needsRepair = true;
+                break;
+            }
+        }
+        if (!$needsRepair) {
+            return;
+        }
+
+        $typeMap = [
+            'personality_type' => fn($p) => $p >= 80 ? 'Extrovert' : ($p >= 60 ? 'Ambivert' : 'Introvert'),
+            'interest_type' => fn($p) => $p >= 80 ? 'Creative / Investigative' : ($p >= 60 ? 'Balanced' : 'Practical'),
+            'aptitude_type' => fn($p) => $p >= 70 ? 'Advanced' : ($p >= 50 ? 'Competent' : 'Beginner'),
+            'values_type' => fn($p) => $p >= 75 ? 'Defined' : ($p >= 50 ? 'Developing' : 'Undefined'),
+        ];
+
+        $scoreMap = [
+            'personality_type' => 'personality_score',
+            'interest_type' => 'interest_score',
+            'aptitude_type' => 'aptitude_score',
+            'values_type' => 'values_score',
+        ];
+
+        $conn = $this->recommendationRepo->getConnection();
+        foreach ($typeMap as $typeCol => $fn) {
+            $scoreCol = $scoreMap[$typeCol];
+            $score = (int)($scores[$scoreCol] ?? 0);
+            $newType = $fn($score);
+            $stmt = $conn->prepare("UPDATE student_assessment_scores SET `$typeCol` = :tp WHERE student_id = :sid");
+            $stmt->execute([':tp' => $newType, ':sid' => $userId]);
+        }
+    }
     private function filterByEducation(array $careers, ?string $educationLevel): array
     {
         if ($educationLevel === null || $educationLevel === '') {

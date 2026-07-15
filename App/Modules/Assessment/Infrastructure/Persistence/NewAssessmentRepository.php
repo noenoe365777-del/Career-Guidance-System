@@ -141,7 +141,14 @@ class NewAssessmentRepository
         $slug = $map[$assessmentId] ?? 'unknown';
         $scoreCol = $slug . '_score';
         $typeCol = $slug . '_type';
-        $type = $percentage >= 80 ? 'High' : ($percentage >= 50 ? 'Moderate' : 'Low');
+
+        $typeMap = [
+            1 => fn($p) => $p >= 80 ? 'Extrovert' : ($p >= 60 ? 'Ambivert' : 'Introvert'),
+            2 => fn($p) => $p >= 80 ? 'Creative / Investigative' : ($p >= 60 ? 'Balanced' : 'Practical'),
+            3 => fn($p) => $p >= 70 ? 'Advanced' : ($p >= 50 ? 'Competent' : 'Beginner'),
+            4 => fn($p) => $p >= 75 ? 'Defined' : ($p >= 50 ? 'Developing' : 'Undefined'),
+        ];
+        $type = isset($typeMap[$assessmentId]) ? $typeMap[$assessmentId]((int)$percentage) : 'Moderate';
 
         $stmt = $this->pdo->prepare("SELECT id FROM student_assessment_scores WHERE student_id = :sid");
         $stmt->execute([':sid' => $userId]);
@@ -187,5 +194,73 @@ class NewAssessmentRepository
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM assessment_results WHERE user_id = :uid AND status = 'completed'");
         $stmt->execute([':uid' => $userId]);
         return (int)$stmt->fetchColumn() >= 4;
+    }
+
+    public function getStudentAnswers(int $userId, int $assessmentId): array
+    {
+        $sql = "SELECT a.id, a.question_id, a.selected_answer, a.score AS answer_score,
+                       q.question, q.option_a, q.option_b, q.option_c, q.option_d,
+                       q.correct_answer, q.weight
+                FROM answers a
+                JOIN assessment_questions q ON q.id = a.question_id
+                WHERE a.user_id = :uid AND q.assessment_id = :aid
+                ORDER BY a.id ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':uid' => $userId, ':aid' => $assessmentId]);
+        return $stmt->fetchAll();
+    }
+
+    public function getAssessmentResult(int $userId, int $assessmentId): ?array
+    {
+        $sql = "SELECT ar.*, a.title AS assessment_name, a.description AS assessment_description, a.icon
+                FROM assessment_results ar
+                JOIN assessments a ON a.assessment_id = ar.assessment_id
+                WHERE ar.user_id = :uid AND ar.assessment_id = :aid AND ar.status = 'completed'
+                ORDER BY ar.id DESC LIMIT 1";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':uid' => $userId, ':aid' => $assessmentId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function getSuggestedCareers(int $assessmentId): array
+    {
+        $typeCols = [1 => 'personality_type', 2 => 'interest_type', 3 => 'aptitude_type', 4 => 'values_type'];
+        $col = $typeCols[$assessmentId] ?? null;
+        if (!$col) return [];
+
+        $scoreCol = str_replace('_type', '_score', $col);
+        $sql = "SELECT career_id, career_name, career_icon, description, required_skills,
+                       average_salary, growth_rate, education_required, $col AS match_type
+                FROM careers
+                WHERE status = 'active'
+                ORDER BY career_id ASC";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    public function getAssessmentTypeLabel(int $assessmentId): string
+    {
+        $labels = [1 => 'Personality', 2 => 'Interest', 3 => 'Aptitude', 4 => 'Career Values'];
+        return $labels[$assessmentId] ?? 'Assessment';
+    }
+
+    public function getCorrectAnswerCount(int $userId, int $assessmentId): int
+    {
+        $sql = "SELECT COUNT(*) FROM answers a
+                JOIN assessment_questions q ON q.id = a.question_id
+                WHERE a.user_id = :uid AND q.assessment_id = :aid
+                AND q.correct_answer IS NOT NULL
+                AND a.selected_answer = q.correct_answer";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':uid' => $userId, ':aid' => $assessmentId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function getTotalQuestionsForAssessment(int $assessmentId): int
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :aid");
+        $stmt->execute([':aid' => $assessmentId]);
+        return (int)$stmt->fetchColumn();
     }
 }

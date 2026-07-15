@@ -1,6 +1,6 @@
 <?php
 $recommendations = $recommendations ?? [];
-$hasRecommendations = count($recommendations) > 0;
+$hasRecommendations = $hasRecommendations ?? false;
 $interpretation = $interpretation ?? [];
 $strengths = $strengths ?? [];
 $growthAreas = $growthAreas ?? [];
@@ -12,6 +12,26 @@ function matchLevelLabel(float $pct): string
         $pct >= 75 => 'Strong Match',
         $pct >= 60 => 'Good Match',
         default => 'Average Match',
+    };
+}
+
+function matchBadgeClass(float $pct): string
+{
+    return match (true) {
+        $pct >= 90 => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        $pct >= 75 => 'bg-blue-100 text-blue-700 border-blue-200',
+        $pct >= 60 => 'bg-violet-100 text-violet-700 border-violet-200',
+        default => 'bg-slate-100 text-slate-600 border-slate-200',
+    };
+}
+
+function matchDotClass(float $pct): string
+{
+    return match (true) {
+        $pct >= 90 => 'bg-emerald-500',
+        $pct >= 75 => 'bg-blue-500',
+        $pct >= 60 => 'bg-violet-500',
+        default => 'bg-slate-400',
     };
 }
 
@@ -47,26 +67,6 @@ $colorMap = [
     'amber' => ['bg' => 'amber', 'text' => 'amber', 'grad' => 'from-amber-500 to-amber-600'],
     'slate' => ['bg' => 'slate', 'text' => 'slate', 'grad' => 'from-slate-500 to-slate-600'],
 ];
-
-function matchBadgeClass(float $pct): string
-{
-    return match (true) {
-        $pct >= 90 => 'bg-emerald-100 text-emerald-700 border-emerald-200',
-        $pct >= 75 => 'bg-blue-100 text-blue-700 border-blue-200',
-        $pct >= 60 => 'bg-violet-100 text-violet-700 border-violet-200',
-        default => 'bg-slate-100 text-slate-600 border-slate-200',
-    };
-}
-
-function matchDotClass(float $pct): string
-{
-    return match (true) {
-        $pct >= 90 => 'bg-emerald-500',
-        $pct >= 75 => 'bg-blue-500',
-        $pct >= 60 => 'bg-violet-500',
-        default => 'bg-slate-400',
-    };
-}
 ?>
 <div class="mx-auto max-w-6xl overflow-x-hidden px-4 py-8 sm:px-6">
     <section class="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -85,7 +85,7 @@ function matchDotClass(float $pct): string
 
     <?php if ($interpretation): ?>
     <div class="mb-8 grid gap-6 md:grid-cols-3">
-        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-5 md:col-span-1">
+        <div class="rounded-xl border border-slate-100 bg-white/80 p-5 md:col-span-1">
             <div class="flex items-center gap-2 mb-3">
                 <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600"><i class="bi bi-info-circle text-sm"></i></span>
                 <h3 class="text-sm font-bold text-slate-900">Interpretation</h3>
@@ -96,7 +96,7 @@ function matchDotClass(float $pct): string
             <?php endif; ?>
         </div>
 
-        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-5">
+        <div class="rounded-xl border border-slate-100 bg-white/80 p-5">
             <div class="flex items-center gap-2 mb-3">
                 <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><i class="bi bi-star text-sm"></i></span>
                 <h3 class="text-sm font-bold text-slate-900">Strengths</h3>
@@ -115,7 +115,7 @@ function matchDotClass(float $pct): string
             <?php endif; ?>
         </div>
 
-        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-5">
+        <div class="rounded-xl border border-slate-100 bg-white/80 p-5">
             <div class="flex items-center gap-2 mb-3">
                 <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><i class="bi bi-lightning text-sm"></i></span>
                 <h3 class="text-sm font-bold text-slate-900">Areas for Growth</h3>
@@ -137,7 +137,7 @@ function matchDotClass(float $pct): string
     <?php endif; ?>
 
     <div class="space-y-6">
-        <?php foreach ($recommendations as $index => $rec):
+        <?php foreach ($recommendations as $rec):
             $colorKey = $careerColors[$rec->careerName] ?? 'slate';
             $c = $colorMap[$colorKey];
             $pct = (int)$rec->matchPercent;
@@ -209,16 +209,17 @@ function matchDotClass(float $pct): string
         </div>
         <?php endforeach; ?>
     </div>
+
     <?php else: ?>
-    <section class="w-full min-w-0 rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-            <i class="fas fa-clipboard-check text-2xl text-amber-500"></i>
+    <section class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white/80 p-12 text-center shadow-sm">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <i class="fas fa-briefcase text-2xl text-slate-400"></i>
         </div>
-        <p class="text-sm font-semibold text-amber-800">Complete all four assessments to generate your career recommendations.</p>
-        <p class="mt-2 text-sm text-amber-600">Take the Personality, Interest, Aptitude, and Values assessments first.</p>
-        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:bg-amber-700">
-            Go to Assessments
-            <i class="fas fa-arrow-right text-xs"></i>
+        <h2 class="text-lg font-bold text-slate-900">No career recommendations available yet</h2>
+        <p class="mt-2 text-sm text-slate-500">Your assessment results are still being processed. Please check back later.</p>
+        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:bg-indigo-700">
+            <i class="fas fa-arrow-left text-xs"></i>
+            Back to Assessments
         </a>
     </section>
     <?php endif; ?>

@@ -136,4 +136,9 @@ class RecommendationRepository implements RecommendationRepositoryInterface
             return false;
         }
     }
+
+    public function getConnection(): PDO
+    {
+        return $this->connection;
+    }
 }

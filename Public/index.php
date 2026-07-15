@@ -22,7 +22,5 @@ require_once BASE_PATH . '/App/Routing/Router.php';
 
 use App\Routing\Router;
 
-$page = $_GET['page'] ?? 'home';
-
-$router = new Router();
-$router->dispatch($page);
+$router = require BASE_PATH . '/App/Routing/web.php';
+$router->dispatch();

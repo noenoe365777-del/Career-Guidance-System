@@ -74,6 +74,48 @@ class QuestionRepository implements QuestionRepositoryInterface
         }
     }
 
+    
+
+    public function getQuestionsByAssessmentId(int $assessmentId): array
+{
+    try {
+        $statement = $this->connection->prepare("
+            SELECT
+                question_id AS id,
+                question_text AS question,
+                question_type AS type,
+                question_order AS `order`
+            FROM questions
+            WHERE assessment_id = :assessment_id
+            ORDER BY question_order
+        ");
+
+        $statement->execute([
+            'assessment_id' => $assessmentId
+        ]);
+
+        $rows = $statement->fetchAll();
+
+        $questions = [];
+
+        foreach ($rows as $row) {
+
+            $questions[] = [
+                'id' => (int)$row['id'],
+                'question' => $row['question'],
+                'type' => $row['type'],
+                'order' => (int)$row['order'],
+                'options' => $this->getOptionsForQuestion((int)$row['id'])
+            ];
+        }
+
+        return $questions;
+
+    } catch (\Throwable) {
+        return [];
+    }
+}
+
     public function getTotalQuestionCount(int $assessmentId): int
     {
         try {

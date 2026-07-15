@@ -33,7 +33,7 @@ $userName = $user['name'] ?? $_SESSION['user_name'] ?? 'Student';
             <span class="font-medium">Dashboard</span>
         </a>
 
-        <a href="<?= BASE_URL ?>/index.php?page=assessments" class="sidebar-link flex items-center gap-3 p-3 rounded-xl text-sm font-semibold no-underline group text-slate-600 hover:text-indigo-600 hover:bg-slate-50">
+        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="sidebar-link flex items-center gap-3 p-3 rounded-xl text-sm font-semibold no-underline group text-slate-600 hover:text-indigo-600 hover:bg-slate-50">
             <i class="bi bi-clipboard-check text-xl text-slate-500 group-hover:text-indigo-600"></i>
             <span>Assessments</span>
         </a>

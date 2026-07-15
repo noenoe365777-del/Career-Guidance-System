@@ -1,3 +1,4 @@
+<?php $guestMode = $guestMode ?? false; ?>
 <div class="assessment-question-page">
     <div class="mb-6 flex items-center justify-between">
         <button type="button" id="exitAssessmentBtn" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 active:scale-[0.97]">
@@ -89,3 +90,125 @@
 }
 .option-item.selected .option-letter { background: #5B5FEF; color: #fff; }
 </style>
+
+<?php if ($guestMode): ?>
+<script>
+(function () {
+    'use strict';
+
+    var currentQuestion = 0;
+    var totalQuestions = 5;
+    var selectedAnswer = null;
+
+    function escapeHtml(str) {
+        if (typeof str !== 'string') return String(str);
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    loadQuestion(0);
+
+    function loadQuestion(index) {
+        fetch('index.php?page=guest-api-question&index=' + index)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.done) {
+                window.location = 'index.php?page=guest-result';
+                return;
+            }
+            currentQuestion = index;
+            renderQuestion(data);
+        });
+    }
+
+    function renderQuestion(data) {
+        var q = data.question;
+        var nav = data.navigation;
+        var prog = data.progress;
+        var selectedValue = data.selected;
+        var options = q.options || [];
+        var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+        var html = '<div class="question-text">' + escapeHtml(q.text) + '</div>';
+        html += '<div class="question-options" data-question-id="' + q.id + '">';
+
+        options.forEach(function (o, i) {
+            var isSelected = selectedValue !== null && String(selectedValue) === String(o.value);
+            html += '<div class="option-item' + (isSelected ? ' selected' : '') + '" data-value="' + o.value + '">';
+            html += '   <div class="option-radio"><div class="option-radio-inner"></div></div>';
+            html += '   <span class="option-letter">' + (letters[i] || '?') + '</span>';
+            html += '   <span class="option-text">' + escapeHtml(o.label) + '</span>';
+            html += '</div>';
+        });
+
+        html += '</div>';
+
+        var contentEl = document.getElementById('questionContent');
+        contentEl.innerHTML = html;
+        contentEl.style.animation = 'none';
+        void contentEl.offsetWidth;
+        contentEl.style.animation = 'questionSlideIn 0.35s cubic-bezier(0.22,1,0.36,1) both';
+
+        var percent = Math.round(prog.current / prog.total * 100);
+        document.getElementById('progressLabel').textContent = 'Question ' + prog.current + ' of ' + prog.total;
+        document.getElementById('progressPercent').textContent = percent + '%';
+        document.getElementById('progressBarFill').style.width = percent + '%';
+        document.getElementById('qCounterDisplay').textContent = prog.current + '/' + prog.total;
+
+        var prevBtn = document.getElementById('prevBtn');
+        var nextBtn = document.getElementById('nextBtn');
+
+        prevBtn.disabled = !nav.has_prev;
+
+        if (nav.is_last) {
+            nextBtn.innerHTML = '<i class="bi bi-check-lg"></i> Finish';
+            nextBtn.style.background = 'linear-gradient(135deg,#059669,#34d399)';
+        } else {
+            nextBtn.innerHTML = 'Next <i class="bi bi-chevron-right"></i>';
+            nextBtn.style.background = 'linear-gradient(135deg,#5B5FEF,#7B7FF5)';
+        }
+
+        nextBtn.disabled = selectedValue === null;
+        selectedAnswer = selectedValue !== null ? String(selectedValue) : null;
+
+        document.querySelectorAll('.option-item').forEach(function (opt) {
+            opt.addEventListener('click', function () {
+                document.querySelectorAll('.option-item').forEach(function (o) { o.classList.remove('selected'); });
+                this.classList.add('selected');
+                selectedAnswer = this.getAttribute('data-value');
+                document.getElementById('nextBtn').disabled = false;
+            });
+        });
+
+        prevBtn.onclick = function () {
+            if (currentQuestion > 0) loadQuestion(currentQuestion - 1);
+        };
+
+        nextBtn.onclick = function () {
+            if (selectedAnswer === null) return;
+
+            fetch('index.php?page=guest-api-save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: selectedAnswer })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function () {
+                if (currentQuestion + 1 >= totalQuestions) {
+                    fetch('index.php?page=guest-api-finish', { method: 'POST' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        window.location = data.redirect;
+                    });
+                } else {
+                    loadQuestion(currentQuestion + 1);
+                }
+            });
+        };
+    }
+})();
+</script>
+<?php else: ?>
+<script src="<?= BASE_URL ?>/assets/js/assessment-engine.js"></script>
+<?php endif; ?>

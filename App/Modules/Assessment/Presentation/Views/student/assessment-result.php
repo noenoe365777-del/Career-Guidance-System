@@ -11,7 +11,7 @@ $percentage = $maxScore > 0 ? (int)round(($score / $maxScore) * 100) : 0;
 ?>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-    <a href="<?= BASE_URL ?>/index.php?page=student-assessments"
+    <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2"
        class="inline-flex items-center text-sm font-bold text-blue-600 transition-colors hover:text-blue-800">
         <i class="fas fa-arrow-left mr-2"></i>
         Back to Assessments

@@ -11,7 +11,9 @@ use App\Shared\Core\View;
 
 class Router
 {
-    private array $routes;
+    private array $patterns = [];
+
+    private string $groupPrefix = '';
 
     private Container $container;
 
@@ -28,8 +30,6 @@ class Router
         'admin-settings-student-permissions' => 'admin',
         'admin-settings-student-permissions-manage' => 'admin',
         'admin-settings-student-permissions-save' => 'admin',
-        'student-feature-permissions'      => 'admin',
-        'student-feature-permissions-save' => 'admin',
         'admin-assessments'                => 'admin',
         'admin-assessments-view'           => 'admin',
         'admin-assessments-edit'           => 'admin',
@@ -86,19 +86,60 @@ class Router
         'v2-assessment-api-question'       => 'student',
         'v2-assessment-api-save'           => 'student',
         'v2-assessment-api-finish'         => 'student',
+        'assessment-v2-result'             => 'student',
         'recommendation'                   => 'student',
+        'career-recommendation'            => 'student',
     ];
 
     public function __construct()
     {
-        $this->routes = require BASE_PATH . '/App/Routing/web.php';
-
         $this->container = new Container();
     }
 
-    public function dispatch(string $page): void
+    public function get(string $path, array $handler): void
     {
-        if (!isset($this->routes[$page])) {
+        $this->match(['GET'], $path, $handler);
+    }
+
+    public function post(string $path, array $handler): void
+    {
+        $this->match(['POST'], $path, $handler);
+    }
+
+    public function group(string $prefix, callable $callback): void
+    {
+        $previous = $this->groupPrefix;
+        $this->groupPrefix = rtrim($this->groupPrefix, '/') . '/' . trim($prefix, '/');
+        $callback($this);
+        $this->groupPrefix = $previous;
+    }
+
+    public function match(array $methods, string $path, array $handler): void
+    {
+        $path = $this->groupPrefix . '/' . trim($path, '/');
+        $path = '/' . ltrim(preg_replace('#/+#', '/', $path), '/');
+
+        $pageName = str_replace('/', '-', trim($path, '/'));
+        $flatPath = '/' . $pageName;
+
+        foreach ($methods as $method) {
+            $this->patterns[strtoupper($method)][$path] = $handler;
+
+            if ($flatPath !== $path) {
+                $this->patterns[strtoupper($method)][$flatPath] = $handler;
+            }
+        }
+    }
+
+    public function dispatch(): void
+    {
+        $page = $_GET['page'] ?? 'home';
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $path = '/' . $page;
+
+        $handler = $this->patterns[$method][$path] ?? $this->patterns['GET'][$path] ?? null;
+
+        if ($handler === null) {
             http_response_code(404);
             echo "404 - Page not found";
             return;
@@ -110,11 +151,11 @@ class Router
             StudentFeaturePermissionHelper::ensureStudentPageAccess($page);
         }
 
-        [$controllerClass, $method] = $this->routes[$page];
+        [$controllerClass, $methodName] = $handler;
 
         $controller = $this->container->make($controllerClass);
 
-        $controller->$method();
+        $controller->$methodName();
     }
 
     private function runGuard(string $page): void
