@@ -105,7 +105,7 @@ function dashboardFormatDate(?string $value): string
                         <i class="fas fa-graduation-cap"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">Welcome back, <?= $studentName ?></h1>
+                        <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">Welcome back, <?= $studentName ?>!👋</h1>
                         <p class="mt-0.5 text-sm text-slate-500">Complete your assessments to unlock personalized career recommendations.</p>
                     </div>
                 </div>

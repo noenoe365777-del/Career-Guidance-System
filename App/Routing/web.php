@@ -19,203 +19,179 @@ use App\Modules\Recommendation\Presentation\Controllers\RecommendationController
 use App\Modules\Recommendation\Presentation\Controllers\CareerRecommendationController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 
-$router = new \App\Routing\Router();
+$router = new \App\Routing\Router;
 
 /*
 |--------------------------------------------------------------------------
-| HOME ROUTES
+| PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
 
-$router->get('/home', [HomeController::class, 'index']);
-$router->get('/about-us', [HomeController::class, 'aboutUs']);
-$router->get('/about', [HomeController::class, 'about']);
-$router->get('/contact', [HomeController::class, 'contact']);
+$router->get('/home', [HomeController::class, 'index'])->name('home');
+$router->get('/about-us', [HomeController::class, 'aboutUs'])->name('about-us');
+$router->get('/about', [HomeController::class, 'about'])->name('about');
+$router->get('/contact', [HomeController::class, 'contact'])->name('contact');
+$router->get('/careers', [CareerController::class, 'index'])->name('careers');
+$router->get('/career-detail', [CareerController::class, 'show'])->name('career-detail');
+$router->get('/assessments', [PublicAssessmentController::class, 'index'])->name('assessments');
+
+/*
+|--------------------------------------------------------------------------
+| GUEST ASSESSMENT ROUTES
+|--------------------------------------------------------------------------
+*/
+
+$router->group('/guest', function ($router) {
+    $router->post('/api-start', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiStart']);
+    $router->get('/api-question', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiQuestion']);
+    $router->post('/api-save', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiSave']);
+    $router->post('/api-finish', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiFinish']);
+    $router->post('/api-exit', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiExit']);
+    $router->get('/result', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'guestResult']);
+    $router->get('/question', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'question']);
+});
 
 /*
 |--------------------------------------------------------------------------
 | AUTH ROUTES
 |--------------------------------------------------------------------------
-|
-| These handle both displaying forms and processing submissions
-| within the same controller method, so they accept GET and POST.
-|
 */
 
-$router->match(['GET', 'POST'], '/login', [AuthController::class, 'login']);
-$router->match(['GET', 'POST'], '/register', [AuthController::class, 'register']);
-$router->match(['GET', 'POST'], '/forgot-password', [AuthController::class, 'forgotPassword']);
-$router->match(['GET', 'POST'], '/verify-reset-code', [AuthController::class, 'verifyResetCode']);
-$router->match(['GET', 'POST'], '/reset-password', [AuthController::class, 'resetPassword']);
-$router->get('/verify-email', [AuthController::class, 'verifyEmail']);
-$router->get('/resend-verification', [AuthController::class, 'resendVerification']);
-$router->get('/google-login', [AuthController::class, 'googleLogin']);
-$router->get('/google-callback', [AuthController::class, 'googleCallback']);
-$router->get('/logout', [AuthController::class, 'logout']);
+$router->match(['GET', 'POST'], '/login', [AuthController::class, 'login'])->name('login');
+$router->match(['GET', 'POST'], '/register', [AuthController::class, 'register'])->name('register');
+$router->match(['GET', 'POST'], '/forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
+$router->match(['GET', 'POST'], '/verify-reset-code', [AuthController::class, 'verifyResetCode'])->name('verify-reset-code');
+$router->match(['GET', 'POST'], '/reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
+$router->get('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify-email');
+$router->get('/resend-verification', [AuthController::class, 'resendVerification'])->name('resend-verification');
+$router->get('/google-login', [AuthController::class, 'googleLogin'])->name('google-login');
+$router->get('/google-callback', [AuthController::class, 'googleCallback'])->name('google-callback');
+$router->get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 /*
 |--------------------------------------------------------------------------
-| DASHBOARD ROUTES
+| AUTHENTICATED STUDENT ROUTES
 |--------------------------------------------------------------------------
 */
 
-$router->get('/dashboard', [DashboardController::class, 'index']);
+$router->middleware(['auth', 'student'], function ($router) {
 
-/*
-|--------------------------------------------------------------------------
-| PROFILE ROUTES
-|--------------------------------------------------------------------------
-*/
+    $router->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-$router->get('/profile', [ProfileController::class, 'index']);
-$router->get('/edit-profile', [ProfileController::class, 'edit']);
-$router->post('/update-profile', [ProfileController::class, 'update']);
-$router->post('/update-profile-image', [ProfileController::class, 'updateProfileImage']);
-$router->get('/change-password', [ProfileController::class, 'changePassword']);
-$router->get('/student-change-password', [ProfileController::class, 'studentChangePassword']);
-$router->post('/update-password', [ProfileController::class, 'updatePassword']);
-$router->get('/notifications', [ProfileController::class, 'notifications']);
+    $router->get('/profile', [ProfileController::class, 'index'])->name('profile');
+    $router->get('/edit-profile', [ProfileController::class, 'edit'])->name('edit-profile');
+    $router->post('/update-profile', [ProfileController::class, 'update'])->name('update-profile');
+    $router->post('/update-profile-image', [ProfileController::class, 'updateProfileImage'])->name('update-profile-image');
+    $router->get('/change-password', [ProfileController::class, 'changePassword'])->name('change-password');
+    $router->get('/student-change-password', [ProfileController::class, 'studentChangePassword'])->name('student-change-password');
+    $router->post('/update-password', [ProfileController::class, 'updatePassword'])->name('update-password');
+    $router->get('/notifications', [ProfileController::class, 'notifications'])->name('notifications');
 
-/*
-|--------------------------------------------------------------------------
-| PUBLIC ASSESSMENT ROUTES
-|--------------------------------------------------------------------------
-*/
+    $router->get('/student-assessments', [StudentAssessmentController::class, 'index'])->name('student-assessments');
+    $router->get('/student-assessments-v2', [StudentAssessmentController::class, 'v2Index'])->name('student-assessments-v2');
+    $router->get('/personality', [StudentAssessmentController::class, 'personality'])->name('personality');
+    $router->get('/interest', [StudentAssessmentController::class, 'interest'])->name('interest');
+    $router->get('/aptitude', [StudentAssessmentController::class, 'aptitude'])->name('aptitude');
+    $router->get('/values', [StudentAssessmentController::class, 'values'])->name('values');
+    $router->get('/assessment-progress', [StudentAssessmentController::class, 'progress'])->name('assessment-progress');
+    $router->get('/assessment-result', [StudentAssessmentController::class, 'viewResult'])->name('assessment-result');
+    $router->get('/assessment-detailed-answers', [StudentAssessmentController::class, 'detailedAnswers'])->name('assessment-detailed-answers');
+    $router->get('/assessment-v2-result', [StudentAssessmentController::class, 'v2Result'])->name('assessment-v2-result');
 
-$router->get('/assessments', [PublicAssessmentController::class, 'index']);
+    $router->group('/assessment-api', function ($router) {
+        $router->post('/start', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiStart']);
+        $router->get('/question', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiQuestion']);
+        $router->post('/save', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiSave']);
+        $router->post('/finish', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiFinish']);
+        $router->post('/exit', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiExit']);
+    });
 
-$router->group('/guest', function ($router) {
-    $router->post('/api-start', [PublicAssessmentController::class, 'apiStart']);
-    $router->get('/api-question', [PublicAssessmentController::class, 'apiQuestion']);
-    $router->post('/api-save', [PublicAssessmentController::class, 'apiSave']);
-    $router->post('/api-finish', [PublicAssessmentController::class, 'apiFinish']);
-    $router->get('/result', [PublicAssessmentController::class, 'guestResult']);
-    $router->get('/personality', [PublicAssessmentController::class, 'personality']);
-    $router->get('/interest', [PublicAssessmentController::class, 'interest']);
-    $router->get('/aptitude', [PublicAssessmentController::class, 'aptitude']);
-    $router->get('/values', [PublicAssessmentController::class, 'values']);
+    $router->group('/v2', function ($router) {
+        $router->post('/assessment-api-start', [StudentAssessmentController::class, 'v2ApiStart']);
+        $router->get('/assessment-api-question', [StudentAssessmentController::class, 'v2ApiQuestion']);
+        $router->post('/assessment-api-save', [StudentAssessmentController::class, 'v2ApiSave']);
+        $router->post('/assessment-api-finish', [StudentAssessmentController::class, 'v2ApiFinish']);
+    });
+
+    $router->get('/recommendation', [RecommendationController::class, 'index'])->name('recommendation');
+    $router->get('/career-recommendation', [CareerRecommendationController::class, 'index'])->name('career-recommendation');
 });
-
-/*
-|--------------------------------------------------------------------------
-| STUDENT ROUTES
-|--------------------------------------------------------------------------
-|
-| These routes are kept flat because their page names don't follow a single
-| prefix convention (e.g., `personality` vs `student-assessments`).
-|
-| Assessment API sub-routes are grouped under /assessment-api.
-|
-*/
-
-$router->get('/student-assessments', [StudentAssessmentController::class, 'index']);
-$router->get('/student-assessments-v2', [StudentAssessmentController::class, 'v2Index']);
-$router->get('/personality', [StudentAssessmentController::class, 'personality']);
-$router->get('/interest', [StudentAssessmentController::class, 'interest']);
-$router->get('/aptitude', [StudentAssessmentController::class, 'aptitude']);
-$router->get('/values', [StudentAssessmentController::class, 'values']);
-$router->get('/assessment-progress', [StudentAssessmentController::class, 'progress']);
-$router->get('/assessment-result', [StudentAssessmentController::class, 'viewResult']);
-$router->get('/assessment-detailed-answers', [StudentAssessmentController::class, 'detailedAnswers']);
-$router->get('/assessment-v2-result', [StudentAssessmentController::class, 'v2Result']);
-
-$router->group('/assessment-api', function ($router) {
-    $router->post('/start', [StudentAssessmentController::class, 'apiStart']);
-    $router->get('/question', [StudentAssessmentController::class, 'apiQuestion']);
-    $router->post('/save-answer', [StudentAssessmentController::class, 'apiSaveAnswer']);
-    $router->post('/finish', [StudentAssessmentController::class, 'apiFinish']);
-});
-
-$router->group('/v2', function ($router) {
-    $router->post('/assessment-api-start', [StudentAssessmentController::class, 'v2ApiStart']);
-    $router->get('/assessment-api-question', [StudentAssessmentController::class, 'v2ApiQuestion']);
-    $router->post('/assessment-api-save', [StudentAssessmentController::class, 'v2ApiSave']);
-    $router->post('/assessment-api-finish', [StudentAssessmentController::class, 'v2ApiFinish']);
-});
-
-/*
-|--------------------------------------------------------------------------
-| CAREER ROUTES
-|--------------------------------------------------------------------------
-*/
-
-$router->get('/careers', [CareerController::class, 'index']);
-$router->get('/career-detail', [CareerController::class, 'show']);
-
-/*
-|--------------------------------------------------------------------------
-| RECOMMENDATION ROUTES
-|--------------------------------------------------------------------------
-*/
-
-$router->get('/recommendation', [RecommendationController::class, 'index']);
-$router->get('/career-recommendation', [CareerRecommendationController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
-|
-| All admin routes share the /admin prefix and are grouped for clarity.
-|
 */
 
-$router->match(['GET', 'POST'], '/admin-login', [AdminController::class, 'login']);
-$router->get('/admin-logout', [AdminController::class, 'logout']);
+$router->match(['GET', 'POST'], '/admin-login', [AdminController::class, 'login'])->name('admin-login');
+$router->get('/admin-logout', [AdminController::class, 'logout'])->name('admin-logout');
 
 $router->group('/admin', function ($router) {
-    $router->get('/dashboard', [AdminController::class, 'dashboard']);
 
-    $router->get('/users', [UserController::class, 'index']);
-    $router->get('/users-view', [UserController::class, 'show']);
+    $router->get('/dashboard', [AdminController::class, 'dashboard'])->name('admin-dashboard');
+
+    $router->group('/users', function ($router) {
+        $router->get('', [UserController::class, 'index'], ['can:user.view'])->name('admin.users');
+        $router->get('/view', [UserController::class, 'show'], ['can:user.view'])->name('admin.users.view');
+    });
 
     $router->group('/settings', function ($router) {
-        $router->get('/student-permissions', [StudentFeaturePermissionController::class, 'index']);
-        $router->get('/student-permissions-manage', [StudentFeaturePermissionController::class, 'manage']);
-        $router->post('/student-permissions-save', [StudentFeaturePermissionController::class, 'save']);
+        $router->get('/student-permissions', [StudentFeaturePermissionController::class, 'index'], ['can:permission.manage'])->name('admin.settings.student-permissions');
+        $router->get('/student-permissions-manage', [StudentFeaturePermissionController::class, 'manage'], ['can:permission.manage'])->name('admin.settings.student-permissions-manage');
+        $router->post('/student-permissions-save', [StudentFeaturePermissionController::class, 'save'], ['can:permission.manage'])->name('admin.settings.student-permissions-save');
     });
 
     $router->group('/assessments', function ($router) {
-        $router->get('', [AdminAssessmentController::class, 'index']);
-        $router->get('/view', [AdminAssessmentController::class, 'show']);
-        $router->get('/edit', [AdminAssessmentController::class, 'edit']);
-        $router->post('/update', [AdminAssessmentController::class, 'update']);
-        $router->post('/toggle-status', [AdminAssessmentController::class, 'toggleStatus']);
-        $router->post('/duplicate', [AdminAssessmentController::class, 'duplicate']);
+        $router->get('', [AdminAssessmentController::class, 'index'], ['can:assessment.view'])->name('admin.assessments');
+        $router->get('/view', [AdminAssessmentController::class, 'show'], ['can:assessment.view'])->name('admin.assessments.view');
+        $router->get('/edit', [AdminAssessmentController::class, 'edit'], ['can:assessment.update'])->name('admin.assessments.edit');
+        $router->post('/update', [AdminAssessmentController::class, 'update'], ['can:assessment.update'])->name('admin.assessments.update');
+        $router->post('/toggle-status', [AdminAssessmentController::class, 'toggleStatus'], ['can:assessment.update'])->name('admin.assessments.toggle-status');
+        $router->post('/duplicate', [AdminAssessmentController::class, 'duplicate'], ['can:assessment.create'])->name('admin.assessments.duplicate');
     });
 
     $router->group('/careers', function ($router) {
-        $router->get('', [AdminCareerController::class, 'index']);
-        $router->get('/view', [AdminCareerController::class, 'show']);
-        $router->get('/create', [AdminCareerController::class, 'create']);
-        $router->post('/store', [AdminCareerController::class, 'store']);
-        $router->get('/edit', [AdminCareerController::class, 'edit']);
-        $router->post('/update', [AdminCareerController::class, 'update']);
-        $router->post('/delete', [AdminCareerController::class, 'delete']);
+        $router->get('', [AdminCareerController::class, 'index'], ['can:career.view'])->name('admin.careers');
+        $router->get('/view', [AdminCareerController::class, 'show'], ['can:career.view'])->name('admin.careers.view');
+        $router->get('/create', [AdminCareerController::class, 'create'], ['can:career.create'])->name('admin.careers.create');
+        $router->post('/store', [AdminCareerController::class, 'store'], ['can:career.create'])->name('admin.careers.store');
+        $router->get('/edit', [AdminCareerController::class, 'edit'], ['can:career.update'])->name('admin.careers.edit');
+        $router->post('/update', [AdminCareerController::class, 'update'], ['can:career.update'])->name('admin.careers.update');
+        $router->post('/delete', [AdminCareerController::class, 'delete'], ['can:career.delete'])->name('admin.careers.delete');
     });
 
     $router->group('/questions', function ($router) {
-        $router->get('', [AdminQuestionController::class, 'index']);
-        $router->get('/view', [AdminQuestionController::class, 'show']);
-        $router->get('/create', [AdminQuestionController::class, 'create']);
-        $router->post('/store', [AdminQuestionController::class, 'store']);
-        $router->get('/edit', [AdminQuestionController::class, 'edit']);
-        $router->post('/update', [AdminQuestionController::class, 'update']);
-        $router->post('/delete', [AdminQuestionController::class, 'delete']);
-        $router->post('/duplicate', [AdminQuestionController::class, 'duplicate']);
-        $router->post('/bulk-delete', [AdminQuestionController::class, 'bulkDelete']);
+        $router->get('', [AdminQuestionController::class, 'index'], ['can:question.view'])->name('admin.questions');
+        $router->get('/view', [AdminQuestionController::class, 'show'], ['can:question.view'])->name('admin.questions.view');
+        $router->get('/create', [AdminQuestionController::class, 'create'], ['can:question.create'])->name('admin.questions.create');
+        $router->post('/store', [AdminQuestionController::class, 'store'], ['can:question.create'])->name('admin.questions.store');
+        $router->get('/edit', [AdminQuestionController::class, 'edit'], ['can:question.update'])->name('admin.questions.edit');
+        $router->post('/update', [AdminQuestionController::class, 'update'], ['can:question.update'])->name('admin.questions.update');
+        $router->post('/delete', [AdminQuestionController::class, 'delete'], ['can:question.delete'])->name('admin.questions.delete');
+        $router->post('/duplicate', [AdminQuestionController::class, 'duplicate'], ['can:question.create'])->name('admin.questions.duplicate');
+        $router->post('/bulk-delete', [AdminQuestionController::class, 'bulkDelete'], ['can:question.delete'])->name('admin.questions.bulk-delete');
     });
 
-    $router->get('/reports', [AdminReportsController::class, 'index']);
+    $router->match(['GET', 'POST'], '/profile', [AdminController::class, 'profile'])->name('admin.profile');
 
-    $router->get('/notifications', [AdminNotificationController::class, 'index']);
-    $router->get('/notifications-api-unread-count', [AdminNotificationController::class, 'apiUnreadCount']);
-    $router->post('/notifications-api-mark-read', [AdminNotificationController::class, 'apiMarkAsRead']);
-    $router->post('/notifications-api-mark-all-read', [AdminNotificationController::class, 'apiMarkAllAsRead']);
-    $router->post('/notifications-api-delete', [AdminNotificationController::class, 'apiDelete']);
+    $router->group('/reports', function ($router) {
+        $router->get('', [AdminReportsController::class, 'index'], ['can:report.view'])->name('admin.reports');
+    });
 
-    $router->get('/role-permissions', [RolesAndPermissionsController::class, 'index']);
-    $router->post('/role-permissions-save', [RolesAndPermissionsController::class, 'save']);
-});
+    $router->group('/notifications', function ($router) {
+        $router->get('', [AdminNotificationController::class, 'index'], ['can:notification.view'])->name('admin.notifications');
+        $router->get('/api-unread-count', [AdminNotificationController::class, 'apiUnreadCount'], ['can:notification.view']);
+        $router->get('/api-list', [AdminNotificationController::class, 'apiList'], ['can:notification.view']);
+        $router->post('/api-mark-read', [AdminNotificationController::class, 'apiMarkAsRead'], ['can:notification.view']);
+        $router->post('/api-mark-all-read', [AdminNotificationController::class, 'apiMarkAllAsRead'], ['can:notification.view']);
+        $router->post('/api-delete', [AdminNotificationController::class, 'apiDelete'], ['can:notification.view']);
+    });
+
+    $router->group('/role-permissions', function ($router) {
+        $router->get('', [RolesAndPermissionsController::class, 'index'], ['can:permission.manage'])->name('admin.role-permissions');
+        $router->post('/save', [RolesAndPermissionsController::class, 'save'], ['can:permission.manage'])->name('admin.role-permissions.save');
+    });
+
+}, ['admin']);
 
 return $router;

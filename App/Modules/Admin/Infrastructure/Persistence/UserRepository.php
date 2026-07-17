@@ -73,10 +73,10 @@ class UserRepository implements UserRepositoryInterface
                 SELECT sa.user_id,
                        COUNT(*) AS total_count,
                        SUM(CASE WHEN sa.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
-                       SUM(CASE WHEN sa.status = 'completed' AND a.assessment_type = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
-                       SUM(CASE WHEN sa.status = 'completed' AND a.assessment_type = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
-                       SUM(CASE WHEN sa.status = 'completed' AND a.assessment_type = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
-                       SUM(CASE WHEN sa.status = 'completed' AND a.assessment_type = 'values' THEN 1 ELSE 0 END) AS values_completed
+                       SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
+                       SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
+                       SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
+                       SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'career values' THEN 1 ELSE 0 END) AS values_completed
                 FROM student_assessments sa
                 JOIN assessments a ON a.assessment_id = sa.assessment_id
                 GROUP BY sa.user_id
@@ -232,10 +232,10 @@ public function getRecentStudents(int $limit = 5): array
                 SELECT
                     COUNT(*) AS total_count,
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
-                    SUM(CASE WHEN status = 'completed' AND a.assessment_type = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
-                    SUM(CASE WHEN status = 'completed' AND a.assessment_type = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
-                    SUM(CASE WHEN status = 'completed' AND a.assessment_type = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
-                    SUM(CASE WHEN status = 'completed' AND a.assessment_type = 'values' THEN 1 ELSE 0 END) AS values_completed
+                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
+                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
+                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
+                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'career values' THEN 1 ELSE 0 END) AS values_completed
                 FROM student_assessments sa
                 JOIN assessments a ON a.assessment_id = sa.assessment_id
                 WHERE sa.user_id = :id

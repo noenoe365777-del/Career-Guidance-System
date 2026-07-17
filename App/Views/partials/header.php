@@ -51,7 +51,7 @@
     </script>
 </head>
 
-<body class="font-sans bg-slate-50/50 text-slate-900 min-h-screen flex flex-col antialiased overflow-x-hidden" data-page="<?= $currentPage ?>">
+<body class="font-sans bg-slate-50/50 text-slate-900 min-h-screen flex flex-col antialiased overflow-x-hidden" data-page="<?= $_GET['page'] ?? 'home' ?>">
 
 <?php 
 $user = isset($_SESSION['user']) ? $_SESSION['user'] : null; 
@@ -60,7 +60,7 @@ $user = isset($_SESSION['user']) ? $_SESSION['user'] : null;
 $currentPage = $_GET['page'] ?? 'home';
 
 $isLoggedIn = !empty($_SESSION['user_id']);
-$assessmentsPage = $isLoggedIn ? 'student-assessments' : 'assessments';
+$assessmentsPage = $isLoggedIn ? 'student-assessments-v2' : 'assessments';
 
 $navItems = [
     'home' => 'Home',
@@ -171,7 +171,7 @@ $navItems = [
 <div id="mobileMenu" class="hidden lg:hidden fixed inset-x-0 top-20 bg-white border-b border-slate-200 shadow-xl px-4 py-6 space-y-1 z-40">
     
     <?php foreach ($navItems as $key => $label): 
-        $icons = ['home' => 'house', 'assessments' => 'file-alt', 'student-assessments' => 'file-alt', 'careers' => 'briefcase', 'about-us' => 'circle-info', 'contact' => 'envelope'];
+        $icons = ['home' => 'house', 'assessments' => 'file-alt', 'student-assessments' => 'file-alt', 'student-assessments-v2' => 'file-alt', 'careers' => 'briefcase', 'about-us' => 'circle-info', 'contact' => 'envelope'];
         $isActive = ($currentPage === $key);
     ?>
         <a href="<?= BASE_URL ?>/index.php?page=<?= $key ?>" 

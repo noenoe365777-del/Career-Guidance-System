@@ -37,19 +37,8 @@ class AssessmentController extends Controller
 
     public function index(): void
     {
-        $user = $this->requireAuthenticatedUser();
-        $userId = (int)($user['id'] ?? 0);
-        $assessments = $this->engineRepo->getAssessmentsWithProgress($userId);
-
-        $this->view(
-            'Assessment/Presentation/Views/student/assessment_dashboard',
-            [
-                'pageTitle' => 'My Assessments',
-                'assessments' => $assessments,
-                'user' => $user,
-                'layout' => 'dashboard',
-            ]
-        );
+        header('Location: ' . BASE_URL . '/index.php?page=student-assessments-v2');
+        exit;
     }
 
     public function personality(): void
@@ -96,12 +85,12 @@ class AssessmentController extends Controller
         $slug = $_GET['slug'] ?? '';
 
         if ($slug === '') {
-            $this->redirectTo('student-assessments');
+            $this->redirectTo('student-assessments-v2');
         }
 
         $result = $this->resultService->getResult($userId, $slug);
         if (!$result) {
-            $this->redirectTo('student-assessments');
+            $this->redirectTo('student-assessments-v2');
         }
 
         $this->view(
@@ -122,12 +111,12 @@ class AssessmentController extends Controller
         $slug = $_GET['slug'] ?? '';
 
         if ($slug === '') {
-            $this->redirectTo('student-assessments');
+            $this->redirectTo('student-assessments-v2');
         }
 
         $result = $this->resultService->getResult($userId, $slug);
         if (!$result) {
-            $this->redirectTo('student-assessments');
+            $this->redirectTo('student-assessments-v2');
         }
 
         $questions = $this->questionRepository->getQuestionsBySlug($slug);
@@ -172,7 +161,7 @@ class AssessmentController extends Controller
 
         $assessmentData = $this->assessmentService->startAssessment($slug, $userId);
         if (!$assessmentData['success']) {
-            $this->redirectTo('student-assessments');
+            $this->redirectTo('student-assessments-v2');
             return;
         }
 
@@ -208,7 +197,7 @@ class AssessmentController extends Controller
                 'buttonClass' => $buttonClass,
                 'user' => $user,
                 'layout' => 'dashboard',
-                'backToPage' => 'student-assessments',
+                'backToPage' => 'student-assessments-v2',
             ]
         );
     }

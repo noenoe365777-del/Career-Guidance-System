@@ -52,7 +52,7 @@ function renderMenuItems(array $items, string $activeMenu, bool $settingsExpande
                     <i class="bi settings-chevron text-xs transition-transform duration-200 <?= $settingsExpanded ? 'bi-chevron-up rotate-180 text-white' : 'bi-chevron-down text-slate-400 group-hover:text-indigo-600' ?>"></i>
                 </button>
 
-                <div class="submenu <?= $settingsExpanded ? 'open' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1">
+                <div class="submenu <?= $settingsExpanded ? 'open' : '' ?> mt-1 ml-4 border-l border-slate-100 pl-2 space-y-1" style="max-height: <?= $settingsExpanded ? 'none' : '0' ?>">
                     <?php foreach ($item['children'] as $child):
                         $isChildActive = $activeMenu === $child['key'];
                     ?>
@@ -204,9 +204,25 @@ function renderMenuItems(array $items, string $activeMenu, bool $settingsExpande
         }
     }
 
+    function closeAllSubmenus() {
+        document.querySelectorAll('.submenu.open').forEach(function(sm) {
+            sm.classList.remove('open');
+            sm.style.maxHeight = '0';
+        });
+        document.querySelectorAll('[data-toggle="submenu"]').forEach(function(btn) {
+            updateButtonState(btn, false);
+        });
+    }
+
     init();
 
     document.addEventListener('click', function(e) {
+        var link = e.target.closest('.sidebar-link:not([data-toggle])');
+        if (link) {
+            closeAllSubmenus();
+            return;
+        }
+
         var btn = e.target.closest('[data-toggle="submenu"]');
         if (!btn) return;
 
@@ -215,15 +231,22 @@ function renderMenuItems(array $items, string $activeMenu, bool $settingsExpande
 
         var isOpen = sm.classList.contains('open');
 
-        if (isOpen) {
-            sm.classList.remove('open');
-            sm.style.maxHeight = '0';
-        } else {
+        closeAllSubmenus();
+
+        if (!isOpen) {
+            document.querySelectorAll('.sidebar-link:not([data-toggle]).sidebar-link-active').forEach(function(link) {
+                link.classList.remove('sidebar-link-active', 'text-white', 'bg-custom-gradient', 'shadow-md');
+                link.classList.add('text-slate-600', 'hover:text-indigo-600', 'hover:bg-slate-50');
+                var icon = link.querySelector('.bi:not(.settings-chevron)');
+                if (icon) {
+                    icon.classList.remove('text-white');
+                    icon.classList.add('text-slate-600');
+                }
+            });
             sm.classList.add('open');
             sm.style.maxHeight = sm.scrollHeight + 'px';
+            updateButtonState(btn, true);
         }
-
-        updateButtonState(btn, !isOpen);
     });
 })();
 </script>

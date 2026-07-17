@@ -4,30 +4,66 @@ declare(strict_types=1);
 
 namespace App\Modules\Dashboard\Application\Services;
 
+use App\Modules\Assessment\Infrastructure\Persistence\StudentAssessmentRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\DashboardRepository;
 use App\Modules\Recommendation\Application\Services\RecommendationService;
 
 class DashboardService
 {
     private DashboardRepository $dashboardRepository;
+    private StudentAssessmentRepository $assessmentRepository;
     private RecommendationService $recommendationService;
+
+    private const ASSESSMENT_SLUGS = ['personality', 'interest', 'aptitude', 'values'];
 
     public function __construct()
     {
         $this->dashboardRepository = new DashboardRepository();
+        $this->assessmentRepository = new StudentAssessmentRepository();
         $this->recommendationService = new RecommendationService();
     }
 
     public function getDashboardData(int $userId): array
     {
-        $totalAssessments = 4;
-        $completedAssessments = $this->dashboardRepository->getCompletedAssessments($userId);
-        $allCompleted = $completedAssessments >= $totalAssessments;
+        // Get progress from the same source as Assessment page
+        $progress = $this->assessmentRepository->getProgressSummary($userId);
 
-        $percentage = 0;
-        if ($totalAssessments > 0) {
-            $percentage = round(($completedAssessments / $totalAssessments) * 100);
+        // Build complete status map for all 4 assessments
+        $statusMap = [];
+        $completedAssessments = 0;
+
+        foreach (self::ASSESSMENT_SLUGS as $slug) {
+            $data = $progress[$slug] ?? null;
+
+            if ($data && ($data['is_completed'] ?? false)) {
+                $completedAssessments++;
+                $statusMap[$slug] = [
+                    'status' => 'completed',
+                    'completed_at' => $data['completed_at'] ?? null,
+                ];
+            } elseif ($data) {
+                $statusMap[$slug] = [
+                    'status' => $data['status'] ?? 'in_progress',
+                    'completed_at' => $data['completed_at'] ?? null,
+                ];
+            } else {
+                // Assessment not started yet
+                $statusMap[$slug] = [
+                    'status' => 'Locked',
+                    'completed_at' => null,
+                ];
+            }
         }
+
+        $completedAssessments = 0;
+        foreach (self::ASSESSMENT_SLUGS as $slug) {
+            if (($statusMap[$slug]['status'] ?? '') === 'completed') {
+                $completedAssessments++;
+            }
+        }
+
+        $percentage = $completedAssessments > 0 ? round(($completedAssessments / 4) * 100) : 0;
+        $allCompleted = $completedAssessments >= 4;
 
         $recommendation = $this->dashboardRepository->getRecommendation($userId);
 
@@ -37,12 +73,12 @@ class DashboardService
         }
 
         return [
-            'totalAssessments' => $totalAssessments,
+            'totalAssessments' => 4,
             'completedAssessments' => $completedAssessments,
             'percentage' => $percentage,
             'allCompleted' => $allCompleted,
-            'statusMap' => $this->dashboardRepository->getAssessmentStatus($userId),
-            'recommendation' => $recommendation,
+            'statusMap' => $statusMap,
+            'recommendation' => $this->dashboardRepository->getRecommendation($userId),
         ];
     }
 }

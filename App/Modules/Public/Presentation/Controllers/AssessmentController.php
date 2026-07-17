@@ -21,12 +21,12 @@ class AssessmentController extends Controller
         $isLoggedIn = !empty($_SESSION['user_id']);
 
         if ($isLoggedIn) {
-            $user = $this->getAuthenticatedUser();
-            $userId = isset($user['id']) ? (int)$user['id'] : null;
-        } else {
-            $user = null;
-            $userId = null;
+            header('Location: ' . BASE_URL . '/index.php?page=student-assessments-v2');
+            exit;
         }
+
+        $user = null;
+        $userId = null;
 
         $assessments = $this->assessmentService->getAssessments($userId);
 
@@ -78,6 +78,62 @@ class AssessmentController extends Controller
         );
     }
 
+    public function question(): void
+    {
+        $assessmentId = (int)($_GET['assessment'] ?? 0);
+        
+        if ($assessmentId <= 0) {
+            header('Location: ' . BASE_URL . '/index.php?page=assessments');
+            exit;
+        }
+
+        $assessment = $this->assessmentService->getAssessmentById($assessmentId);
+
+        if (!$assessment) {
+            header('Location: ' . BASE_URL . '/index.php?page=assessments');
+            exit;
+        }
+
+        $slugMap = [
+            1 => 'personality',
+            2 => 'interest',
+            3 => 'aptitude',
+            4 => 'values',
+        ];
+
+        $slug = $slugMap[$assessmentId] ?? 'assessment';
+        $pageTitle = $assessment['title'] ?? 'Assessment';
+
+        $colorMap = [
+            'personality' => ['accent' => 'text-blue-600', 'button' => 'bg-[#0052ff] hover:bg-blue-700'],
+            'interest' => ['accent' => 'text-pink-600', 'button' => 'bg-[#ec4899] hover:bg-pink-700'],
+            'aptitude' => ['accent' => 'text-green-600', 'button' => 'bg-[#16a34a] hover:bg-green-700'],
+            'values' => ['accent' => 'text-orange-600', 'button' => 'bg-[#f97316] hover:bg-orange-700'],
+        ];
+
+        $colors = $colorMap[$slug] ?? $colorMap['personality'];
+
+        $_SESSION['guest_assessment'] = [
+            'assessment_id' => (int)$assessment['id'],
+            'slug' => $slug,
+            'title' => $pageTitle,
+            'answers' => [],
+            'current' => 0,
+            'started_at' => time(),
+            'time_limit' => (int)($assessment['time_limit'] ?? 5),
+        ];
+
+        $this->view(
+            'Assessment/Presentation/Views/public/guest-question',
+            [
+                'pageTitle' => $pageTitle,
+                'accentClass' => $colors['accent'],
+                'buttonClass' => $colors['button'],
+                'assessmentId' => $assessmentId,
+            ]
+        );
+    }
+
     private function renderGuestAssessment(string $slug, string $pageTitle, string $accentClass, string $buttonClass): void
     {
         $result = $this->assessmentService->startAssessment($slug, null);
@@ -108,101 +164,125 @@ class AssessmentController extends Controller
     }
 
 public function apiStart(): void
-{
-    header('Content-Type: application/json');
+    {
+        header('Content-Type: application/json');
 
-    $input = json_decode(file_get_contents('php://input'), true);
+        $input = json_decode(file_get_contents('php://input'), true);
 
-    $assessmentId = (int)($input['assessment_id'] ?? 0);
+        $assessmentId = (int)($input['assessment_id'] ?? 0);
 
-    if ($assessmentId <= 0) {
+        if ($assessmentId <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid assessment.'
+            ]);
+            return;
+        }
+
+        $assessment = $this->assessmentService->getAssessmentById($assessmentId);
+
+        if (!$assessment) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Assessment not found.'
+            ]);
+            return;
+        }
+
+        $startedAt = time();
+
+        $_SESSION['guest_assessment'] = [
+            'assessment_id' => $assessmentId,
+            'slug' => $assessment['slug'] ?? '',
+            'title' => $assessment['title'] ?? 'Assessment',
+            'answers' => [],
+            'current' => 0,
+            'started_at' => $startedAt,
+            'time_limit' => (int)($assessment['time_limit'] ?? 5),
+        ];
+
         echo json_encode([
-            'success' => false,
-            'message' => 'Invalid assessment.'
+            'success' => true,
+            'result_id' => 1,
+            'total_questions' => 5,
+            'answered' => 0,
+            'started_at' => $startedAt,
+            'time_limit' => (int)($assessment['time_limit'] ?? 5)
         ]);
-        return;
     }
-
-    $_SESSION['guest_assessment'] = [
-        'assessment_id' => $assessmentId,
-        'slug' => '',
-        'title' => 'Assessment',
-        'answers' => [],
-        'current' => 0
-    ];
-
-    echo json_encode([
-        'success' => true,
-        'result_id' => 1,
-        'total_questions' => 5,
-        'answered' => 0
-    ]);
-}
 public function apiQuestion(): void
-{
-    header('Content-Type: application/json');
+    {
+        header('Content-Type: application/json');
 
-    $index = (int)($_GET['index'] ?? 0);
+        $index = (int)($_GET['index'] ?? 0);
 
-    if (!isset($_SESSION['guest_assessment'])) {
+        if (!isset($_SESSION['guest_assessment'])) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Assessment not started.'
+            ]);
+            exit;
+        }
+
+        $assessmentId = $_SESSION['guest_assessment']['assessment_id'];
+        $timeLimit = (int)($_SESSION['guest_assessment']['time_limit'] ?? 5);
+        $startedAt = (int)($_SESSION['guest_assessment']['started_at'] ?? time());
+
+        // Get ONLY first 5 questions
+        $questions = $this->assessmentService->getAssessmentQuestionsByAssessmentId($assessmentId, 5);
+
+        if ($index < 0 || $index >= count($questions)) {
+            echo json_encode([
+                'success' => false,
+                'done' => true
+            ]);
+            exit;
+        }
+
+        $question = $questions[$index];
+
+        $selected = $_SESSION['guest_assessment']['answers'][$question['id']] ?? null;
+
+        // Calculate remaining time
+        $elapsed = time() - $startedAt;
+        $timeLimitSeconds = $timeLimit * 60;
+        $remaining = max(0, $timeLimitSeconds - $elapsed);
+
         echo json_encode([
-            'success' => false,
-            'message' => 'Assessment not started.'
+            'success' => true,
+
+            'question' => [
+                'id' => (int)$question['id'],
+                'number' => $index + 1,
+                'text' => $question['question'],
+
+               'options' => array_map(function($option){
+
+        return [
+            'value' => $option['value'],
+            'label' => $option['label']
+        ];
+
+    }, $question['options']),
+            ],
+
+            'selected' => $selected,
+
+            'progress' => [
+                'current' => $index + 1,
+                'total' => count($questions),
+                'answered' => count($_SESSION['guest_assessment']['answers'])
+            ],
+
+            'navigation' => [
+                'has_prev' => $index > 0,
+                'is_last' => $index == count($questions) - 1
+            ],
+            'remaining_time' => $remaining
         ]);
+
         exit;
     }
-
-    $assessmentId = $_SESSION['guest_assessment']['assessment_id'];
-
-    // Get ONLY first 5 questions
-    $questions = $this->assessmentService->getAssessmentQuestionsByAssessmentId($assessmentId, 5);
-
-    if ($index < 0 || $index >= count($questions)) {
-        echo json_encode([
-            'success' => false,
-            'done' => true
-        ]);
-        exit;
-    }
-
-    $question = $questions[$index];
-
-    $selected = $_SESSION['guest_assessment']['answers'][$question['id']] ?? null;
-
-    echo json_encode([
-        'success' => true,
-
-        'question' => [
-            'id' => (int)$question['id'],
-            'number' => $index + 1,
-            'text' => $question['question'],
-
-           'options' => array_map(function($option){
-
-    return [
-        'value' => $option['value'],
-        'label' => $option['label']
-    ];
-
-}, $question['options']),
-        ],
-
-        'selected' => $selected,
-
-        'progress' => [
-            'current' => $index + 1,
-            'total' => count($questions),
-            'answered' => count($_SESSION['guest_assessment']['answers'])
-        ],
-
-        'navigation' => [
-            'has_prev' => $index > 0,
-            'is_last' => $index == count($questions) - 1
-        ]
-    ]);
-
-    exit;
-}
 
 public function apiSave(): void
 {
@@ -277,6 +357,21 @@ public function apiFinish(): void
         'redirect' => BASE_URL . '/index.php?page=guest-result'
     ]);
 
-    exit;
-}
+exit;
+    }
+    public function apiExit(): void
+    {
+        header('Content-Type: application/json');
+
+        if (isset($_SESSION['guest_assessment'])) {
+            unset($_SESSION['guest_assessment']);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'redirect' => BASE_URL . '/index.php?page=assessments'
+        ]);
+
+        exit;
+    }
 }

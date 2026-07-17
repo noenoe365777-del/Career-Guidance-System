@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Auth\Presentation\Controllers;
 
 use App\Shared\Core\Controller;
+use App\Shared\NotificationHelper;
 use App\Modules\Auth\Application\Services\AuthService;
 
 use Google\Client as GoogleClient;
@@ -60,6 +61,10 @@ class AuthController extends Controller
             $result = $this->authService->register($_POST);
 
             if ($result['success']) {
+                NotificationHelper::studentRegistered(
+                    (string)($_POST['username'] ?? 'A student'),
+                    (int)($result['user_id'] ?? 0)
+                );
                 $_SESSION['pending_verification_email'] = $result['email'] ?? ($_POST['email'] ?? null);
                 $_SESSION['pending_verification_user_id'] = (int)($result['user_id'] ?? 0);
                 $_SESSION['success'] = $result['message'];

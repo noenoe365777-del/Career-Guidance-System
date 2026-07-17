@@ -15,7 +15,7 @@ class QuestionService
         $this->questionRepository = $questionRepository ?? new QuestionRepository();
     }
 
-    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?int $assessmentFilter = null, ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array
+    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?string $assessmentFilter = null, ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array
     {
         return $this->questionRepository->getAllQuestions($page, $perPage, $search, $assessmentFilter, $typeFilter, $difficultyFilter, $statusFilter, $sort);
     }
@@ -38,6 +38,26 @@ class QuestionService
     public function getQuestionsCountByAssessment(): array
     {
         return $this->questionRepository->getQuestionsCountByAssessment();
+    }
+
+    public function getQuestionsCountByType(): array
+    {
+        return $this->questionRepository->getQuestionsCountByType();
+    }
+
+    public function getQuestionsCountByDifficulty(): array
+    {
+        return $this->questionRepository->getQuestionsCountByDifficulty();
+    }
+
+    public function getQuestionsCountByStatus(): array
+    {
+        return $this->questionRepository->getQuestionsCountByStatus();
+    }
+
+    public function getAssessmentSlugMap(): array
+    {
+        return $this->questionRepository->getAssessmentSlugMap();
     }
 
     public function getRecentlyAddedCount(int $days = 7): int
@@ -94,11 +114,39 @@ class QuestionService
     {
         try {
             $pdo = \App\Config\Database::getConnection();
-            $stmt = $pdo->query('SELECT assessment_id, title, assessment_type, assessment_type AS category FROM assessments ORDER BY assessment_id ASC');
+            $stmt = $pdo->query('SELECT assessment_id, title, category FROM assessments ORDER BY assessment_id ASC');
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException) {
             return [];
         }
+    }
+
+    public function getQuestionsByCategorySlug(int $page = 1, int $perPage = 10, string $search = '', string $categorySlug = '', ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array
+    {
+        if ($categorySlug === '' || $categorySlug === 'all') {
+            return $this->questionRepository->getAllQuestions($page, $perPage, $search, null, $typeFilter, $difficultyFilter, $statusFilter, $sort);
+        }
+
+        $slugMap = $this->getAssessmentSlugMap();
+        $assessmentId = $slugMap[$categorySlug] ?? 0;
+
+        if ($assessmentId === 0) {
+            $fallbackMap = ['personality' => 1, 'interest' => 2, 'aptitude' => 3, 'values' => 4, 'career_values' => 4];
+            $assessmentId = $fallbackMap[$categorySlug] ?? 0;
+        }
+
+        if ($assessmentId === 0) {
+            return [
+                'questions' => [],
+                'total' => 0,
+                'totalQuestions' => 0,
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 1,
+            ];
+        }
+
+        return $this->questionRepository->getAllQuestions($page, $perPage, $search, (string)$assessmentId, $typeFilter, $difficultyFilter, $statusFilter, $sort);
     }
 
     public function getQuestionTypes(): array

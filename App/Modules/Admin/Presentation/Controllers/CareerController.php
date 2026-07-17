@@ -6,6 +6,7 @@ namespace App\Modules\Admin\Presentation\Controllers;
 
 use App\Modules\Admin\Application\Services\CareerService;
 use App\Shared\Core\Controller;
+use App\Shared\NotificationHelper;
 
 class CareerController extends Controller
 {
@@ -126,6 +127,12 @@ class CareerController extends Controller
         $this->requirePermission('create_careers');
 
         $educationLevels = $this->careerService->getDistinctEducationLevels();
+        $personalityTypes = $this->careerService->getDistinctPersonalityTypes();
+        $interestTypes = $this->careerService->getDistinctInterestTypes();
+        $aptitudeTypes = $this->careerService->getDistinctAptitudeTypes();
+        $valuesTypes = $this->careerService->getDistinctValuesTypes();
+        $growthRates = $this->careerService->getDistinctGrowthRates();
+        $allSkills = $this->careerService->getAllSkills();
 
         $this->view(
             'Admin/Presentation/Views/careers/create',
@@ -136,6 +143,15 @@ class CareerController extends Controller
                 'errors' => [],
                 'old' => [],
                 'educationLevels' => $educationLevels,
+                'personalityTypes' => $personalityTypes,
+                'interestTypes' => $interestTypes,
+                'aptitudeTypes' => $aptitudeTypes,
+                'valuesTypes' => $valuesTypes,
+                'growthRates' => $growthRates,
+                'allSkills' => $allSkills,
+                'workEnvironments' => ['Office', 'Remote', 'Hybrid', 'Startup', 'Government', 'Hospital', 'Factory', 'Construction Site', 'Laboratory', 'School'],
+                'jobOutlooks' => ['Excellent', 'High', 'Average', 'Low'],
+                'currencies' => ['MMK', 'USD', 'THB', 'SGD', 'JPY', 'EUR', 'GBP', 'AUD', 'CNY', 'KRW'],
             ]
         );
     }
@@ -175,7 +191,6 @@ class CareerController extends Controller
         }
 
         if ($errors !== []) {
-            $educationLevels = $this->careerService->getDistinctEducationLevels();
             $this->view(
                 'Admin/Presentation/Views/careers/create',
                 [
@@ -184,7 +199,16 @@ class CareerController extends Controller
                     'activeMenu' => 'careers',
                     'errors' => $errors,
                     'old' => $data,
-                    'educationLevels' => $educationLevels,
+                    'educationLevels' => $this->careerService->getDistinctEducationLevels(),
+                    'personalityTypes' => $this->careerService->getDistinctPersonalityTypes(),
+                    'interestTypes' => $this->careerService->getDistinctInterestTypes(),
+                    'aptitudeTypes' => $this->careerService->getDistinctAptitudeTypes(),
+                    'valuesTypes' => $this->careerService->getDistinctValuesTypes(),
+                    'growthRates' => $this->careerService->getDistinctGrowthRates(),
+                    'allSkills' => $this->careerService->getAllSkills(),
+                    'workEnvironments' => ['Office', 'Remote', 'Hybrid', 'Startup', 'Government', 'Hospital', 'Factory', 'Construction Site', 'Laboratory', 'School'],
+                    'jobOutlooks' => ['Excellent', 'High', 'Average', 'Low'],
+                    'currencies' => ['MMK', 'USD', 'THB', 'SGD', 'JPY', 'EUR', 'GBP', 'AUD', 'CNY', 'KRW'],
                 ]
             );
             return;
@@ -192,7 +216,6 @@ class CareerController extends Controller
 
         $id = $this->careerService->createCareer($data);
         if ($id === null) {
-            $educationLevels = $this->careerService->getDistinctEducationLevels();
             $this->view(
                 'Admin/Presentation/Views/careers/create',
                 [
@@ -201,12 +224,22 @@ class CareerController extends Controller
                     'activeMenu' => 'careers',
                     'errors' => ['general' => 'Failed to create career. Please try again.'],
                     'old' => $data,
-                    'educationLevels' => $educationLevels,
+                    'educationLevels' => $this->careerService->getDistinctEducationLevels(),
+                    'personalityTypes' => $this->careerService->getDistinctPersonalityTypes(),
+                    'interestTypes' => $this->careerService->getDistinctInterestTypes(),
+                    'aptitudeTypes' => $this->careerService->getDistinctAptitudeTypes(),
+                    'valuesTypes' => $this->careerService->getDistinctValuesTypes(),
+                    'growthRates' => $this->careerService->getDistinctGrowthRates(),
+                    'allSkills' => $this->careerService->getAllSkills(),
+                    'workEnvironments' => ['Office', 'Remote', 'Hybrid', 'Startup', 'Government', 'Hospital', 'Factory', 'Construction Site', 'Laboratory', 'School'],
+                    'jobOutlooks' => ['Excellent', 'High', 'Average', 'Low'],
+                    'currencies' => ['MMK', 'USD', 'THB', 'SGD', 'JPY', 'EUR', 'GBP', 'AUD', 'CNY', 'KRW'],
                 ]
             );
             return;
         }
 
+        NotificationHelper::careerCreated($data['career_name'], $id);
         $this->redirectTo('admin-careers', ['message' => 'created']);
     }
 
@@ -223,6 +256,12 @@ class CareerController extends Controller
         }
 
         $educationLevels = $this->careerService->getDistinctEducationLevels();
+        $personalityTypes = $this->careerService->getDistinctPersonalityTypes();
+        $interestTypes = $this->careerService->getDistinctInterestTypes();
+        $aptitudeTypes = $this->careerService->getDistinctAptitudeTypes();
+        $valuesTypes = $this->careerService->getDistinctValuesTypes();
+        $growthRates = $this->careerService->getDistinctGrowthRates();
+        $allSkills = $this->careerService->getAllSkills();
 
         $this->view(
             'Admin/Presentation/Views/careers/edit',
@@ -233,6 +272,15 @@ class CareerController extends Controller
                 'errors' => [],
                 'old' => $career,
                 'educationLevels' => $educationLevels,
+                'personalityTypes' => $personalityTypes,
+                'interestTypes' => $interestTypes,
+                'aptitudeTypes' => $aptitudeTypes,
+                'valuesTypes' => $valuesTypes,
+                'growthRates' => $growthRates,
+                'allSkills' => $allSkills,
+                'workEnvironments' => ['Office', 'Remote', 'Hybrid', 'Startup', 'Government', 'Hospital', 'Factory', 'Construction Site', 'Laboratory', 'School'],
+                'jobOutlooks' => ['Excellent', 'High', 'Average', 'Low'],
+                'currencies' => ['MMK', 'USD', 'THB', 'SGD', 'JPY', 'EUR', 'GBP', 'AUD', 'CNY', 'KRW'],
             ]
         );
     }
@@ -264,6 +312,10 @@ class CareerController extends Controller
             'interest_type' => trim((string)($_POST['interest_type'] ?? '')),
             'aptitude_type' => trim((string)($_POST['aptitude_type'] ?? '')),
             'values_type' => trim((string)($_POST['values_type'] ?? '')),
+            'career_icon' => trim((string)($_POST['career_icon'] ?? '')),
+            'status' => trim((string)($_POST['status'] ?? 'active')),
+            'work_environment' => trim((string)($_POST['work_environment'] ?? '')),
+            'job_outlook' => trim((string)($_POST['job_outlook'] ?? '')),
         ];
 
         $errors = [];
@@ -278,6 +330,13 @@ class CareerController extends Controller
 
         if ($errors !== []) {
             $educationLevels = $this->careerService->getDistinctEducationLevels();
+            $personalityTypes = $this->careerService->getDistinctPersonalityTypes();
+            $interestTypes = $this->careerService->getDistinctInterestTypes();
+            $aptitudeTypes = $this->careerService->getDistinctAptitudeTypes();
+            $valuesTypes = $this->careerService->getDistinctValuesTypes();
+            $growthRates = $this->careerService->getDistinctGrowthRates();
+            $allSkills = $this->careerService->getAllSkills();
+
             $this->view(
                 'Admin/Presentation/Views/careers/edit',
                 [
@@ -287,12 +346,22 @@ class CareerController extends Controller
                     'errors' => $errors,
                     'old' => array_merge($career, $data),
                     'educationLevels' => $educationLevels,
+                    'personalityTypes' => $personalityTypes,
+                    'interestTypes' => $interestTypes,
+                    'aptitudeTypes' => $aptitudeTypes,
+                    'valuesTypes' => $valuesTypes,
+                    'growthRates' => $growthRates,
+                    'allSkills' => $allSkills,
+                    'workEnvironments' => ['Office', 'Remote', 'Hybrid', 'Startup', 'Government', 'Hospital', 'Factory', 'Construction Site', 'Laboratory', 'School'],
+                    'jobOutlooks' => ['Excellent', 'High', 'Average', 'Low'],
+                    'currencies' => ['MMK', 'USD', 'THB', 'SGD', 'JPY', 'EUR', 'GBP', 'AUD', 'CNY', 'KRW'],
                 ]
             );
             return;
         }
 
         $this->careerService->updateCareer($id, $data);
+        NotificationHelper::careerUpdated($data['career_name'], $id);
         $this->redirectTo('admin-careers', ['message' => 'updated']);
     }
 
@@ -304,7 +373,11 @@ class CareerController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
+                $career = $this->careerService->getCareerById($id);
                 $this->careerService->deleteCareer($id);
+                if ($career) {
+                    NotificationHelper::careerDeleted((string)($career['career_name'] ?? ''));
+                }
             }
         }
 

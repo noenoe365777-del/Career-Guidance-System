@@ -6,6 +6,7 @@ namespace App\Modules\Admin\Presentation\Controllers;
 
 use App\Modules\Admin\Application\Services\QuestionService;
 use App\Shared\Core\Controller;
+use App\Shared\NotificationHelper;
 
 class QuestionController extends Controller
 {
@@ -23,42 +24,88 @@ class QuestionController extends Controller
 
         $page = max(1, (int)($_GET['page_number'] ?? 1));
         $search = trim((string)($_GET['search'] ?? ''));
-        $assessmentFilter = isset($_GET['assessment_id']) && $_GET['assessment_id'] !== '' ? (int)$_GET['assessment_id'] : null;
+        $categorySlug = trim((string)($_GET['category'] ?? ''));
+        $isPartial = !empty($_GET['partial']);
         $questionTypeFilter = isset($_GET['question_type']) && $_GET['question_type'] !== '' ? trim((string)$_GET['question_type']) : null;
         $difficultyFilter = isset($_GET['difficulty']) && $_GET['difficulty'] !== '' ? trim((string)$_GET['difficulty']) : null;
         $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? trim((string)$_GET['status']) : null;
         $sort = isset($_GET['sort']) && $_GET['sort'] !== '' ? trim((string)$_GET['sort']) : null;
 
-        $result = $this->questionService->getAllQuestions($page, 100, $search, $assessmentFilter, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
+        $slugMap = $this->questionService->getAssessmentSlugMap();
+
+        if ($isPartial || $categorySlug !== '') {
+            $result = $this->questionService->getQuestionsByCategorySlug($page, 100, $search, $categorySlug, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
+            $questions = $result['questions'];
+        } else {
+            $questions = [];
+            $result = [
+                'currentPage' => 1,
+                'totalPages' => 1,
+            ];
+        }
+
         $assessments = $this->questionService->getAssessments();
         $questionTypes = $this->questionService->getQuestionTypes();
         $distribution = $this->questionService->getQuestionsCountByAssessment();
-        $recentActivity = $this->questionService->getRecentQuestionActivity(6);
-        $totalQuestions = $this->questionService->getTotalQuestions();
-        $totalAssessments = count($assessments);
-        $averageQuestions = $totalAssessments > 0 ? round($totalQuestions / $totalAssessments, 1) : 0;
 
-        $questions = $result['questions'];
-        $lastUpdatedDate = null;
-        if (!empty($questions)) {
-            $lastUpdatedDate = $questions[0]['created_at'] ?? null;
+        $countMap = [];
+        foreach ($distribution as $d) {
+            $countMap[(int)$d['assessment_id']] = (int)$d['question_count'];
+        }
+
+        $personalityCount = isset($slugMap['personality']) ? ($countMap[$slugMap['personality']] ?? 0) : 0;
+        $interestCount = isset($slugMap['interest']) ? ($countMap[$slugMap['interest']] ?? 0) : 0;
+        $aptitudeCount = isset($slugMap['aptitude']) ? ($countMap[$slugMap['aptitude']] ?? 0) : 0;
+        $valuesCount = isset($slugMap['career_values']) ? ($countMap[$slugMap['career_values']] ?? 0) : 0;
+        $totalQuestions = $this->questionService->getTotalQuestions();
+        $totalOptions = $this->questionService->getTotalOptions();
+        $recentlyAdded = $this->questionService->getRecentlyAddedCount(7);
+
+        $typeDist = $this->questionService->getQuestionsCountByType();
+        $typeCountMap = [];
+        foreach ($typeDist as $t) {
+            $typeCountMap[$t['question_type']] = (int)$t['question_count'];
+        }
+
+        $diffDist = $this->questionService->getQuestionsCountByDifficulty();
+        $diffCountMap = [];
+        foreach ($diffDist as $d) {
+            $diffCountMap[$d['difficulty']] = (int)$d['question_count'];
+        }
+
+        $statusDist = $this->questionService->getQuestionsCountByStatus();
+        $statusCountMap = [];
+        foreach ($statusDist as $s) {
+            $statusCountMap[$s['status']] = (int)$s['question_count'];
         }
 
         $this->view(
             'Admin/Presentation/Views/questions/index',
             [
                 'layout' => 'none',
+                'isPartial' => $isPartial,
                 'pageTitle' => 'Question Management',
                 'activeMenu' => 'questions',
                 'questions' => $questions,
                 'currentPage' => $result['currentPage'],
                 'totalPages' => $result['totalPages'],
                 'totalQuestions' => $totalQuestions,
-                'totalAssessments' => $totalAssessments,
-                'averageQuestions' => $averageQuestions,
-                'lastUpdatedDate' => $lastUpdatedDate,
+                'personalityCount' => $personalityCount,
+                'interestCount' => $interestCount,
+                'aptitudeCount' => $aptitudeCount,
+                'valuesCount' => $valuesCount,
+                'totalOptions' => $totalOptions,
+                'recentlyAdded' => $recentlyAdded,
+                'singleChoiceCount' => $typeCountMap['single_choice'] ?? 0,
+                'multipleChoiceCount' => $typeCountMap['multiple_choice'] ?? 0,
+                'textTypeCount' => $typeCountMap['text'] ?? 0,
+                'easyCount' => $diffCountMap['easy'] ?? 0,
+                'mediumCount' => $diffCountMap['medium'] ?? 0,
+                'hardCount' => $diffCountMap['hard'] ?? 0,
+                'usedCount' => $statusCountMap['used'] ?? 0,
+                'draftCount' => $statusCountMap['draft'] ?? 0,
                 'search' => $search,
-                'assessmentFilter' => $assessmentFilter ?? 0,
+                'categorySlug' => $categorySlug,
                 'questionTypeFilter' => $questionTypeFilter ?? '',
                 'difficultyFilter' => $difficultyFilter ?? '',
                 'statusFilter' => $statusFilter ?? '',
@@ -74,8 +121,8 @@ class QuestionController extends Controller
                     ['value' => 'used', 'label' => 'In use'],
                     ['value' => 'draft', 'label' => 'Draft'],
                 ],
+                'slugMap' => $slugMap,
                 'distribution' => $distribution,
-                'recentActivity' => $recentActivity,
                 'message' => $_GET['message'] ?? null,
             ]
         );
@@ -215,6 +262,7 @@ class QuestionController extends Controller
         }
 
         $this->questionService->saveOptions($id, $options);
+        NotificationHelper::questionCreated($data['question_text'], $id, 'Assessment #' . $data['assessment_id']);
         $this->redirectTo('admin-questions', ['message' => 'created']);
     }
 
@@ -314,6 +362,7 @@ class QuestionController extends Controller
 
         $this->questionService->updateQuestion($id, $data);
         $this->questionService->saveOptions($id, $options);
+        NotificationHelper::questionUpdated($data['question_text'], $id);
 
         if ($format === 'json') {
             header('Content-Type: application/json');
@@ -456,7 +505,11 @@ class QuestionController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
+                $question = $this->questionService->getQuestionById($id);
                 $this->questionService->deleteQuestion($id);
+                if ($question) {
+                    NotificationHelper::questionDeleted((string)($question['question_text'] ?? ''));
+                }
             }
         }
 

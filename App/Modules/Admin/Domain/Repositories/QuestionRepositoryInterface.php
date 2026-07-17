@@ -6,7 +6,9 @@ namespace App\Modules\Admin\Domain\Repositories;
 
 interface QuestionRepositoryInterface
 {
-    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?int $assessmentFilter = null, ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array;
+    public function getAllQuestions(int $page = 1, int $perPage = 10, string $search = '', ?string $assessmentFilter = null, ?string $typeFilter = null, ?string $difficultyFilter = null, ?string $statusFilter = null, ?string $sort = null): array;
+
+    public function getQuestionsByCategorySlug(string $categorySlug, int $page = 1, int $perPage = 10, string $search = ''): array;
 
     public function getQuestionById(int $id): ?array;
 

@@ -7,6 +7,7 @@ namespace App\Modules\Profile\Presentation\Controllers;
 
 use App\Modules\Profile\Application\Services\ProfileService;
 use App\Shared\Core\View;
+use App\Shared\NotificationHelper;
 
 class ProfileController
 {
@@ -84,6 +85,9 @@ public function update(): void
 
         $_SESSION['user']['username'] = $_POST['username'];
         $_SESSION['success'] = 'Profile updated successfully.';
+
+        $studentName = $_POST['username'] ?? $_SESSION['user']['username'] ?? 'Student';
+        NotificationHelper::userProfileUpdated($studentName, $userId);
 
         header('Location: index.php?page=edit-profile');
         exit;

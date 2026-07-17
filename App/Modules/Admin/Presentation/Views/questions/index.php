@@ -2,39 +2,23 @@
 $questions = $questions ?? [];
 $assessments = $assessments ?? [];
 $distribution = $distribution ?? [];
+$slugMap = $slugMap ?? [];
 $search = $search ?? '';
-$assessmentFilter = $assessmentFilter ?? 0;
+$categorySlug = $categorySlug ?? '';
 $questionTypeFilter = $questionTypeFilter ?? '';
 $difficultyFilter = $difficultyFilter ?? '';
 $statusFilter = $statusFilter ?? '';
 $sort = $sort ?? '';
 $totalQuestions = $totalQuestions ?? 0;
-$totalAssessments = $totalAssessments ?? 0;
-$averageQuestions = $averageQuestions ?? 0;
-$lastUpdatedDate = $lastUpdatedDate ?? null;
+$personalityCount = $personalityCount ?? 0;
+$interestCount = $interestCount ?? 0;
+$aptitudeCount = $aptitudeCount ?? 0;
+$valuesCount = $valuesCount ?? 0;
 $questionTypes = $questionTypes ?? [];
 $message = $message ?? null;
 
 $pageTitle = 'Question Management';
 $activeMenu = 'questions';
-
-$assessmentCountMap = [];
-foreach ($distribution as $d) {
-    $id = (int)($d['assessment_id'] ?? 0);
-    $assessmentCountMap[$id] = (int)($d['question_count'] ?? 0);
-}
-
-$interestCount = $assessmentCountMap[2] ?? 0;
-$personalityCount = $assessmentCountMap[1] ?? 0;
-$aptitudeValuesCount = ($assessmentCountMap[3] ?? 0) + ($assessmentCountMap[4] ?? 0);
-
-$tabs = [['id' => 0, 'title' => 'All']];
-foreach ($assessments as $a) {
-    $tabs[] = [
-        'id' => (int)($a['assessment_id'] ?? 0),
-        'title' => (string)($a['title'] ?? ''),
-    ];
-}
 
 $assessmentNames = [];
 foreach ($assessments as $a) {
@@ -42,18 +26,38 @@ foreach ($assessments as $a) {
     $assessmentNames[$id] = (string)($a['title'] ?? '');
 }
 
-$iconMap = [1 => 'bi bi-person-badge', 2 => 'bi bi-activity', 3 => 'bi bi-cpu', 4 => 'bi bi-heart'];
+$logoMap = [
+    'personality'  => 'bi bi-person-badge',
+    'interest'     => 'bi bi-activity',
+    'aptitude'     => 'bi bi-cpu',
+    'career_values' => 'bi bi-heart',
+];
+$iconMap = [];
+foreach ($slugMap as $slug => $id) {
+    $iconMap[$id] = $logoMap[$slug] ?? 'bi bi-question';
+}
+
+$questionCardDefs = [
+    ['key' => 'total',         'label' => 'Total Questions',          'count' => $totalQuestions,   'icon' => 'bi-question-circle', 'bg' => '#eef2ff', 'color' => '#5B5FEF', 'filterId' => 'all'],
+    ['key' => 'personality',   'label' => 'Personality Questions',    'count' => $personalityCount, 'icon' => 'bi-person-badge',    'bg' => '#fffbeb', 'color' => '#d97706', 'filterId' => 'personality'],
+    ['key' => 'interest',      'label' => 'Interest Questions',       'count' => $interestCount,    'icon' => 'bi-activity',        'bg' => '#ecfdf5', 'color' => '#059669', 'filterId' => 'interest'],
+    ['key' => 'aptitude',      'label' => 'Aptitude Questions',       'count' => $aptitudeCount,    'icon' => 'bi-cpu',            'bg' => '#ecfeff', 'color' => '#0891b2', 'filterId' => 'aptitude'],
+    ['key' => 'career_values', 'label' => 'Career Values Questions',  'count' => $valuesCount,      'icon' => 'bi-heart',           'bg' => '#fef2f2', 'color' => '#dc2626', 'filterId' => 'career_values'],
+];
+foreach ($questionCardDefs as &$cd) {
+    $cd['active'] = $categorySlug !== '' && $cd['filterId'] === $categorySlug;
+}
+unset($cd);
 
 ob_start();
 if (file_exists(__DIR__ . '/../partials/summary_stat_card.php')) {
     include __DIR__ . '/../partials/summary_stat_card.php';
 }
-$questionCardDefs = [
-    ['key' => 'total', 'label' => 'Total Questions', 'count' => (int)$totalQuestions, 'icon' => 'bi-question-circle', 'bg' => '#eef2ff', 'color' => '#5B5FEF'],
-    ['key' => 'interest', 'label' => 'Interest Questions', 'count' => $interestCount, 'icon' => 'bi-activity', 'bg' => '#ecfdf5', 'color' => '#059669'],
-    ['key' => 'personality', 'label' => 'Personality Questions', 'count' => $personalityCount, 'icon' => 'bi-person-badge', 'bg' => '#fffbeb', 'color' => '#d97706'],
-    ['key' => 'aptitude_values', 'label' => 'Aptitude & Values', 'count' => $aptitudeValuesCount, 'icon' => 'bi-cpu', 'bg' => '#ecfeff', 'color' => '#0891b2'],
-];
+
+if (!empty($isPartial)) {
+    include __DIR__ . '/_list.php';
+    return;
+}
 ?>
 
 <style>
@@ -84,26 +88,8 @@ $questionCardDefs = [
         padding: 24px;
         background: #fff;
         border: 1px solid #e2e8f0;
-        cursor: pointer;
         box-shadow: 0 6px 18px rgba(15,23,42,0.04);
-        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out, background-color 0.3s ease-out, opacity 0.3s ease-out;
-        will-change: transform, box-shadow, opacity;
     }
-    .stat-card:hover {
-        transform: translateY(-6px) scale(1.02);
-        box-shadow: 0 24px 48px -16px rgba(91,95,239,0.28);
-        border-color: #5B5FEF;
-        background: #fafaff;
-    }
-    .stat-card:hover .card-icon-bg { transform: scale(1.15) rotate(5deg); }
-    .stat-card:hover .card-number { transform: scale(1.04); }
-    .stat-card:active { transform: scale(0.97); }
-    .stat-card.active {
-        border-color: #5B5FEF;
-        background: #f8f7ff;
-        box-shadow: 0 8px 28px -8px rgba(91,95,239,0.22);
-    }
-    .stat-card.active .card-icon-bg { background: #5B5FEF !important; color: #fff !important; }
     .card-icon-bg { transition: transform 0.3s ease-out, background-color 0.3s ease-out, color 0.3s ease-out; }
     .card-number { transition: transform 0.3s ease-out; }
     .card-icon-bg.bounce { animation: iconBounce 0.5s cubic-bezier(0.22,1,0.36,1); }
@@ -237,140 +223,71 @@ $questionCardDefs = [
     <?php endif; ?>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style="gap: 24px;">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5" style="gap: 20px;" id="questionCards">
         <?php foreach ($questionCardDefs as $i => $cd):
             $delayClass = 'd' . ($i + 1);
             $counterId = 'qCount' . ucfirst($cd['key']);
             renderAdminSummaryCard([
                 'title' => $cd['label'],
-                'value' => '0',
+                'value' => (string)(int)($cd['count'] ?? 0),
                 'valueNumber' => (int)($cd['count'] ?? 0),
                 'counterId' => $counterId,
                 'icon' => $cd['icon'],
                 'iconBg' => $cd['bg'],
                 'iconColor' => $cd['color'],
                 'delayClass' => $delayClass,
-                'filter' => $cd['key'],
-                'active' => false,
-                'extraClass' => '',
             ]);
         endforeach; ?>
     </div>
 
+    <!-- Filter Buttons -->
+    <div class="anim-up d5 flex items-center gap-2 flex-wrap" id="filterButtons">
+        <?php
+        $filterLabels = [
+            'personality'   => 'Personality',
+            'interest'      => 'Interest',
+            'aptitude'      => 'Aptitude',
+            'career_values' => 'Career Values',
+        ];
+        foreach ($filterLabels as $slug => $label):
+        ?>
+        <button type="button" class="tab-btn <?= $categorySlug === $slug ? 'active' : '' ?>" data-filter="<?= htmlspecialchars($slug) ?>"><?= htmlspecialchars($label) ?></button>
+        <?php endforeach; ?>
+    </div>
+
     <!-- Search -->
-    <div class="anim-up d5">
+    <div class="anim-up d6">
         <form id="questionSearchForm" method="get" action="<?= BASE_URL ?>/index.php">
             <input type="hidden" name="page" value="admin-questions">
-            <?php if ((int)$assessmentFilter > 0): ?>
-            <input type="hidden" name="assessment_id" value="<?= (int)$assessmentFilter ?>">
-            <?php endif; ?>
+            <input type="hidden" name="category" value="<?= htmlspecialchars($categorySlug) ?>">
             <div class="relative max-w-md">
                 <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-300 z-10"></i>
                 <input id="questionSearch" type="text" name="search" value="<?= htmlspecialchars($search) ?>"
                        placeholder="Search questions..."
                        class="input-field">
                 <?php if ($search !== ''): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-questions<?= (int)$assessmentFilter > 0 ? '&assessment_id=' . (int)$assessmentFilter : '' ?>"
+                <a href="<?= BASE_URL ?>/index.php?page=admin-questions<?= $categorySlug !== '' && $categorySlug !== 'all' ? '&category=' . htmlspecialchars($categorySlug) : '' ?>"
                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-                    <i class="bi bi-x-lg text-xs"></i>
+                     <i class="bi bi-x-lg text-xs"></i>
                 </a>
                 <?php endif; ?>
             </div>
         </form>
     </div>
 
-    <!-- Tabs -->
-    <div class="anim-up d6">
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            <?php foreach ($tabs as $tab): ?>
-                <?php
-                    $tabId = (int)$tab['id'];
-                    $isActive = $tabId === (int)$assessmentFilter;
-                    $tabUrl = BASE_URL . '/index.php?page=admin-questions';
-                    if ($tabId > 0) $tabUrl .= '&assessment_id=' . $tabId;
-                    if ($search !== '') $tabUrl .= ($tabId > 0 ? '&' : '?') . 'search=' . urlencode($search);
-                ?>
-                <a href="<?= $tabUrl ?>"
-                   class="tab-btn no-underline <?= $isActive ? 'active' : '' ?>"
-                   data-tab-id="<?= $tabId ?>">
-                    <?= htmlspecialchars($tab['title']) ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <!-- Question Cards Grid -->
-    <?php if ($questions === []): ?>
-    <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-16 text-center shadow-sm anim-up d7">
-        <div class="mx-auto h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center">
-            <i class="bi bi-file-text text-2xl text-slate-300"></i>
-        </div>
-        <h3 style="font-size: 1.1rem;" class="mt-4 font-semibold text-slate-800">No questions found</h3>
-        <p style="font-size: 0.9rem;" class="mt-1.5 text-slate-500">Start by adding assessment questions.</p>
-        <a href="<?= BASE_URL ?>/index.php?page=admin-questions-create"
-           class="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all no-underline shadow-lg shadow-indigo-200">
-            <i class="bi bi-plus-lg text-sm"></i>
-            Add Question
-        </a>
-    </div>
-    <?php else: ?>
-    <div class="grid gap-5 sm:grid-cols-2" style="gap: 1.25rem;">
-        <?php
-        $displayIndex = 0;
-        foreach ($questions as $q):
-            $qId = (int)($q['question_id'] ?? 0);
-            $qText = (string)($q['question_text'] ?? '');
-            $qType = (string)($q['question_type'] ?? '');
-            $aId = (int)($q['assessment_id'] ?? 0);
-            $qOrder = (int)($q['question_order'] ?? 0);
-            $qCreated = $q['created_at'] ?? null;
-            $aTitle = $assessmentNames[$aId] ?? (string)($q['assessment_title'] ?? 'Unknown');
-
-            $badgeColors = [1 => 'bg-violet-50 text-violet-700 border-violet-200', 2 => 'bg-emerald-50 text-emerald-700 border-emerald-200', 3 => 'bg-sky-50 text-sky-700 border-sky-200', 4 => 'bg-amber-50 text-amber-700 border-amber-200'];
-            $badgeColor = $badgeColors[$aId] ?? 'bg-slate-50 text-slate-600 border-slate-200';
-            $icon = $iconMap[$aId] ?? 'bi bi-question';
-        ?>
-        <div class="question-card anim-up d<?= 7 + min($displayIndex % 4, 2) ?>" style="animation-delay: <?= min(0.3, 0.035 * $displayIndex) ?>s;">
-            <div class="flex items-start justify-between gap-3 mb-3">
-                <span class="assessment-badge <?= $badgeColor ?>">
-                    <i class="<?= $icon ?> text-xs"></i>
-                    <?= htmlspecialchars($aTitle) ?>
-                </span>
+    <!-- Question list — replaced via AJAX when a card or filter button is clicked -->
+    <div id="questionListContainer">
+        <?php if ($categorySlug === ''): ?>
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div class="mx-auto h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center">
+                <i class="bi bi-funnel text-lg text-slate-300"></i>
             </div>
-
-            <p style="font-size: 1.05rem; line-height: 1.5;" class="font-medium text-slate-800"><?= htmlspecialchars($qText) ?></p>
-
-            <div class="mt-4 flex items-center gap-4 text-xs text-slate-400">
-                <?php if ($qOrder > 0): ?>
-                <span class="flex items-center gap-1.5">
-                    <i class="bi bi-hash"></i>
-                    Question #<?= $qOrder ?>
-                </span>
-                <?php endif; ?>
-                <?php if ($qCreated): ?>
-                <span class="flex items-center gap-1.5">
-                    <i class="bi bi-calendar3"></i>
-                    <?= date('F j, Y', strtotime($qCreated)) ?>
-                </span>
-                <?php endif; ?>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-1">
-                <button type="button" onclick="openViewDrawer(<?= $qId ?>)" title="View" class="action-btn view"><i class="bi bi-eye"></i></button>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-questions-edit&id=<?= $qId ?>" title="Edit" class="action-btn edit"><i class="bi bi-pencil"></i></a>
-                <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-questions-duplicate" class="m-0 inline-flex">
-                    <input type="hidden" name="id" value="<?= $qId ?>">
-                    <button type="submit" title="Duplicate" class="action-btn dup"><i class="bi bi-files"></i></button>
-                </form>
-                <button type="button" onclick="openDeleteModal(<?= $qId ?>, '<?= htmlspecialchars(addslashes(truncateText($qText, 60))) ?>')" title="Delete" class="action-btn danger"><i class="bi bi-trash"></i></button>
-            </div>
+            <p style="font-size: 0.85rem;" class="mt-2 text-slate-500">Select a category above to view its questions.</p>
         </div>
-        <?php
-        $displayIndex++;
-        endforeach;
-        ?>
+        <?php else: ?>
+        <?php include __DIR__ . '/_list.php'; ?>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 
 </div>
 
@@ -429,17 +346,85 @@ function truncateText($text, $max = 60) {
 ?>
 
 <script>
-var questionSearchTimer = null;
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
+    var baseUrl = '<?= BASE_URL ?>/index.php';
+    var listContainer = document.getElementById('questionListContainer');
+    var cardsWrap = document.getElementById('questionCards');
+    var filterButtonsWrap = document.getElementById('filterButtons');
     var searchInput = document.getElementById('questionSearch');
     var searchForm = document.getElementById('questionSearchForm');
-    if (searchInput && searchForm) {
-        searchInput.addEventListener('input', function() {
-            if (questionSearchTimer) clearTimeout(questionSearchTimer);
-            questionSearchTimer = setTimeout(function() { searchForm.submit(); }, 400);
+    var currentFilterId = '<?= htmlspecialchars((string)($categorySlug ?? '')) ?>';
+    var loading = false;
+
+    function buildUrl(filterId, search) {
+        var url = baseUrl + '?page=admin-questions&partial=1';
+        if (filterId && filterId !== 'all' && filterId !== '') url += '&category=' + encodeURIComponent(filterId);
+        if (search) url += '&search=' + encodeURIComponent(search);
+        return url;
+    }
+
+    function highlightActive(filterId) {
+        if (filterButtonsWrap) {
+            filterButtonsWrap.querySelectorAll('.tab-btn').forEach(function(btn) {
+                var match = btn.getAttribute('data-filter') === filterId;
+                btn.classList.toggle('active', match);
+            });
+        }
+    }
+
+    function refreshList(filterId, search) {
+        if (loading || !listContainer) return;
+        loading = true;
+        listContainer.style.opacity = '0.5';
+        fetch(buildUrl(filterId, search), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { if (!r.ok) throw new Error(); return r.text(); })
+            .then(function(html) {
+                listContainer.innerHTML = html;
+                listContainer.style.opacity = '1';
+            })
+            .catch(function() {
+                listContainer.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-200 bg-white p-16 text-center shadow-sm"><div class="mx-auto h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center"><i class="bi bi-exclamation-triangle text-2xl text-slate-300"></i></div><h3 class="mt-4 font-semibold text-slate-800">Failed to load questions</h3><p class="mt-1.5 text-slate-500">Please try again.</p></div>';
+                listContainer.style.opacity = '1';
+            })
+            .finally(function() { loading = false; });
+    }
+
+    function applyFilter(filterId) {
+        currentFilterId = filterId;
+        highlightActive(filterId);
+        var catInput = searchForm.querySelector('input[name="category"]');
+        if (catInput) catInput.value = filterId && filterId !== 'all' ? filterId : '';
+        var searchVal = searchInput ? searchInput.value.trim() : '';
+        refreshList(filterId, searchVal);
+        var newUrl = baseUrl + '?page=admin-questions';
+        if (filterId && filterId !== 'all' && filterId !== '') newUrl += '&category=' + encodeURIComponent(filterId);
+        if (searchVal) newUrl += '&search=' + encodeURIComponent(searchVal);
+        history.replaceState(null, '', newUrl);
+    }
+
+    if (filterButtonsWrap) {
+        filterButtonsWrap.addEventListener('click', function(e) {
+            var btn = e.target.closest('.tab-btn[data-filter]');
+            if (!btn) return;
+            e.preventDefault();
+            applyFilter(btn.getAttribute('data-filter'));
         });
     }
-});
+
+    if (searchInput && searchForm) {
+        var searchTimer = null;
+        searchInput.addEventListener('input', function() {
+            if (searchTimer) clearTimeout(searchTimer);
+            searchTimer = setTimeout(function() {
+                refreshList(currentFilterId, searchInput.value.trim());
+                var newUrl = baseUrl + '?page=admin-questions';
+                if (currentFilterId && currentFilterId !== 'all' && currentFilterId !== '') newUrl += '&category=' + encodeURIComponent(currentFilterId);
+                if (searchInput.value.trim()) newUrl += '&search=' + encodeURIComponent(searchInput.value.trim());
+                history.replaceState(null, '', newUrl);
+            }, 400);
+        });
+    }
+})();
 
 function openViewDrawer(id) {
     var drawer = document.getElementById('viewDrawer');

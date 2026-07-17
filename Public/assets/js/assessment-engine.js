@@ -16,6 +16,10 @@
         return BASE + '/index.php?page=' + page;
     }
 
+    function apiEndpoint(name) {
+        return state.isGuest ? 'guest-api-' + name : 'assessment-api-' + name;
+    }
+
     function postJson(url, data, cb) {
         var xhr = new XMLHttpRequest();
         xhr.open('POST', url, true);
@@ -60,6 +64,7 @@
         startTime: null,
         timerInterval: null,
         isSubmitting: false,
+        isGuest: false,
     };
 
     var dashEl = document.querySelector('.assessment-dashboard');
@@ -100,12 +105,22 @@
     }
     attachCardListeners();
 
+    function setGuestMode(flag) {
+        state.isGuest = !!flag;
+    }
+
+    // Expose engine for guest initialization
+    window.assessmentEngine = {
+        startAssessment: startAssessment,
+        setGuestMode: setGuestMode,
+    };
+
     function startAssessment(assessmentId) {
         state.assessmentId = assessmentId;
         state.currentIndex = 0;
         state.answeredCount = 0;
 
-        postJson(apiUrl('assessment-api-start'), { assessment_id: assessmentId }, function (err, data) {
+        postJson(apiUrl(apiEndpoint('start')), { assessment_id: assessmentId }, function (err, data) {
             if (err || !data.success) {
                 alert('Failed to start assessment. Please try again.');
                 return;
@@ -124,7 +139,7 @@
     }
 
     function loadQuestion(index) {
-        var url = apiUrl('assessment-api-question') + '&attempt_id=' + state.attemptId + '&index=' + index;
+        var url = apiUrl(apiEndpoint('question')) + '&attempt_id=' + state.attemptId + '&index=' + index;
         getJson(url, function (err, data) {
             if (err || !data.success) {
                 if (data && data.done) {
@@ -220,7 +235,7 @@
         nextBtn.disabled = true;
         nextBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Saving...';
 
-        postJson(apiUrl('assessment-api-save-answer'), {
+        postJson(apiUrl(apiEndpoint('save')), {
             attempt_id: state.attemptId,
             question_id: questionId,
             option_id: optionId,
@@ -245,7 +260,7 @@
         if (state.isSubmitting) return;
         state.isSubmitting = true;
 
-        postJson(apiUrl('assessment-api-finish'), { attempt_id: state.attemptId }, function (err, data) {
+        postJson(apiUrl(apiEndpoint('finish')), { attempt_id: state.attemptId }, function (err, data) {
             state.isSubmitting = false;
             if (err || !data.success) {
                 alert('Failed to complete assessment.');
@@ -308,10 +323,20 @@
 
     document.addEventListener('click', function (e) {
         if (e.target && e.target.id === 'exitAssessmentBtn') {
-            if (confirm('Are you sure you want to exit? Your progress will be saved.')) {
-                showDashboard();
+            var msg = state.isGuest
+                ? 'Are you sure you want to exit? Your preview progress will be lost.'
+                : 'Are you sure you want to exit? Your progress will be saved.';
+            if (confirm(msg)) {
+                if (state.isGuest) {
+                    postJson(apiUrl(apiEndpoint('exit')), { attempt_id: state.attemptId }, function (err, data) {
+                        if (data && data.success && data.redirect) {
+                            window.location = data.redirect;
+                        }
+                    });
+                } else {
+                    showDashboard();
+                }
             }
         }
     });
-
 })();

@@ -39,6 +39,7 @@ class AssessmentService
             $preview = $assessment['preview_questions'] ?? 0;
 
             return [
+                'id' => $assessment['id'],
                 'title' => $assessment['title'],
                 'description' => $assessment['description'],
                 'questions' => $total > 0 ? $total . ' Questions' : 'Quick review',
@@ -58,6 +59,11 @@ class AssessmentService
     public function getAssessmentQuestions(string $slug, bool $previewOnly = false): array
     {
         return $this->questionRepository->getQuestionsBySlug($slug, $previewOnly);
+    }
+
+    public function getAssessmentById(int $assessmentId): ?array
+    {
+        return $this->assessmentRepository->getById($assessmentId);
     }
 
     public function getAssessmentQuestionsByAssessmentId(int $assessmentId, int $limit = 5): array

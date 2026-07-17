@@ -20,6 +20,7 @@ class StudentFeaturePermissionHelper
             'dashboard' => 'view_dashboard',
 
             'student-assessments' => 'take_assessment',
+            'student-assessments-v2' => 'take_assessment',
             'personality' => 'take_assessment',
             'interest' => 'take_assessment',
             'aptitude' => 'take_assessment',

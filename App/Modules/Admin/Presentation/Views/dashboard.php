@@ -4,8 +4,16 @@ $adminName = trim((string)($admin['full_name'] ?? $admin['username'] ?? 'Admin')
 $totalStudents = (int)($totalStudents ?? 0);
 $totalAssessments = (int)($totalAssessments ?? 0);
 $totalCareers = (int)($totalCareers ?? 0);
+$totalQuestions = (int)($totalQuestions ?? 0);
 $totalRecommendations = (int)($totalRecommendations ?? 0);
+$activeStudents = (int)($activeStudents ?? 0);
+$todayRegistrations = (int)($todayRegistrations ?? 0);
+$todayCompletions = (int)($todayCompletions ?? 0);
+$overallCompletionRate = (float)($overallCompletionRate ?? 0);
 $recentActivity = $recentActivity ?? [];
+$recentNotifications = $recentNotifications ?? [];
+$completionStats = $completionStats ?? [];
+$unreadNotificationCount = (int)($unreadNotificationCount ?? 0);
 
 ob_start();
 if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
@@ -104,24 +112,38 @@ if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
         border-color: #5B5FEF;
     }
     .action-btn:active { transform: scale(0.98); }
+
+    .dashboard-two-col {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    .dashboard-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+    }
 </style>
 
 <div class="page-in" style="max-width: 1280px; margin: 0 auto; padding: 32px 24px;">
     <div style="margin-bottom: 36px;">
-        <h1 style="font-size: 32px; font-weight: 700; color: #1e293b; margin: 0;">Dashboard</h1>
-        <p style="font-size: 16px; color: #64748b; margin: 10px 0 0 0;">Welcome back, <?= htmlspecialchars($adminName) ?>!</p>
+        <h1 style="font-size: 32px; font-weight: 700; color: #1e293b; margin: 0;">Welcome back, <?= htmlspecialchars($adminName) ?>!👋</h1>
+
         <p style="font-size: 14px; color: #94a3b8; margin: 4px 0 0 0;"><?= date('l, F j, Y') ?></p>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 24px; margin-bottom: 36px;" class="sm-grid-2 xl-grid-4">
         <?php renderAdminSummaryCard(['title' => 'Total Students', 'value' => '0', 'valueNumber' => (int)$totalStudents, 'counterId' => 'countStudents', 'icon' => 'bi-people-fill', 'iconBg' => '#eef2ff', 'iconColor' => '#5B5FEF', 'delayClass' => 'd1', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-users'", 'filter' => 'students']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Total Careers', 'value' => '0', 'valueNumber' => (int)$totalCareers, 'counterId' => 'countCareers', 'icon' => 'bi-briefcase-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'delayClass' => 'd2', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-careers'", 'filter' => 'careers']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Questions', 'value' => '0', 'valueNumber' => (int)$totalQuestions, 'counterId' => 'countQuestions', 'icon' => 'bi-patch-question-fill', 'iconBg' => '#eff6ff', 'iconColor' => '#2563eb', 'delayClass' => 'd2', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-questions'", 'filter' => 'questions']); ?>
         <?php renderAdminSummaryCard(['title' => 'Total Assessments', 'value' => '0', 'valueNumber' => (int)$totalAssessments, 'counterId' => 'countAssessments', 'icon' => 'bi-journal-text', 'iconBg' => '#ecfdf5', 'iconColor' => '#059669', 'delayClass' => 'd3', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-assessments'", 'filter' => 'assessments']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Total Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'countRecommendations', 'icon' => 'bi-stars', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'delayClass' => 'd4', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-reports'", 'filter' => 'recommendations']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Careers', 'value' => '0', 'valueNumber' => (int)$totalCareers, 'counterId' => 'countCareers', 'icon' => 'bi-briefcase-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'delayClass' => 'd4', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-careers'", 'filter' => 'careers']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'countRecommendations', 'icon' => 'bi-stars', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'delayClass' => 'd5', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-reports'", 'filter' => 'recommendations']); ?>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr; gap: 24px;" class="xl-grid-2col">
-        <section style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+    <div class="dashboard-two-col">
+        <section class="dashboard-card">
             <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Recent Activity</h2>
             <p style="font-size: 14px; color: #94a3b8; margin: 0 0 20px 0;">Latest activities across the system</p>
 
@@ -167,7 +189,7 @@ if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
             <?php endif; ?>
         </section>
 
-        <section style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px;">
+        <section class="dashboard-card">
             <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Quick Actions</h2>
             <p style="font-size: 14px; color: #94a3b8; margin: 0 0 20px 0;">Jump to the main admin modules</p>
             <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -230,9 +252,11 @@ if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
     @media (min-width: 640px) {
         .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
     }
+    @media (min-width: 992px) {
+        .dashboard-two-col { grid-template-columns: 65% 35%; }
+    }
     @media (min-width: 1280px) {
-        .xl-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
-        .xl-grid-2col { grid-template-columns: 1.2fr 0.8fr !important; }
+        .xl-grid-4 { grid-template-columns: repeat(5, 1fr) !important; }
     }
 </style>
 

@@ -7,114 +7,57 @@ namespace App\Routing;
 use App\Modules\Student\Support\StudentFeaturePermissionHelper;
 use App\Shared\Auth\Auth;
 use App\Shared\Core\Container;
+use App\Shared\Core\Middleware;
 use App\Shared\Core\View;
+use App\Shared\Middleware\AdminMiddleware;
+use App\Shared\Middleware\AuthMiddleware;
+use App\Shared\Middleware\PermissionMiddleware;
+use App\Shared\Middleware\StudentMiddleware;
 
 class Router
 {
     private array $patterns = [];
 
+    private array $routeNames = [];
+
+    private ?array $lastRoute = null;
+
     private string $groupPrefix = '';
 
-    private Container $container;
+    private array $groupMiddleware = [];
 
-    private array $routeGuards = [
-        'admin-dashboard'                  => 'admin',
-        'admin-users'                      => 'admin',
-        'admin-users-create'               => 'admin',
-        'admin-users-store'                => 'admin',
-        'admin-users-edit'                 => 'admin',
-        'admin-users-update'               => 'admin',
-        'admin-users-view'                 => 'admin',
-        'admin-users-delete'               => 'admin',
-        'admin-users-toggle-status'        => 'admin',
-        'admin-settings-student-permissions' => 'admin',
-        'admin-settings-student-permissions-manage' => 'admin',
-        'admin-settings-student-permissions-save' => 'admin',
-        'admin-assessments'                => 'admin',
-        'admin-assessments-view'           => 'admin',
-        'admin-assessments-edit'           => 'admin',
-        'admin-assessments-update'         => 'admin',
-        'admin-assessments-toggle-status'  => 'admin',
-        'admin-assessments-duplicate'      => 'admin',
-        'admin-careers'                    => 'admin',
-        'admin-careers-view'               => 'admin',
-        'admin-careers-create'             => 'admin',
-        'admin-careers-store'              => 'admin',
-        'admin-careers-edit'               => 'admin',
-        'admin-careers-update'             => 'admin',
-        'admin-careers-delete'             => 'admin',
-        'admin-questions'                  => 'admin',
-        'admin-questions-view'             => 'admin',
-        'admin-questions-create'           => 'admin',
-        'admin-questions-store'            => 'admin',
-        'admin-questions-edit'             => 'admin',
-        'admin-questions-update'           => 'admin',
-        'admin-questions-delete'           => 'admin',
-        'admin-questions-duplicate'        => 'admin',
-        'admin-questions-bulk-delete'      => 'admin',
-        'admin-reports'                    => 'admin',
-        'admin-notifications'              => 'admin',
-        'admin-notifications-api-unread-count' => 'admin',
-        'admin-notifications-api-mark-read' => 'admin',
-        'admin-notifications-api-mark-all-read' => 'admin',
-        'admin-notifications-api-delete'   => 'admin',
-        'admin-role-permissions'           => 'admin',
-        'admin-role-permissions-save'      => 'admin',
-        'dashboard'                        => 'student',
-        'profile'                          => 'student',
-        'edit-profile'                     => 'student',
-        'update-profile'                   => 'student',
-        'update-profile-image'             => 'student',
-        'change-password'                  => 'student',
-        'update-password'                  => 'student',
-        'student-change-password'          => 'student',
-        'notifications'                    => 'student',
-        'student-assessments'              => 'student',
-        'personality'                      => 'student',
-        'interest'                         => 'student',
-        'aptitude'                         => 'student',
-        'values'                           => 'student',
-        'assessment-progress'              => 'student',
-        'assessment-result'                => 'student',
-        'assessment-detailed-answers'      => 'student',
-        'assessment-api-start'             => 'student',
-        'assessment-api-question'          => 'student',
-        'assessment-api-save-answer'       => 'student',
-        'assessment-api-finish'            => 'student',
-        'student-assessments-v2'           => 'student',
-        'v2-assessment-api-start'          => 'student',
-        'v2-assessment-api-question'       => 'student',
-        'v2-assessment-api-save'           => 'student',
-        'v2-assessment-api-finish'         => 'student',
-        'assessment-v2-result'             => 'student',
-        'recommendation'                   => 'student',
-        'career-recommendation'            => 'student',
+    private array $executedAliases = [];
+
+    private array $middlewareMap = [
+        'auth' => AuthMiddleware::class,
+        'admin' => AdminMiddleware::class,
+        'student' => StudentMiddleware::class,
     ];
+
+    private array $middlewarePrerequisites = [
+        'student' => ['auth'],
+    ];
+
+    private Container $container;
 
     public function __construct()
     {
         $this->container = new Container();
     }
 
-    public function get(string $path, array $handler): void
+    public function get(string $path, array $handler, array $middleware = []): static
     {
-        $this->match(['GET'], $path, $handler);
+        $this->match(['GET'], $path, $handler, $middleware);
+        return $this;
     }
 
-    public function post(string $path, array $handler): void
+    public function post(string $path, array $handler, array $middleware = []): static
     {
-        $this->match(['POST'], $path, $handler);
+        $this->match(['POST'], $path, $handler, $middleware);
+        return $this;
     }
 
-    public function group(string $prefix, callable $callback): void
-    {
-        $previous = $this->groupPrefix;
-        $this->groupPrefix = rtrim($this->groupPrefix, '/') . '/' . trim($prefix, '/');
-        $callback($this);
-        $this->groupPrefix = $previous;
-    }
-
-    public function match(array $methods, string $path, array $handler): void
+    public function match(array $methods, string $path, array $handler, array $middleware = []): static
     {
         $path = $this->groupPrefix . '/' . trim($path, '/');
         $path = '/' . ltrim(preg_replace('#/+#', '/', $path), '/');
@@ -122,30 +65,99 @@ class Router
         $pageName = str_replace('/', '-', trim($path, '/'));
         $flatPath = '/' . $pageName;
 
+        $allMiddleware = array_unique(array_merge($this->groupMiddleware, $middleware));
+
+        $route = [
+            'handler' => $handler,
+            'middleware' => $allMiddleware,
+        ];
+
         foreach ($methods as $method) {
-            $this->patterns[strtoupper($method)][$path] = $handler;
+            $this->patterns[strtoupper($method)][$path] = $route;
 
             if ($flatPath !== $path) {
-                $this->patterns[strtoupper($method)][$flatPath] = $handler;
+                $this->patterns[strtoupper($method)][$flatPath] = $route;
             }
         }
+
+        $this->lastRoute = ['path' => $path, 'methods' => $methods];
+
+        return $this;
+    }
+
+    public function name(string $name): static
+    {
+        if ($this->lastRoute !== null) {
+            $this->routeNames[$name] = $this->lastRoute;
+        }
+        return $this;
+    }
+
+    public function url(string $name, array $params = []): string
+    {
+        $route = $this->routeNames[$name] ?? null;
+        if ($route === null) {
+            return '#';
+        }
+        $url = BASE_URL . $route['path'];
+        if ($params !== []) {
+            $url .= '?' . http_build_query($params);
+        }
+        return $url;
+    }
+
+    public function group(string $prefix, callable $callback, array $middleware = []): void
+    {
+        $previousPrefix = $this->groupPrefix;
+
+        if ($prefix !== '') {
+            $this->groupPrefix = rtrim($this->groupPrefix, '/') . '/' . trim($prefix, '/');
+        }
+
+        $previousMw = $this->groupMiddleware;
+        if (!empty($middleware)) {
+            $this->groupMiddleware = array_merge($this->groupMiddleware, $middleware);
+        }
+
+        $callback($this);
+
+        $this->groupPrefix = $previousPrefix;
+        $this->groupMiddleware = $previousMw;
+    }
+
+    public function middleware(array $middleware, callable $callback): void
+    {
+        $this->group('', $callback, $middleware);
     }
 
     public function dispatch(): void
     {
+        $this->executedAliases = [];
+
         $page = $_GET['page'] ?? 'home';
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $path = '/' . $page;
 
-        $handler = $this->patterns[$method][$path] ?? $this->patterns['GET'][$path] ?? null;
+        $route = $this->patterns[$method][$path] ?? $this->patterns['GET'][$path] ?? null;
 
-        if ($handler === null) {
+        if ($route === null) {
             http_response_code(404);
             echo "404 - Page not found";
             return;
         }
 
-        $this->runGuard($page);
+        $handler = $route['handler'];
+        $middleware = $route['middleware'] ?? [];
+
+        $middleware = $this->expandMiddlewareStack($middleware);
+
+        foreach ($middleware as $alias) {
+            if (in_array($alias, $this->executedAliases, true)) {
+                continue;
+            }
+            $this->executedAliases[] = $alias;
+            $this->executeMiddleware($alias);
+        }
 
         if (StudentFeaturePermissionHelper::isStudentFeatureRestricted($page)) {
             StudentFeaturePermissionHelper::ensureStudentPageAccess($page);
@@ -158,41 +170,57 @@ class Router
         $controller->$methodName();
     }
 
-    private function runGuard(string $page): void
+    private function expandMiddlewareStack(array $middleware): array
     {
-        $requiredRole = $this->routeGuards[$page] ?? null;
+        $expanded = [];
+        foreach ($middleware as $alias) {
+            $prereqs = $this->middlewarePrerequisites[$alias] ?? [];
+            foreach ($prereqs as $prereq) {
+                if (!in_array($prereq, $expanded, true)) {
+                    $expanded[] = $prereq;
+                }
+            }
+            if (!in_array($alias, $expanded, true)) {
+                $expanded[] = $alias;
+            }
+        }
+        return $expanded;
+    }
 
-        if ($requiredRole === null) {
+    private function executeMiddleware(string $alias): void
+    {
+        if (str_starts_with($alias, 'can:')) {
+            $this->executePermissionMiddleware($alias);
             return;
         }
 
-        if (Auth::check()) {
-            if ($requiredRole === 'admin' && Auth::isAdmin()) {
-                return;
-            }
-            if ($requiredRole === 'student' && Auth::isStudent()) {
-                return;
-            }
+        $class = $this->middlewareMap[$alias] ?? null;
 
-            http_response_code(403);
-            View::render('Admin/Presentation/Views/403', [
-                'layout' => 'none',
-                'pageTitle' => 'Access Denied',
-                'backUrl' => Auth::isAdmin()
-                    ? (BASE_URL . '/index.php?page=admin-dashboard')
-                    : (BASE_URL . '/index.php?page=dashboard'),
-            ]);
-            exit;
+        if ($class === null) {
+            return;
         }
 
-        if ($requiredRole === 'admin') {
+        /** @var Middleware $instance */
+        $instance = new $class();
+        $instance->handle();
+    }
+
+    private function executePermissionMiddleware(string $alias): void
+    {
+        $permission = substr($alias, 4);
+
+        if (!Auth::check() || !Auth::isAdmin()) {
             $_SESSION['error'] = 'Please log in as an admin to access this page.';
             header('Location: ' . BASE_URL . '/index.php?page=admin-login');
             exit;
         }
 
-        $_SESSION['error'] = 'Please log in to access this page.';
-        header('Location: ' . BASE_URL . '/index.php?page=login');
-        exit;
+        $instance = new PermissionMiddleware($permission);
+        $instance->handle();
+    }
+
+    public function getRouteNames(): array
+    {
+        return $this->routeNames;
     }
 }

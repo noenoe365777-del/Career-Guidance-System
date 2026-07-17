@@ -64,6 +64,24 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         return null;
     }
 
+    public function getById(int $id): ?array
+    {
+        try {
+            $statement = $this->connection->prepare(
+                "SELECT assessment_id AS id, title, description, status FROM assessments WHERE assessment_id = :id AND status = 'active' LIMIT 1"
+            );
+            $statement->execute(['id' => $id]);
+            $row = $statement->fetch();
+
+            if ($row) {
+                return $this->mapRow($row);
+            }
+        } catch (\Throwable) {
+        }
+
+        return null;
+    }
+
     public function getSlugMap(): array
     {
         return $this->slugMap;

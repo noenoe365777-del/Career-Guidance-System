@@ -53,6 +53,26 @@ class CareerService
         return $this->careerRepository->getDistinctPersonalityTypes();
     }
 
+    public function getDistinctInterestTypes(): array
+    {
+        return $this->careerRepository->getDistinctInterestTypes();
+    }
+
+    public function getDistinctAptitudeTypes(): array
+    {
+        return $this->careerRepository->getDistinctAptitudeTypes();
+    }
+
+    public function getDistinctValuesTypes(): array
+    {
+        return $this->careerRepository->getDistinctValuesTypes();
+    }
+
+    public function getAllSkills(): array
+    {
+        return $this->careerRepository->getAllSkills();
+    }
+
     public function getDistinctStatuses(): array
     {
         return $this->careerRepository->getDistinctStatuses();

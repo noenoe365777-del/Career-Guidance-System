@@ -16,6 +16,14 @@ try {
     @keyframes headerFadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes breadcrumbFade { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes dropdownOpen { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes notifPop { from { opacity: 0; transform: translateY(-8px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .notif-item { transition: background-color 0.15s ease; }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: #f5f7ff; }
+    .notif-item.unread .notif-title { color: #1e1b4b; font-weight: 700; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 9999px; background: #6366F1; flex-shrink: 0; }
+    .notif-scroll::-webkit-scrollbar { width: 6px; }
+    .notif-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 9999px; }
     .header-anim { animation: headerFadeIn 0.4s ease-out both; }
     .breadcrumb-anim { animation: breadcrumbFade 0.35s ease-out 0.1s both; }
     .dropdown-menu { animation: dropdownOpen 0.2s ease-out both; }
@@ -56,7 +64,7 @@ try {
             <div class="min-w-0 hidden md:block">
                 <h1 class="text-base font-bold text-slate-800 tracking-tight m-0 leading-tight">Admin Dashboard</h1>
                 <p class="breadcrumb-anim text-xs font-medium text-slate-400 m-0 mt-0.5 flex items-center gap-1">
-                    <span>Home</span>
+                    <a href="<?= BASE_URL ?>/index.php?page=home" class="text-slate-400 hover:text-indigo-600 transition-colors no-underline">Home</a>
                     <i class="bi bi-chevron-right text-[9px] opacity-50"></i>
                     <span class="text-slate-500 font-semibold"><?= htmlspecialchars($breadcrumbLabel) ?></span>
                 </p>
@@ -64,14 +72,40 @@ try {
         </div>
 
         <div class="flex items-center gap-4">
-            <a href="<?= BASE_URL ?>/index.php?page=admin-notifications"
-               class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 no-underline outline-none inline-flex items-center justify-center icon-hover"
-               aria-label="Notifications">
-                <i class="bi bi-bell text-xl"></i>
-                <?php if ($notifUnreadCount > 0): ?>
-                <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-sm ring-2 ring-white"><?= $notifUnreadCount ?></span>
-                <?php endif; ?>
-            </a>
+            <div class="relative" id="notifWrapper">
+                <button type="button"
+                        class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 no-underline outline-none inline-flex items-center justify-center icon-hover"
+                        id="notifBell"
+                        aria-label="Notifications"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+                    <i class="bi bi-bell text-xl"></i>
+                    <span id="notifBadge" class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-sm ring-2 ring-white <?= $notifUnreadCount > 0 ? '' : 'hidden' ?>"><?= $notifUnreadCount ?></span>
+                </button>
+
+                <div id="notifPanel"
+                     class="absolute right-0 mt-3 w-[420px] max-w-[calc(100vw-2rem)] bg-white rounded-[20px] shadow-2xl border border-[#E5E7EB] overflow-hidden z-50 origin-top-right"
+                     style="display:none; animation: notifPop 0.22s cubic-bezier(0.16,1,0.3,1) both;">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                        <h3 class="text-base font-bold text-slate-800 m-0">Notifications</h3>
+                        <button type="button" id="notifMarkAll"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors <?= $notifUnreadCount === 0 ? 'opacity-40 pointer-events-none' : '' ?>">
+                            <i class="bi bi-check2-all"></i> Mark all as read
+                        </button>
+                    </div>
+
+                    <div id="notifList" class="notif-scroll max-h-[380px] overflow-y-auto divide-y divide-slate-50">
+                        <div class="px-5 py-10 text-center text-sm text-slate-400">
+                            <i class="bi bi-arrow-repeat animate-spin block text-lg mb-2"></i> Loading…
+                        </div>
+                    </div>
+
+                    <a href="<?= BASE_URL ?>/index.php?page=admin-notifications"
+                       class="block text-center px-5 py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50/60 transition-colors border-t border-slate-100 no-underline">
+                        View all notifications
+                    </a>
+                </div>
+            </div>
 
             <div class="relative dropdown">
                 <button class="profile-btn flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50/80 border-0 bg-transparent text-left outline-none"
@@ -98,15 +132,21 @@ try {
                         </div>
                     </li>
                     <li>
-                        <a class="dropdown-item-link" href="#profile">
+                        <a class="dropdown-item-link" href="<?= BASE_URL ?>/index.php?page=admin-profile">
                             <i class="bi bi-person text-sm text-slate-400"></i>
                             <span>My Profile</span>
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item-link" href="<?= BASE_URL ?>/index.php?page=admin-dashboard">
+                        <a class="dropdown-item-link" href="<?= BASE_URL ?>/index.php?page=home">
                             <i class="bi bi-house text-sm text-slate-400"></i>
-                            <span>Dashboard</span>
+                            <span>Home</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item-link" href="<?= BASE_URL ?>/index.php?page=admin-role-permissions">
+                            <i class="bi bi-gear text-sm text-slate-400"></i>
+                            <span>Settings</span>
                         </a>
                     </li>
                     <li class="border-t border-slate-100 my-1"></li>
@@ -121,3 +161,172 @@ try {
         </div>
     </div>
 </nav>
+
+<script>
+(function () {
+    var baseUrl = '<?= BASE_URL ?>/index.php?page=admin-notifications-';
+    var wrapper = document.getElementById('notifWrapper');
+    var bell = document.getElementById('notifBell');
+    var panel = document.getElementById('notifPanel');
+    var list = document.getElementById('notifList');
+    var badge = document.getElementById('notifBadge');
+    var markAll = document.getElementById('notifMarkAll');
+    var isOpen = false;
+
+    var typeIcons = {
+        system: 'bi-gear-fill',
+        assessment: 'bi-clipboard-check',
+        user: 'bi-person-circle',
+        career: 'bi-briefcase',
+        question: 'bi-question-circle'
+    };
+
+    function setBadge(count) {
+        count = parseInt(count, 10) || 0;
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function refreshBadge() {
+        fetch(baseUrl + 'api-unread-count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { setBadge(data.unread_count); })
+            .catch(function () {});
+    }
+
+    function escapeHtml(str) {
+        var d = document.createElement('div');
+        d.textContent = str == null ? '' : String(str);
+        return d.innerHTML;
+    }
+
+    function renderItem(n) {
+        var unread = parseInt(n.is_read, 10) === 0;
+        var icon = typeIcons[n.type] || 'bi-bell';
+        var inner = ''
+            + '<div class="flex gap-3 px-5 py-3.5 ' + (unread ? 'unread' : '') + '">'
+            + '<div class="mt-0.5 flex-shrink-0 w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">'
+            + '<i class="bi ' + icon + '"></i></div>'
+            + '<div class="min-w-0 flex-1">'
+            + '<div class="flex items-start justify-between gap-2">'
+            + '<p class="notif-title text-sm text-slate-700 leading-snug m-0">' + escapeHtml(n.title) + '</p>'
+            + (unread ? '<span class="notif-dot mt-1.5"></span>' : '')
+            + '</div>'
+            + (n.message ? '<p class="text-xs text-slate-500 mt-0.5 line-clamp-2 m-0">' + escapeHtml(n.message) + '</p>' : '')
+            + '<p class="text-[11px] text-slate-400 mt-1 m-0">' + escapeHtml(n.time_ago) + '</p>'
+            + '</div></div>';
+        var wrap = document.createElement('div');
+        wrap.className = 'notif-item cursor-pointer';
+        wrap.setAttribute('data-id', n.id);
+        wrap.setAttribute('data-read', unread ? '0' : '1');
+        wrap.innerHTML = inner;
+        return wrap;
+    }
+
+    function renderList(notifications) {
+        list.innerHTML = '';
+        if (!notifications.length) {
+            list.innerHTML = '<div class="px-5 py-12 text-center text-sm text-slate-400">'
+                + '<i class="bi bi-bell-slash block text-2xl mb-2 opacity-60"></i> No notifications yet</div>';
+            return;
+        }
+        notifications.forEach(function (n) {
+            var el = renderItem(n);
+            if (n.link) {
+                el.addEventListener('click', function () { window.location.href = n.link; });
+            }
+            list.appendChild(el);
+        });
+    }
+
+    function loadList() {
+        list.innerHTML = '<div class="px-5 py-10 text-center text-sm text-slate-400">'
+            + '<i class="bi bi-arrow-repeat animate-spin block text-lg mb-2"></i> Loading…</div>';
+        fetch(baseUrl + 'api-list&limit=10', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                renderList(data.notifications || []);
+                setBadge(data.unread_count);
+            })
+            .catch(function () {
+                list.innerHTML = '<div class="px-5 py-10 text-center text-sm text-slate-400">Failed to load.</div>';
+            });
+    }
+
+    function openPanel() {
+        isOpen = true;
+        panel.style.display = 'block';
+        bell.setAttribute('aria-expanded', 'true');
+        loadList();
+    }
+
+    function closePanel() {
+        isOpen = false;
+        panel.style.display = 'none';
+        bell.setAttribute('aria-expanded', 'false');
+    }
+
+    bell.addEventListener('click', function (e) {
+        e.stopPropagation();
+        isOpen ? closePanel() : openPanel();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (isOpen && wrapper && !wrapper.contains(e.target)) {
+            closePanel();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isOpen) closePanel();
+    });
+
+    list.addEventListener('click', function (e) {
+        var item = e.target.closest('.notif-item');
+        if (!item) return;
+        if (item.getAttribute('data-read') !== '0') return;
+        var id = item.getAttribute('data-id');
+        fetch(baseUrl + 'api-mark-read', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + encodeURIComponent(id)
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            item.classList.remove('unread');
+            item.querySelector('.notif-dot')?.remove();
+            item.setAttribute('data-read', '1');
+            setBadge(data.unread_count);
+            refreshBadge();
+        })
+        .catch(function () {});
+    });
+
+    if (markAll) {
+        markAll.addEventListener('click', function () {
+            fetch(baseUrl + 'api-mark-all-read', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function () {
+                list.querySelectorAll('.notif-item.unread').forEach(function (el) {
+                    el.classList.remove('unread');
+                    el.querySelector('.notif-dot')?.remove();
+                    el.setAttribute('data-read', '1');
+                });
+                setBadge(0);
+                refreshBadge();
+            })
+            .catch(function () {});
+        });
+    }
+
+    refreshBadge();
+})();
+</script>

@@ -107,6 +107,16 @@ class NotificationRepository implements NotificationRepositoryInterface
         }
     }
 
+    public function getTodayCount(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM notifications WHERE DATE(created_at) = CURDATE()");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
     public function markAsRead(int $id): bool
     {
         try {

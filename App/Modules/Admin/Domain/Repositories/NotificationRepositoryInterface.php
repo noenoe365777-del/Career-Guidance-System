@@ -14,6 +14,8 @@ interface NotificationRepositoryInterface
 
     public function getTotalCount(?string $type = null, ?string $search = null): int;
 
+    public function getTodayCount(): int;
+
     public function markAsRead(int $id): bool;
 
     public function markAllAsRead(): bool;

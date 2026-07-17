@@ -51,6 +51,38 @@ class AssessmentEngineRepository
         return $row ?: null;
     }
 
+    public function getById(int $id): ?array
+    {
+        return $this->getAssessmentById($id);
+    }
+
+    public function getBySlug(string $slug): ?array
+    {
+        $slugMap = $this->getSlugMap();
+        $assessmentId = $slugMap[$slug] ?? null;
+        if ($assessmentId === null) {
+            return null;
+        }
+        return $this->getAssessmentById((int)$assessmentId);
+    }
+
+    public function getAll(): array
+    {
+        return $this->getActiveAssessments();
+    }
+
+    public function getSlugMap(): array
+    {
+        $stmt = $this->pdo->query("SELECT assessment_id, title FROM assessments WHERE status = 'active' ORDER BY assessment_id ASC");
+        $rows = $stmt->fetchAll();
+        $map = [];
+        foreach ($rows as $row) {
+            $slug = strtolower(str_replace(' ', '_', trim((string)$row['title'])));
+            $map[$slug] = (int)$row['assessment_id'];
+        }
+        return $map;
+    }
+
     public function getAssessmentByTitle(string $title): ?array
     {
         $stmt = $this->pdo->prepare("SELECT * FROM assessments WHERE LOWER(title) = LOWER(:t) AND status = 'active'");

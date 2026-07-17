@@ -79,7 +79,7 @@ $pageTitle = "Login";
 
         <?php if ($error): ?>
 
-            <div class="mb-5 p-3 rounded-lg bg-red-100 text-red-700 border border-red-300">
+            <div class="error-banner">
 
                 <?= htmlspecialchars($error) ?>
 
@@ -127,22 +127,15 @@ $pageTitle = "Login";
 
             class="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-300
                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
-                   outline-none transition"
-
-            <?= FormHelper::hasError($errors,'email')
-                ? 'border-red-500'
-                : '' ?>
+                   outline-none transition
+                   <?= FormHelper::hasError($errors,'email') ?>"
         >
 
     </div>
 
     <?php if(isset($errors['email'])): ?>
 
-        <p class="text-red-500 text-sm mt-2">
-
-            <?= htmlspecialchars($errors['email']) ?>
-
-        </p>
+        <?= FormHelper::error($errors,'email') ?>
 
     <?php endif; ?>
 
@@ -168,11 +161,8 @@ $pageTitle = "Login";
 
             class="w-full h-12 pl-12 pr-12 rounded-xl border border-gray-300
                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
-                   outline-none transition"
-
-            <?= FormHelper::hasError($errors,'password')
-                ? 'border-red-500'
-                : '' ?>
+                   outline-none transition
+                   <?= FormHelper::hasError($errors,'password') ?>"
         >
 
         <button

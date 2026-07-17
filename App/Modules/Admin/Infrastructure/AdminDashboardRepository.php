@@ -233,6 +233,87 @@ class AdminDashboardRepository
         }
     }
 
+    public function getRecentNotifications(int $limit = 5): array
+    {
+        try {
+            $stmt = $this->connection->prepare("
+                SELECT id, type, title, message, link, is_read, created_at
+                FROM notifications
+                ORDER BY created_at DESC
+                LIMIT :limit
+            ");
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getAssessmentCompletionStats(): array
+    {
+        try {
+            $stmt = $this->connection->query("
+                SELECT
+                    a.assessment_id,
+                    a.title,
+                    a.category,
+                    COUNT(sa.student_assessment_id) AS total_attempts,
+                    SUM(CASE WHEN sa.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+                    ROUND(AVG(CASE WHEN sa.status = 'completed' THEN 1 ELSE 0 END) * 100, 1) AS completion_rate
+                FROM assessments a
+                LEFT JOIN student_assessments sa ON sa.assessment_id = a.assessment_id
+                GROUP BY a.assessment_id, a.title, a.category
+                ORDER BY a.assessment_id ASC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getTotalStudentsActive(): int
+    {
+        try {
+            $stmt = $this->connection->query("
+                SELECT COUNT(DISTINCT sa.user_id) FROM student_assessments sa
+            ");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getUnreadNotificationCount(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM notifications WHERE is_read = 0");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getTodayRegistrations(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURDATE() AND user_role_id = 2");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
+    public function getTodayCompletions(): int
+    {
+        try {
+            $stmt = $this->connection->query("SELECT COUNT(*) FROM student_assessments WHERE DATE(completed_at) = CURDATE() AND status = 'completed'");
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException) {
+            return 0;
+        }
+    }
+
     public function checkDatabaseConnection(): bool
     {
         try {

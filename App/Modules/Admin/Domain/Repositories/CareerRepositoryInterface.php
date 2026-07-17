@@ -27,6 +27,14 @@ interface CareerRepositoryInterface
 
     public function getDistinctPersonalityTypes(): array;
 
+    public function getDistinctInterestTypes(): array;
+
+    public function getDistinctAptitudeTypes(): array;
+
+    public function getDistinctValuesTypes(): array;
+
+    public function getAllSkills(): array;
+
     public function getDistinctStatuses(): array;
 
     public function createCareer(array $data): ?int;

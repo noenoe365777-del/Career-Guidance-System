@@ -140,9 +140,9 @@ $colorMap = [
 
                           
 
-                            <!-- Guest buttons -->
+<!-- Guest buttons -->
                             <div class="mt-1 flex flex-col gap-2">
-                                <a href="<?= BASE_URL ?>/index.php?page=guest-<?= htmlspecialchars($assessment['slug']) ?>"
+                                <a href="<?= BASE_URL ?>/index.php?page=guest-question&assessment=<?= $assessment['id'] ?>"
                                    class="<?= $c['btn'] ?> w-full rounded-xl py-3 text-center font-semibold text-white transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 inline-flex items-center justify-center gap-2 text-sm shadow-md hover:shadow-lg">
                                     <i class="fas fa-play text-xs"></i>
                                     Start Free Preview

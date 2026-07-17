@@ -6,6 +6,7 @@ namespace App\Modules\Recommendation\Application\Services;
 
 use App\Modules\Recommendation\Domain\Entities\CareerRecommendation;
 use App\Modules\Recommendation\Infrastructure\Persistence\RecommendationRepository;
+use App\Shared\NotificationHelper;
 use PDO;
 
 class RecommendationService
@@ -120,7 +121,24 @@ class RecommendationService
             ]);
         }
 
+        $topCareerName = !empty($recommendations) ? $recommendations[0]->careerName : 'a career path';
+        $userData = $this->getUserData($userId);
+        $studentName = $userData['name'] ?? "User #{$userId}";
+        NotificationHelper::recommendationGenerated($studentName, $topCareerName);
+
         return $recommendations;
+    }
+
+    private function getUserData(int $userId): array
+    {
+        try {
+            $pdo = \App\Config\Database::getConnection();
+            $stmt = $pdo->prepare("SELECT username, full_name, CONCAT(first_name, ' ', last_name) AS name FROM users WHERE id = :id");
+            $stmt->execute([':id' => $userId]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException) {
+            return [];
+        }
     }
 
     private function repairLegacyLabels(int $userId, array $scores): void

@@ -123,16 +123,46 @@ class NewAssessmentRepository
 
     public function completeAssessment(int $userId, int $assessmentId): array
     {
-        $percentage = $this->calculatePercentage($userId, $assessmentId);
-        $answered = $this->getAnsweredCount($userId, $assessmentId);
-        $now = date('Y-m-d H:i:s');
+        $this->pdo->beginTransaction();
 
-        $stmt = $this->pdo->prepare("UPDATE assessment_results SET score = :sc, percentage = :pct, status = 'completed', completed_at = :now WHERE user_id = :uid AND assessment_id = :aid AND status = 'in_progress'");
-        $stmt->execute([':sc' => $percentage, ':pct' => $percentage, ':now' => $now, ':uid' => $userId, ':aid' => $assessmentId]);
+        try {
+            $percentage = $this->calculatePercentage($userId, $assessmentId);
+            $answered = $this->getAnsweredCount($userId, $assessmentId);
+            $now = date('Y-m-d H:i:s');
 
-        $this->saveLegacyScore($userId, $assessmentId, $percentage);
+            $stmt = $this->pdo->prepare("UPDATE assessment_results SET score = :sc, percentage = :pct, status = 'completed', completed_at = :now WHERE user_id = :uid AND assessment_id = :aid AND status = 'in_progress'");
+            $stmt->execute([':sc' => $percentage, ':pct' => $percentage, ':now' => $now, ':uid' => $userId, ':aid' => $assessmentId]);
 
-        return ['percentage' => $percentage, 'answered' => $answered];
+            $this->saveLegacyScore($userId, $assessmentId, $percentage);
+
+            $this->syncStudentAssessment($userId, $assessmentId, $now);
+
+            $this->pdo->commit();
+
+            return ['percentage' => $percentage, 'answered' => $answered];
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    private function syncStudentAssessment(int $userId, int $assessmentId, string $now): void
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT student_assessment_id FROM student_assessments WHERE user_id = :uid AND assessment_id = :aid ORDER BY student_assessment_id DESC LIMIT 1"
+        );
+        $stmt->execute([':uid' => $userId, ':aid' => $assessmentId]);
+        $existing = $stmt->fetch();
+
+        if ($existing) {
+            $this->pdo->prepare(
+                "UPDATE student_assessments SET status = 'completed', progress = 100.00, completed_at = :now WHERE student_assessment_id = :id"
+            )->execute([':now' => $now, ':id' => $existing['student_assessment_id']]);
+        } else {
+            $this->pdo->prepare(
+                "INSERT INTO student_assessments (user_id, assessment_id, status, progress, started_at, completed_at) VALUES (:uid, :aid, 'completed', 100.00, :now, :now)"
+            )->execute([':uid' => $userId, ':aid' => $assessmentId, ':now' => $now]);
+        }
     }
 
     private function saveLegacyScore(int $userId, int $assessmentId, float $percentage): void

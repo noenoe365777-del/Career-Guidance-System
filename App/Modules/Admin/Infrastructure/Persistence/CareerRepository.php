@@ -136,6 +136,58 @@ class CareerRepository implements CareerRepositoryInterface
         }
     }
 
+    public function getDistinctInterestTypes(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT interest_type FROM careers WHERE interest_type IS NOT NULL AND interest_type != '' ORDER BY interest_type ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getDistinctAptitudeTypes(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT aptitude_type FROM careers WHERE aptitude_type IS NOT NULL AND aptitude_type != '' ORDER BY aptitude_type ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getDistinctValuesTypes(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT values_type FROM careers WHERE values_type IS NOT NULL AND values_type != '' ORDER BY values_type ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getAllSkills(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(required_skills, ',', n.n), ',', -1)) AS skill
+                FROM careers
+                CROSS JOIN (
+                    SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                    UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+                    UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+                    UNION SELECT 13 UNION SELECT 14 UNION SELECT 15 UNION SELECT 16
+                    UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION SELECT 20
+                ) n
+                WHERE required_skills IS NOT NULL AND required_skills != ''
+                AND CHAR_LENGTH(TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(required_skills, ',', n.n), ',', -1))) > 0
+                ORDER BY skill ASC");
+            $skills = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            return array_values(array_filter(array_map('trim', $skills)));
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
     public function getCareerById(int $id): ?array
     {
         try {

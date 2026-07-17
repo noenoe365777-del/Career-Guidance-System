@@ -21,6 +21,11 @@ class NotificationService
         return $this->notificationRepository->getAll($limit, $offset, $type, $search);
     }
 
+    public function getUnread(int $limit = 20, int $offset = 0): array
+    {
+        return $this->notificationRepository->getUnread($limit, $offset);
+    }
+
     public function getUnreadCount(): int
     {
         return $this->notificationRepository->getUnreadCount();
@@ -29,6 +34,11 @@ class NotificationService
     public function getTotalCount(?string $type = null, ?string $search = null): int
     {
         return $this->notificationRepository->getTotalCount($type, $search);
+    }
+
+    public function getTodayCount(): int
+    {
+        return $this->notificationRepository->getTodayCount();
     }
 
     public function markAsRead(int $id): bool

@@ -6,6 +6,7 @@ namespace App\Modules\Admin\Presentation\Controllers;
 
 use App\Modules\Admin\Application\Services\AssessmentService;
 use App\Shared\Core\Controller;
+use App\Shared\NotificationHelper;
 
 class AssessmentController extends Controller
 {
@@ -181,6 +182,7 @@ class AssessmentController extends Controller
         }
 
         $this->assessmentService->updateAssessment($id, $title, $description);
+        NotificationHelper::assessmentUpdated($title, $id);
         $this->redirectTo('admin-assessments', ['message' => 'updated']);
     }
 
@@ -195,7 +197,17 @@ class AssessmentController extends Controller
 
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
+            $assessment = $this->assessmentService->getAssessmentById($id);
             $this->assessmentService->toggleAssessmentStatus($id);
+            if ($assessment) {
+                $newStatus = strtolower((string)($assessment['status'] ?? 'active')) === 'active' ? 'inactive' : 'active';
+                NotificationHelper::notify(
+                    'assessment',
+                    'Assessment Status Changed',
+                    "Assessment \"{$assessment['title']}\" is now {$newStatus}.",
+                    '/index.php?page=admin-assessments-view&id=' . $id
+                );
+            }
         }
 
         $this->redirectTo('admin-assessments');
@@ -220,6 +232,9 @@ class AssessmentController extends Controller
         $customTitle = trim((string)($_POST['title'] ?? ''));
         $newTitle = $customTitle !== '' ? $customTitle : (string)($assessment['title'] ?? '') . ' (Copy)';
         $result = $this->assessmentService->duplicateAssessment($id, $newTitle);
+        if ($result) {
+            NotificationHelper::assessmentCreated($newTitle, (int)($result['assessment_id'] ?? 0));
+        }
 
         $this->redirectTo('admin-assessments', ['message' => $result ? 'duplicated' : 'error']);
     }
