@@ -90,6 +90,59 @@ class DashboardRepository
     }
 
     /**
+     * Total number of assessments in the system
+     */
+    public function getTotalAssessments(): int
+    {
+        try {
+            $stmt = $this->connection->query('SELECT COUNT(*) FROM assessments');
+            return (int)$stmt->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * Question count per assessment_id from assessment_questions
+     */
+    public function getQuestionCountsByAssessment(): array
+    {
+        try {
+            $stmt = $this->connection->query(
+                'SELECT assessment_id, COUNT(*) AS question_count FROM assessment_questions GROUP BY assessment_id'
+            );
+            $map = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $map[(int)$row['assessment_id']] = (int)$row['question_count'];
+            }
+            return $map;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Assessment ID-to-slug map from the assessments table
+     */
+    public function getAssessmentSlugMap(): array
+    {
+        try {
+            $stmt = $this->connection->query('SELECT assessment_id, title FROM assessments ORDER BY assessment_id ASC');
+            $map = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $id = (int)$row['assessment_id'];
+                $slug = $this->mapAssessmentTitleToSlug((string)($row['title'] ?? ''));
+                if ($slug !== 'unknown') {
+                    $map[$id] = $slug;
+                }
+            }
+            return $map;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
      * Recommendation
      */
     public function getRecommendation(int $userId): ?array

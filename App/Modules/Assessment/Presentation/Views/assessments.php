@@ -125,20 +125,17 @@ $colorMap = [
                             </div>
 
                         <?php else: ?>
-                            <!-- Guest: preview question count + time -->
-                            <div class="flex items-center gap-3 text-xs text-slate-400 font-medium">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fas fa-list-check text-[10px]"></i>
-                                    <?= $previewCount ?> Preview Questions
-                                </span>
-                                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fas fa-clock text-[10px]"></i>
-                                    ≈1 minutes
-                                </span>
-                            </div>
+                            <!-- Guest: preview badge -->
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold uppercase tracking-wider w-fit">
+                                <i class="fas fa-eye text-[8px]"></i>
+                                Free Preview
+                                <span class="w-px h-2.5 bg-indigo-200"></span>
+                                <?= $previewCount ?> Questions
+                            </span>
 
-                          
+                    
+
+                           
 
 <!-- Guest buttons -->
                             <div class="mt-1 flex flex-col gap-2">

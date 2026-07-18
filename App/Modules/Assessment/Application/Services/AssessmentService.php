@@ -66,12 +66,10 @@ class AssessmentService
         return $this->assessmentRepository->getById($assessmentId);
     }
 
-    public function getAssessmentQuestionsByAssessmentId(int $assessmentId, int $limit = 5): array
-{
-    $questions = $this->questionRepository->getQuestionsByAssessmentId($assessmentId);
-
-    return array_slice($questions, 0, $limit);
-}
+    public function getAssessmentQuestionsByAssessmentId(int $assessmentId, ?int $limit = null): array
+    {
+        return $this->questionRepository->getQuestionsByAssessmentId($assessmentId, $limit);
+    }
 
     public function startAssessment(string $slug, ?int $userId = null): array
     {

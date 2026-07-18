@@ -34,7 +34,7 @@ class AdminDashboardRepository
 
     public function getTotalQuestions(): int
     {
-        return $this->countRows('questions');
+        return $this->countRows('assessment_questions');
     }
 
     public function getTotalCareers(): int
@@ -136,7 +136,7 @@ class AdminDashboardRepository
                            'Admin' AS subject,
                            CONCAT('added a question to ', a.title) AS description,
                            q.created_at AS occurred_at
-                    FROM questions q
+                    FROM assessment_questions q
                     JOIN assessments a ON a.assessment_id = q.assessment_id
 
                     UNION ALL
@@ -192,8 +192,8 @@ class AdminDashboardRepository
     {
         try {
             $sql = "
-                SELECT q.question_id, q.question_text, q.created_at, a.title AS assessment_title
-                FROM questions q
+                SELECT q.id AS question_id, q.question AS question_text, q.created_at, a.title AS assessment_title
+                FROM assessment_questions q
                 JOIN assessments a ON a.assessment_id = q.assessment_id
                 ORDER BY q.created_at DESC
                 LIMIT :limit

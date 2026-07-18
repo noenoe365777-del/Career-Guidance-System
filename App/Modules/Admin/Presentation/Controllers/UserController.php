@@ -18,11 +18,6 @@ class UserController extends Controller
 
     public function index(): void
     {
-
-    $recentStudents = $this->userService->getRecentStudents(5);
-
-
-
         AdminAuthMiddleware::requireAdmin();
         $this->requirePermission('view_users');
 
@@ -48,7 +43,6 @@ class UserController extends Controller
                 'search' => $search,
                 'selectedEducationLevel' => $educationLevel,
                 'studentStats' => $stats,
-                'recentStudents' => $recentStudents,
                 'educationLevels' => $educationLevels,
                 'message' => $_GET['message'] ?? null,
             ]

@@ -29,11 +29,8 @@ $pageTitle = $pageTitle ?? 'Career Management';
             <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f4f7fc]">
                 <div class="max-w-[1400px] mx-auto space-y-6">
                     <div class="glass-card rounded-3xl border border-slate-100 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)]">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 class="text-2xl font-bold text-slate-800">Career Management</h2>
-                                <p class="text-sm text-slate-500">Keep career paths and recommendations available to students in a polished interface.</p>
-                            </div>
+                       <h2 class="text-2xl font-bold text-slate-800">Assessment Management</h2>
+                                <p class="text-sm text-slate-500">Review, monitor, and manage all assessments from one workspace.</p>
                             <a href="<?= BASE_URL ?>/index.php?page=admin-dashboard" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Back to Dashboard</a>
                         </div>
                     </div>

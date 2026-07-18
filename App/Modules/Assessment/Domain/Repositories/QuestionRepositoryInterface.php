@@ -8,8 +8,7 @@ interface QuestionRepositoryInterface
 {
     public function getQuestionsBySlug(string $slug, bool $previewOnly = false): array;
 
-    // NEW
-    public function getQuestionsByAssessmentId(int $assessmentId): array;
+    public function getQuestionsByAssessmentId(int $assessmentId, ?int $limit = null): array;
 
     public function getTotalQuestionCount(int $assessmentId): int;
 

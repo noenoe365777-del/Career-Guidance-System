@@ -111,53 +111,53 @@ function dashboardFormatDate(?string $value): string
                 </div>
             </div>
             <?php if ($allCompleted): ?>
-               
+                
             <?php else: ?>
-               
+                
             <?php endif; ?>
         </div>
     </section>
 
     <!-- Quick Statistics -->
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4" x-data="statCounters()" x-init="initCounters()">
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 0ms;">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Completed</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-500">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-500 stat-icon">
                     <i class="fas fa-check text-xs"></i>
                 </div>
             </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= (int)$completedAssessments ?></p>
+            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= (int)$completedAssessments ?>" data-suffix="">0</p>
             <p class="text-xs text-slate-400">Assessments</p>
         </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 100ms;">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 stat-icon">
                     <i class="fas fa-list-check text-xs"></i>
                 </div>
             </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= (int)$totalAssessments ?></p>
+            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= (int)$totalAssessments ?>" data-suffix="">0</p>
             <p class="text-xs text-slate-400">Assessments</p>
         </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 200ms;">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Education</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-500">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-500 stat-icon">
                     <i class="fas fa-graduation-cap text-xs"></i>
                 </div>
             </div>
             <p class="mt-3 text-2xl font-bold text-slate-900"><?= htmlspecialchars($recommendation['education_required'] ?? '—') ?></p>
             <p class="text-xs text-slate-400">Level</p>
         </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 300ms;">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Top Match</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 stat-icon">
                     <i class="fas fa-trophy text-xs"></i>
                 </div>
             </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= $recommendation ? (int)$recommendation['match_score'] . '%' : '—' ?></p>
+            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= $recommendation ? (int)$recommendation['match_score'] : 0 ?>" data-suffix="%">0%</p>
             <p class="text-xs text-slate-400">Score</p>
         </div>
     </div>
@@ -331,5 +331,171 @@ function dashboardFormatDate(?string $value): string
         </div>
     </section>
 
-    
+<style>
+/* ========================================
+   SUMMARY CARDS ANIMATIONS
+   ======================================== */
+
+/* Staggered entrance: fade up */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card {
+    animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0;
+}
+
+/* Icon float animation */
+@keyframes floatIcon {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-3px) rotate(1deg); }
+    50% { transform: translateY(-5px) rotate(0deg); }
+    75% { transform: translateY(-3px) rotate(-1deg); }
+}
+
+.float-icon .stat-icon {
+    animation: floatIcon 5s ease-in-out infinite;
+    transform-origin: center;
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.float-icon:hover .stat-icon {
+    transform: scale(1.12) rotate(4deg);
+}
+
+/* Hover lift + shadow + border glow */
+.hover-lift {
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), 
+                box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.25s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-4px);
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.12), 
+                0 6px 16px -4px rgba(15, 23, 42, 0.08);
+    border-color: rgba(79, 70, 229, 0.3);
+}
+
+/* Ripple on click */
+@keyframes rippleEffect {
+    from { transform: scale(0); opacity: 0.4; }
+    to { transform: scale(3); opacity: 0; }
+}
+
+.hover-lift:active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, rgba(79,70,229,0.15) 0%, transparent 70%);
+    animation: rippleEffect 0.4s ease-out forwards;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Pulse on counter complete */
+@keyframes pulseOnce {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.pulse-on-complete {
+    animation: pulseOnce 0.6s ease-out forwards;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .stat-card,
+    .float-icon .stat-icon {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+    .hover-lift:hover,
+    .hover-lift:active::after {
+        transform: none;
+        box-shadow: none;
+        border-color: inherit;
+    }
+    .float-icon:hover .stat-icon {
+        transform: none;
+    }
+}
+</style>
+
+<script>
+// ========================================
+// Summary Cards Counter Animation
+// Vanilla JS, no dependencies
+// ========================================
+function statCounters() {
+    return {
+        observer: null,
+        initCounters() {
+            const counters = document.querySelectorAll('.counter[data-target]');
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // If reduced motion, set values immediately
+            if (prefersReduced) {
+                counters.forEach(el => {
+                    const target = parseFloat(el.dataset.target) || 0;
+                    const suffix = el.dataset.suffix || '';
+                    el.textContent = target + suffix;
+                });
+                return;
+            }
+
+            this.observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !entry.target.dataset.animated) {
+                        entry.target.dataset.animated = 'true';
+                        this.animateCounter(entry.target);
+                    }
+                });
+            }, { threshold: 0.4, rootMargin: '0px 0px -20px 0px' });
+
+            counters.forEach(counter => this.observer.observe(counter));
+        },
+        animateCounter(el) {
+            const target = parseFloat(el.dataset.target) || 0;
+            const suffix = el.dataset.suffix || '';
+            const duration = 1000; // 1 second
+            const start = performance.now();
+            const isInteger = Number.isInteger(target);
+
+            const step = (now) => {
+                const progress = Math.min((now - start) / duration, 1);
+                // Easing: cubic-bezier(0.22, 1, 0.36, 1) approximation
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = eased * target;
+                el.textContent = (isInteger ? Math.round(current) : current.toFixed(1)) + suffix;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = target + suffix;
+                    // Trigger subtle pulse on card
+                    const card = el.closest('.stat-card');
+                    if (card) {
+                        card.classList.add('pulse-on-complete');
+                        setTimeout(() => card.classList.remove('pulse-on-complete'), 600);
+                    }
+                }
+            };
+            requestAnimationFrame(step);
+        }
+    };
+}
+</script>
 </div>

@@ -144,9 +144,17 @@ class AssessmentEngineRepository
     public function getQuestions(int $assessmentId, bool $randomMode = false, ?int $limit = null): array
     {
         if ($randomMode) {
-            $sql = "SELECT * FROM questions WHERE assessment_id = :aid AND preview = 0 ORDER BY RAND()";
+            $sql = "SELECT aq.id AS question_id, aq.question AS question_text, 'single_choice' AS question_type,
+                           aq.option_a, aq.option_b, aq.option_c, aq.option_d,
+                           aq.correct_answer, aq.weight
+                    FROM assessment_questions aq
+                    WHERE aq.assessment_id = :aid ORDER BY RAND()";
         } else {
-            $sql = "SELECT * FROM questions WHERE assessment_id = :aid AND preview = 0 ORDER BY question_order ASC";
+            $sql = "SELECT aq.id AS question_id, aq.question AS question_text, 'single_choice' AS question_type,
+                           aq.option_a, aq.option_b, aq.option_c, aq.option_d,
+                           aq.correct_answer, aq.weight
+                    FROM assessment_questions aq
+                    WHERE aq.assessment_id = :aid ORDER BY aq.id ASC";
         }
         if ($limit !== null) {
             $sql .= " LIMIT " . (int)$limit;
@@ -158,10 +166,12 @@ class AssessmentEngineRepository
 
     public function getQuestionById(int $questionId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT q.*, a.assessment_id, a.title AS assessment_name
-                                      FROM questions q
-                                      JOIN assessments a ON a.assessment_id = q.assessment_id
-                                      WHERE q.question_id = :id");
+        $stmt = $this->pdo->prepare("SELECT aq.id AS question_id, aq.question AS question_text, 'single_choice' AS question_type,
+                                             aq.assessment_id, aq.option_a, aq.option_b, aq.option_c, aq.option_d,
+                                             aq.correct_answer, aq.weight, a.title AS assessment_name
+                                      FROM assessment_questions aq
+                                      JOIN assessments a ON a.assessment_id = aq.assessment_id
+                                      WHERE aq.id = :id");
         $stmt->execute([':id' => $questionId]);
         $row = $stmt->fetch();
         return $row ?: null;
@@ -169,9 +179,29 @@ class AssessmentEngineRepository
 
     public function getOptionsForQuestion(int $questionId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM question_options WHERE question_id = :qid ORDER BY option_order ASC");
+        $stmt = $this->pdo->prepare("SELECT option_a, option_b, option_c, option_d, correct_answer
+                                     FROM assessment_questions WHERE id = :qid");
         $stmt->execute([':qid' => $questionId]);
-        return $stmt->fetchAll();
+        $row = $stmt->fetch();
+        if (!$row) return [];
+
+        $options = [];
+        $position = 1;
+        foreach (['option_a', 'option_b', 'option_c', 'option_d'] as $col) {
+            $value = $row[$col] ?? null;
+            if ($value !== null && $value !== '') {
+                $letter = chr(64 + $position);
+                $isCorrect = ($row['correct_answer'] !== null && $letter === $row['correct_answer']);
+                $options[] = [
+                    'option_id' => $position,
+                    'option_text' => (string)$value,
+                    'option_value' => $isCorrect ? 5.0 : (float)$position,
+                    'option_order' => $position,
+                ];
+            }
+            $position++;
+        }
+        return $options;
     }
 
     public function saveAnswer(int $attemptId, int $questionId, int $optionId, float $score): void
@@ -273,20 +303,13 @@ class AssessmentEngineRepository
         $attempt = $this->getAttemptById($attemptId);
         if (!$attempt) return 0;
 
-        $assessId = (int)$attempt['assessment_id'];
-        $stmt2 = $this->pdo->prepare("SELECT MAX(option_value) FROM question_options qo
-                                       JOIN questions q ON q.question_id = qo.question_id
-                                       WHERE q.assessment_id = :aid");
-        $stmt2->execute([':aid' => $assessId]);
-        $maxVal = (float)($stmt2->fetchColumn() ?: 5);
-
-        if ($maxVal <= 0) $maxVal = 5;
+        $maxVal = 5.0;
         return round(($avg / $maxVal) * 100, 1);
     }
 
     public function countAssessmentQuestions(int $assessmentId): int
     {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM questions WHERE assessment_id = :aid AND preview = 0");
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :aid");
         $stmt->execute([':aid' => $assessmentId]);
         return (int)$stmt->fetchColumn();
     }

@@ -249,13 +249,18 @@ class QuestionController extends Controller
             return;
         }
 
-        $id = $this->questionService->createQuestion($data);
+        $id = null;
+        try {
+            $id = $this->questionService->createQuestion($data);
+        } catch (\PDOException $e) {
+            error_log('[QuestionController] store: createQuestion failed: ' . $e->getMessage());
+        }
         if ($id === null) {
             $assessments = $this->questionService->getAssessments();
             $questionTypes = $this->questionService->getQuestionTypes();
             $this->view('Admin/Presentation/Views/questions/create', [
                 'layout' => 'none', 'pageTitle' => 'Add Question', 'activeMenu' => 'questions',
-                'errors' => ['general' => 'Failed to create question.'], 'old' => $data, 'options' => $options,
+                'errors' => ['general' => 'Failed to create question. Check that the selected assessment exists.'], 'old' => $data, 'options' => $options,
                 'assessments' => $assessments, 'questionTypes' => $questionTypes,
             ]);
             return;

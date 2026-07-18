@@ -31,6 +31,27 @@ class HomeController extends Controller
 
     public function contact(): void
     {
+        View::render('Home/Presentation/Views/contact', [
+            'pageTitle' => 'Contact Us - Career Guidance System',
+        ]);
+    }
+
+    public function contactAddress(): void
+    {
+        View::render('Home/Presentation/Views/address', [
+            'pageTitle' => 'Our Address - Career Guidance System',
+        ]);
+    }
+
+    public function contactPhone(): void
+    {
+        View::render('Home/Presentation/Views/phone', [
+            'pageTitle' => 'Phone Support - Career Guidance System',
+        ]);
+    }
+
+    public function contactEmail(): void
+    {
         $errors = [];
         $success = null;
         $old = [];
@@ -80,8 +101,8 @@ class HomeController extends Controller
             }
         }
 
-        View::render('Home/Presentation/Views/contact', [
-            'pageTitle' => 'Contact Us - Career Guidance System',
+        View::render('Home/Presentation/Views/email', [
+            'pageTitle' => 'Send a Message - Career Guidance System',
             'errors' => $errors,
             'success' => $success,
             'old' => $old,

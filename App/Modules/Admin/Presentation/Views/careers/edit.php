@@ -73,6 +73,15 @@ select.f-inp {
     color: #ef4444;
 }
 
+/* ---- TomSelect error state ---- */
+.ts-wrapper.ts-has-error .ts-control {
+    border-color: #ef4444;
+}
+.ts-wrapper.ts-has-error .ts-control:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+}
+
 /* ---- TomSelect overrides ---- */
 .ts-wrapper .ts-control {
     border: 1.5px solid #e2e8f0;
@@ -136,57 +145,54 @@ select.f-inp {
 }
 .seg-b:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
 
-/* ---- Environment chips ---- */
-.env-c {
+/* ---- Environment chips (redesigned) ---- */
+.env-chip {
     display: inline-flex;
     align-items: center;
-    padding: 0.3rem 0.75rem;
-    border-radius: 9999px;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
     border: 1.5px solid #e2e8f0;
     background: #fff;
-    font-size: 0.76rem;
+    font-size: 0.82rem;
     font-weight: 500;
     color: #475569;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.15s;
     user-select: none;
     outline: none;
 }
-.env-c:hover { border-color: #a5b4fc; background: #f5f3ff; }
-.env-c.sel { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: 600; }
-.env-c:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
+.env-chip:hover { border-color: #a5b4fc; background: #f5f3ff; }
+.env-chip.sel { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.env-chip.sel .check-icon { display: inline-flex; }
+.env-chip .check-icon { display: none; }
+.env-chip:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
 
-/* ---- Action bar ---- */
-.act-b {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: rgba(255,255,255,0.88);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid #eef1f5;
-    margin: -1.5rem -1.5rem 0 -1.5rem;
+/* ---- Job Outlook option cards ---- */
+.jo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
 }
-.act-i {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    transition: all 0.12s;
+.jo-card {
+    position: relative;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #475569;
     cursor: pointer;
-    border: none;
-    text-decoration: none;
-    white-space: nowrap;
+    transition: all 0.15s;
+    user-select: none;
+    outline: none;
 }
-.act-i-pri { background: var(--primary); color: #fff; }
-.act-i-pri:hover { background: var(--primary-dark); }
-.act-i-out { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
-.act-i-out:hover { background: #f8fafc; }
-.act-i-gh { background: transparent; color: #64748b; }
-.act-i-gh:hover { background: #f1f5f9; color: #334155; }
+.jo-card:hover { border-color: #a5b4fc; background: #f5f3ff; }
+.jo-card.sel { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.jo-card.sel .check-icon { display: inline-flex; }
+.jo-card .check-icon { display: none; position: absolute; top: 0.5rem; right: 0.5rem; width: 18px; height: 18px; border-radius: 9999px; background: var(--primary); color: #fff; align-items: center; justify-content: center; font-size: 0.65rem; }
+.jo-card:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
 
 /* ---- Section cards ---- */
 .sc {
@@ -197,55 +203,121 @@ select.f-inp {
     overflow: visible;
 }
 .sc-h {
-    padding: 0.9rem 1.5rem;
+    padding: 0.85rem 1.25rem;
     border-bottom: 1px solid #f1f4f8;
     display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    align-items: flex-start;
+    gap: 0.75rem;
 }
-.sc-h h2 { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
-.sc-b { padding: 1.25rem 1.5rem 1.5rem; }
+.sc-h .icon-wrap {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.1rem;
+}
+.sc-h .icon-wrap i { font-size: 1rem; }
+.sc-h-content { flex: 1; min-width: 0; }
+.sc-h h2 { font-size: 0.85rem; font-weight: 700; color: #0f172a; margin: 0; line-height: 1.3; }
+.sc-h p { font-size: 0.75rem; color: #64748b; margin: 0.15rem 0 0; line-height: 1.4; }
+.sc-b { padding: 1rem 1.25rem 1.25rem; }
+
+/* ---- Form actions at bottom ---- */
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #eef1f5;
+    background: #fafbfc;
+    border-radius: 0 0 12px 12px;
+    margin-top: 1.5rem;
+}
+
+/* ---- Buttons ---- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.12s;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: #fff; color: #475569; border: 1.5px solid #e2e8f0; }
+.btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-ghost { background: transparent; color: #64748b; }
+.btn-ghost:hover { background: #f1f5f9; color: #334155; }
+
+/* ---- Skills helper ---- */
+.skills-helper {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 0.35rem;
+}
+.skills-helper i { font-size: 0.7rem; }
+
+/* ---- Page header ---- */
+.page-header {
+    margin-bottom: 1.5rem;
+}
+.page-header-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.page-header-title h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.25;
+}
+.page-header-title p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0.25rem 0 0;
+    line-height: 1.5;
+}
+.page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
 
 /* ---- Utilities ---- */
 .rq { color: #f87171; }
+.max-w-content { max-width: 1200px; }
 
 @media (max-width: 640px) {
     .sc-h { padding: 0.75rem 1rem; }
-    .sc-b { padding: 1rem; }
+    .sc-b { padding: 0.85rem 1rem 1rem; }
+    .page-header-title h1 { font-size: 1.25rem; }
+    .form-actions { padding: 1rem; flex-direction: column-reverse; align-items: stretch; }
+    .form-actions .btn { width: 100%; justify-content: center; }
+    .jo-grid { grid-template-columns: 1fr; }
 }
 </style>
 
-<!-- ===== STICKY ACTION BAR ===== -->
-<div class="act-b anim">
-    <div class="max-w-[1300px] mx-auto px-4 sm:px-6">
-        <div class="flex items-center justify-between h-14">
-            <div class="flex items-center gap-3 min-w-0">
-                <a href="<?= BASE_URL ?>/index.php?page=admin-careers" class="act-i act-i-gh shrink-0 -ml-1.5">
-                    <i class="bi bi-arrow-left text-sm"></i>
-                    <span class="hidden sm:inline">Back to Careers</span>
-                </a>
-                <div class="w-px h-5 bg-slate-200 shrink-0 hidden sm:block"></div>
-                <div class="leading-tight min-w-0 hidden sm:block">
-                    <div class="text-sm font-bold text-slate-900 truncate">Edit Career</div>
-                    <div class="text-[11px] text-slate-500 -mt-px truncate">Update career information for students.</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-1.5 sm:gap-2">
-                <button type="submit" name="save_draft" value="1" class="act-i act-i-out text-xs sm:text-sm" form="careerForm">
-                    <i class="bi bi-save"></i>
-                    <span>Draft</span>
-                </button>
-                <button type="submit" class="act-i act-i-pri text-xs sm:text-sm" form="careerForm">
-                    <i class="bi bi-check-lg"></i>
-                    <span>Update</span>
-                </button>
-                <a href="<?= BASE_URL ?>/index.php?page=admin-careers" class="act-i act-i-gh hidden md:inline-flex">Cancel</a>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="max-w-[1300px] mx-auto px-4 sm:px-6 pt-14 sm:pt-16 pb-6 sm:pb-8">
+<div class="max-w-content mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-6 sm:pb-8">
 
     <?php if (isset($errors['general'])): ?>
     <div class="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-800">
@@ -253,6 +325,17 @@ select.f-inp {
         <?= htmlspecialchars($errors['general']) ?>
     </div>
     <?php endif; ?>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-title">
+                <h1>Edit Career</h1>
+                <p>Update the career information and save your changes.</p>
+            </div>
+      
+        </div>
+    </header>
 
     <form id="careerForm" method="post" action="<?= BASE_URL ?>/index.php?page=admin-careers-update" onsubmit="syncSalary()">
 
@@ -263,15 +346,18 @@ select.f-inp {
     <input type="hidden" name="work_environment" id="we_h" value="<?= htmlspecialchars((string)($old['work_environment'] ?? '')) ?>">
     <input type="hidden" name="job_outlook" id="jo_h" value="<?= htmlspecialchars((string)($old['job_outlook'] ?? '')) ?>">
 
-    <div class="space-y-4">
+    <div class="space-y-6">
 
         <!-- ===== SECTION 1: BASIC INFORMATION ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-info-circle text-indigo-600 text-sm"></i>
+                <div class="icon-wrap bg-indigo-50">
+                    <i class="bi bi-info-circle text-indigo-600"></i>
                 </div>
-                <h2>Basic Information</h2>
+                <div class="sc-h-content">
+                    <h2>Basic Information</h2>
+                    <p>Enter the career name, category, and a brief description.</p>
+                </div>
             </div>
             <div class="sc-b space-y-4">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -317,10 +403,13 @@ select.f-inp {
         <!-- ===== SECTION 2: SALARY & GROWTH ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-currency-dollar text-emerald-600 text-sm"></i>
+                <div class="icon-wrap bg-emerald-50">
+                    <i class="bi bi-currency-dollar text-emerald-600"></i>
                 </div>
-                <h2>Salary & Growth</h2>
+                <div class="sc-h-content">
+                    <h2>Salary & Growth</h2>
+                    <p>Set the expected salary range and career growth rate.</p>
+                </div>
             </div>
             <div class="sc-b space-y-4">
                 <div>
@@ -350,15 +439,18 @@ select.f-inp {
         <!-- ===== SECTION 3: EDUCATION REQUIREMENTS ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-mortarboard text-sky-600 text-sm"></i>
+                <div class="icon-wrap bg-sky-50">
+                    <i class="bi bi-mortarboard text-sky-600"></i>
                 </div>
-                <h2>Education Requirements</h2>
+                <div class="sc-h-content">
+                    <h2>Education Requirements</h2>
+                    <p>Select the minimum education level required for this career.</p>
+                </div>
             </div>
             <div class="sc-b">
                 <div>
                     <label class="f-lbl" for="education_required">Education Level <span class="rq">*</span></label>
-                    <select class="f-inp ts-single <?= isset($errors['education_required']) ? 'err' : '' ?>" id="education_required" name="education_required" data-placeholder="Select education level...">
+                    <select class="ts-single <?= isset($errors['education_required']) ? 'ts-has-error' : '' ?>" id="education_required" name="education_required" data-placeholder="Select education level...">
                         <option value=""></option>
                         <?php foreach ($educationLevels as $level): ?>
                         <option value="<?= htmlspecialchars($level) ?>" <?= ((string)($old['education_required'] ?? '') === $level) ? 'selected' : '' ?>><?= htmlspecialchars($level) ?></option>
@@ -379,16 +471,19 @@ select.f-inp {
         <!-- ===== SECTION 4: ASSESSMENT MATCHING ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-puzzle text-violet-600 text-sm"></i>
+                <div class="icon-wrap bg-violet-50">
+                    <i class="bi bi-puzzle text-violet-600"></i>
                 </div>
-                <h2>Assessment Matching</h2>
+                <div class="sc-h-content">
+                    <h2>Assessment Matching</h2>
+                    <p>Map this career to personality, interest, aptitude, and values types for student matching.</p>
+                </div>
             </div>
             <div class="sc-b">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="f-lbl">Personality Type</label>
-                        <select class="f-inp ts-single" data-placeholder="Select personality type..." id="personality_type" name="personality_type">
+                        <select class="ts-single" data-placeholder="Select personality type..." id="personality_type" name="personality_type">
                             <option value=""></option>
                             <?php foreach ($personalityTypes as $opt): ?>
                             <option value="<?= htmlspecialchars($opt) ?>" <?= ((string)($old['personality_type'] ?? '') === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -397,7 +492,7 @@ select.f-inp {
                     </div>
                     <div>
                         <label class="f-lbl">Interest Type</label>
-                        <select class="f-inp ts-single" data-placeholder="Select interest type..." id="interest_type" name="interest_type">
+                        <select class="ts-single" data-placeholder="Select interest type..." id="interest_type" name="interest_type">
                             <option value=""></option>
                             <?php foreach ($interestTypes as $opt): ?>
                             <option value="<?= htmlspecialchars($opt) ?>" <?= ((string)($old['interest_type'] ?? '') === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -406,7 +501,7 @@ select.f-inp {
                     </div>
                     <div>
                         <label class="f-lbl">Aptitude Type</label>
-                        <select class="f-inp ts-single" data-placeholder="Select aptitude type..." id="aptitude_type" name="aptitude_type">
+                        <select class="ts-single" data-placeholder="Select aptitude type..." id="aptitude_type" name="aptitude_type">
                             <option value=""></option>
                             <?php foreach ($aptitudeTypes as $opt): ?>
                             <option value="<?= htmlspecialchars($opt) ?>" <?= ((string)($old['aptitude_type'] ?? '') === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -415,7 +510,7 @@ select.f-inp {
                     </div>
                     <div>
                         <label class="f-lbl">Values Type</label>
-                        <select class="f-inp ts-single" data-placeholder="Select values type..." id="values_type" name="values_type">
+                        <select class="ts-single" data-placeholder="Select values type..." id="values_type" name="values_type">
                             <option value=""></option>
                             <?php foreach ($valuesTypes as $opt): ?>
                             <option value="<?= htmlspecialchars($opt) ?>" <?= ((string)($old['values_type'] ?? '') === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -429,22 +524,27 @@ select.f-inp {
         <!-- ===== SECTION 5: REQUIRED SKILLS ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-tools text-amber-600 text-sm"></i>
+                <div class="icon-wrap bg-amber-50">
+                    <i class="bi bi-tools text-amber-600"></i>
                 </div>
-                <h2>Required Skills</h2>
+                <div class="sc-h-content">
+                    <h2>Required Skills</h2>
+                    <p>Add the key skills needed for this career. Type to search or create new skills.</p>
+                </div>
             </div>
             <div class="sc-b">
                 <div>
                     <label class="f-lbl">Skills</label>
                     <select class="ts-multi" id="required_skills" multiple data-placeholder="Search or type to add skills..." style="display:none">
-                        <?php
-                        $existingSkills = array_map('trim', explode(',', (string)($old['required_skills'] ?? '')));
-                        foreach ($allSkills as $opt): ?>
-                        <option value="<?= htmlspecialchars($opt) ?>" <?= (in_array($opt, $existingSkills) ? 'selected' : '') ?>><?= htmlspecialchars($opt) ?></option>
+                        <?php foreach ($allSkills as $opt): ?>
+                        <option value="<?= htmlspecialchars($opt) ?>" <?= (in_array($opt, array_map('trim', explode(',', (string)($old['required_skills'] ?? '')))) ? 'selected' : '') ?>><?= htmlspecialchars($opt) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <input type="hidden" name="required_skills" id="rs_h" value="<?= htmlspecialchars((string)($old['required_skills'] ?? '')) ?>">
+                    <div class="skills-helper">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Press Enter or comma to add custom skills not in the list.</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -452,18 +552,24 @@ select.f-inp {
         <!-- ===== SECTION 6: WORK ENVIRONMENT ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-building text-rose-600 text-sm"></i>
+                <div class="icon-wrap bg-rose-50">
+                    <i class="bi bi-building text-rose-600"></i>
                 </div>
-                <h2>Work Environment</h2>
+                <div class="sc-h-content">
+                    <h2>Work Environment</h2>
+                    <p>Select all applicable work environment types for this career.</p>
+                </div>
             </div>
             <div class="sc-b">
                 <div>
                     <label class="f-lbl">Environment Type</label>
-                    <div class="flex flex-wrap gap-1.5" id="envC">
+                    <div class="flex flex-wrap gap-2" id="envC">
                         <?php $envVals = array_map('trim', explode(',', (string)($old['work_environment'] ?? ''))); ?>
                         <?php foreach ($workEnvironments as $env): ?>
-                        <button type="button" class="env-c <?= in_array($env, $envVals) ? 'sel' : '' ?>" data-v="<?= htmlspecialchars($env) ?>"><?= htmlspecialchars($env) ?></button>
+                        <button type="button" class="env-chip <?= in_array($env, $envVals) ? 'sel' : '' ?>" data-v="<?= htmlspecialchars($env) ?>">
+                            <?= htmlspecialchars($env) ?>
+                            <span class="check-icon"><i class="bi bi-check"></i></span>
+                        </button>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -473,24 +579,46 @@ select.f-inp {
         <!-- ===== SECTION 7: JOB OUTLOOK ===== -->
         <div class="sc">
             <div class="sc-h">
-                <div class="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center shrink-0">
-                    <i class="bi bi-bar-chart-line text-cyan-600 text-sm"></i>
+                <div class="icon-wrap bg-cyan-50">
+                    <i class="bi bi-bar-chart-line text-cyan-600"></i>
                 </div>
-                <h2>Job Outlook</h2>
+                <div class="sc-h-content">
+                    <h2>Job Outlook</h2>
+                    <p>Select the market demand level that best represents this career's future prospects.</p>
+                </div>
             </div>
             <div class="sc-b">
                 <div>
                     <label class="f-lbl">Market Demand</label>
-                    <div class="seg-g" role="radiogroup">
+                    <div class="jo-grid" id="joGrid" role="radiogroup">
                         <?php $joVal = (string)($old['job_outlook'] ?? ''); ?>
                         <?php foreach ($jobOutlooks as $jo): ?>
-                        <button type="button" class="seg-b <?= $joVal === $jo ? 'sel' : '' ?>" data-v="<?= htmlspecialchars($jo) ?>" data-g="jo"><?= htmlspecialchars($jo) ?></button>
+                        <button type="button" class="jo-card <?= $joVal === $jo ? 'sel' : '' ?>" data-v="<?= htmlspecialchars($jo) ?>" role="radio" aria-checked="<?= $joVal === $jo ? 'true' : 'false' ?>">
+                            <?= htmlspecialchars($jo) ?>
+                            <span class="check-icon"><i class="bi bi-check"></i></span>
+                        </button>
                         <?php endforeach; ?>
                     </div>
                 </div>
             </div>
         </div>
 
+    </div>
+
+    <!-- Bottom Form Actions -->
+    <div class="form-actions">
+        <a href="<?= BASE_URL ?>/index.php?page=admin-careers" class="btn btn-ghost">
+            <i class="bi bi-arrow-left text-base"></i>
+            <span>Back to Careers</span>
+        </a>
+        <button type="submit" name="save_draft" value="1" class="btn btn-secondary">
+            <i class="bi bi-file-text text-base"></i>
+            <span>Save Draft</span>
+        </button>
+        <button type="submit" name="save_publish" value="1" class="btn btn-primary">
+            <i class="bi bi-send text-base"></i>
+            <span>Update Career</span>
+        </button>
     </div>
 
     </form>
@@ -529,14 +657,14 @@ select.f-inp {
         btn.setAttribute('aria-checked', btn.classList.contains('sel') ? 'true' : 'false');
     });
 
-    // ===== Environment chips (toggle) =====
+    // ===== Environment chips (toggle with checkmark) =====
     function togEnv(el) {
         el.classList.toggle('sel');
         el.setAttribute('aria-checked', el.classList.contains('sel') ? 'true' : 'false');
         syncEnv();
     }
 
-    document.querySelectorAll('#envC .env-c').forEach(function(el) {
+    document.querySelectorAll('#envC .env-chip').forEach(function(el) {
         el.addEventListener('click', function() { togEnv(this); });
         el.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togEnv(this); }
@@ -548,11 +676,33 @@ select.f-inp {
 
     function syncEnv() {
         var vals = [];
-        document.querySelectorAll('#envC .env-c.sel').forEach(function(c) {
+        document.querySelectorAll('#envC .env-chip.sel').forEach(function(c) {
             vals.push(c.getAttribute('data-v'));
         });
         document.getElementById('we_h').value = vals.join(', ');
     }
+
+    // ===== Job Outlook option cards =====
+    function selJo(card) {
+        var v = card.getAttribute('data-v');
+        document.querySelectorAll('#joGrid .jo-card').forEach(function(c) {
+            c.classList.remove('sel');
+            c.setAttribute('aria-checked', 'false');
+        });
+        card.classList.add('sel');
+        card.setAttribute('aria-checked', 'true');
+        document.getElementById('jo_h').value = v;
+    }
+
+    document.querySelectorAll('#joGrid .jo-card').forEach(function(card) {
+        card.addEventListener('click', function() { selJo(this); });
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selJo(this); }
+        });
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('role', 'radio');
+        card.setAttribute('aria-checked', card.classList.contains('sel') ? 'true' : 'false');
+    });
 
     // ===== TomSelect single selects =====
     document.querySelectorAll('.ts-single').forEach(function(el) {

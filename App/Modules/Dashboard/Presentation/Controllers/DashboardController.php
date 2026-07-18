@@ -36,6 +36,7 @@ class DashboardController extends Controller
                 'allCompleted' => $dashboard['allCompleted'],
                 'statusMap' => $dashboard['statusMap'],
                 'recommendation' => $dashboard['recommendation'],
+                'questionCounts' => $dashboard['questionCounts'],
             ]
         );
     }

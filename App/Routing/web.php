@@ -31,6 +31,9 @@ $router->get('/home', [HomeController::class, 'index'])->name('home');
 $router->get('/about-us', [HomeController::class, 'aboutUs'])->name('about-us');
 $router->get('/about', [HomeController::class, 'about'])->name('about');
 $router->get('/contact', [HomeController::class, 'contact'])->name('contact');
+$router->get('/contact/address', [HomeController::class, 'contactAddress'])->name('contact-address');
+$router->get('/contact/phone', [HomeController::class, 'contactPhone'])->name('contact-phone');
+$router->match(['GET', 'POST'], '/contact/email', [HomeController::class, 'contactEmail'])->name('contact-email');
 $router->get('/careers', [CareerController::class, 'index'])->name('careers');
 $router->get('/career-detail', [CareerController::class, 'show'])->name('career-detail');
 $router->get('/assessments', [PublicAssessmentController::class, 'index'])->name('assessments');
@@ -42,13 +45,13 @@ $router->get('/assessments', [PublicAssessmentController::class, 'index'])->name
 */
 
 $router->group('/guest', function ($router) {
-    $router->post('/api-start', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiStart']);
-    $router->get('/api-question', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiQuestion']);
-    $router->post('/api-save', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiSave']);
-    $router->post('/api-finish', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiFinish']);
-    $router->post('/api-exit', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'apiExit']);
-    $router->get('/result', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'guestResult']);
-    $router->get('/question', [\App\Modules\Assessment\Application\Engine\AssessmentApiController::class, 'question']);
+    $router->post('/api-start', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'apiStart']);
+    $router->get('/api-question', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'apiQuestion']);
+    $router->post('/api-save', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'apiSave']);
+    $router->post('/api-finish', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'apiFinish']);
+    $router->post('/api-exit', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'apiExit']);
+    $router->get('/result', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'guestResult']);
+    $router->get('/question', [\App\Modules\Public\Presentation\Controllers\AssessmentController::class, 'question']);
 });
 
 /*
@@ -89,6 +92,7 @@ $router->middleware(['auth', 'student'], function ($router) {
 
     $router->get('/student-assessments', [StudentAssessmentController::class, 'index'])->name('student-assessments');
     $router->get('/student-assessments-v2', [StudentAssessmentController::class, 'v2Index'])->name('student-assessments-v2');
+    $router->get('/assessment/completed', [StudentAssessmentController::class, 'v2CompletionPage'])->name('assessment-completed');
     $router->get('/personality', [StudentAssessmentController::class, 'personality'])->name('personality');
     $router->get('/interest', [StudentAssessmentController::class, 'interest'])->name('interest');
     $router->get('/aptitude', [StudentAssessmentController::class, 'aptitude'])->name('aptitude');

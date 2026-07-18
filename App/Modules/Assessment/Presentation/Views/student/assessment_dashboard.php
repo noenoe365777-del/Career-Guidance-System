@@ -95,31 +95,154 @@ $slugMap = [1 => 'personality', 2 => 'interest', 3 => 'aptitude', 4 => 'values']
         <?php endforeach; ?>
     </div>
 
-    <div class="mt-6 rounded-[26px] border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+    <div class="mt-6 rounded-[26px] border border-slate-200 bg-white p-6 sm:p-8 shadow-sm card-in summary-card" style="animation-delay: 0.4s;">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div class="max-w-2xl">
-                <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-700">
+                <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-700 summary-badge">
                     <i class="bi bi-star-fill text-xs mr-1.5"></i> Career Recommendation
                 </span>
                 <?php if ($allDone): ?>
-                    <h3 class="mt-3 text-lg font-bold text-slate-900">Your career matches are ready</h3>
-                    <p class="mt-2 text-sm text-slate-500">You completed every assessment. View your personalized career recommendations now.</p>
+                    <h3 class="mt-3 text-lg font-bold text-slate-900 summary-title">Your career matches are ready</h3>
+                    <p class="mt-2 text-sm text-slate-500 summary-text">You completed every assessment. View your personalized career recommendations now.</p>
                 <?php else: ?>
-                    <h3 class="mt-3 text-lg font-bold text-slate-900">Unlocks after all assessments</h3>
-                    <p class="mt-2 text-sm text-slate-500">You're <?= $completed ?>/<?= $total ?> complete. Finish the rest to unlock your recommendation.</p>
+                    <h3 class="mt-3 text-lg font-bold text-slate-900 summary-title">Unlocks after all assessments</h3>
+                    <p class="mt-2 text-sm text-slate-500 summary-text">You're <?= $completed ?>/<?= $total ?> complete. Finish the rest to unlock your recommendation.</p>
                 <?php endif; ?>
             </div>
             <?php if ($allDone): ?>
-                <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:from-indigo-700 hover:to-violet-700 active:scale-[0.97] no-underline">
+                <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:from-indigo-700 hover:to-violet-700 active:scale-[0.97] no-underline summary-btn hover-target">
                     View Recommendation <i class="bi bi-arrow-right"></i>
                 </a>
             <?php else: ?>
-                <div class="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-bold text-slate-400">
+                <div class="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-bold text-slate-400 summary-locked">
                     <i class="bi bi-lock-fill"></i> Locked
                 </div>
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- CSS for summary card animations -->
+    <style>
+    @keyframes slideUpCard {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes shimmer {
+        0% {
+            background-position: -100% 0;
+        }
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    @keyframes floatGentle {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    .summary-card {
+        animation: slideUpCard 0.6s ease-out both;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shimmer 2s infinite;
+        animation-delay: 1s;
+    }
+
+    .summary-badge {
+        animation: fadeInUp 0.5s ease-out both;
+        animation-delay: 0.5s;
+    }
+
+    .summary-title {
+        animation: fadeInUp 0.5s ease-out both;
+        animation-delay: 0.6s;
+    }
+
+    .summary-text {
+        animation: fadeInUp 0.5s ease-out both;
+        animation-delay: 0.7s;
+    }
+
+    .summary-btn {
+        animation: scaleIn 0.4s ease-out both;
+        animation-delay: 0.8s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .summary-btn:hover {
+        animation: floatGentle 0.6s ease-in-out infinite;
+        box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+    }
+
+    .summary-locked {
+        animation: scaleIn 0.4s ease-out both;
+        animation-delay: 0.8s;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+    }
+
+    .summary-locked:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .summary-card,
+        .summary-badge,
+        .summary-title,
+        .summary-text,
+        .summary-btn,
+        .summary-locked {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+    </style>
 </div>
 
 <div id="assessmentQuestionContainer" class="hidden mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8"><?php require __DIR__ . '/assessment_question.php'; ?></div>

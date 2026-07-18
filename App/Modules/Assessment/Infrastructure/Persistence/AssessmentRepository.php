@@ -106,7 +106,7 @@ class AssessmentRepository implements AssessmentRepositoryInterface
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id"
+                "SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :assessment_id"
             );
             $statement->execute(['assessment_id' => $assessmentId]);
             return (int)$statement->fetchColumn();
@@ -119,10 +119,11 @@ class AssessmentRepository implements AssessmentRepositoryInterface
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id AND preview = 1"
+                "SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :assessment_id"
             );
             $statement->execute(['assessment_id' => $assessmentId]);
-            return (int)$statement->fetchColumn();
+            $total = (int)$statement->fetchColumn();
+            return min(5, $total);
         } catch (\Throwable) {
             return 0;
         }

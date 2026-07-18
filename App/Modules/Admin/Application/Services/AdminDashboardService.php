@@ -50,7 +50,6 @@ class AdminDashboardService
             'recentNotifications' => $this->adminDashboardRepository->getRecentNotifications(10),
             'completionStats' => $completionStats,
             'unreadNotificationCount' => $this->adminDashboardRepository->getUnreadNotificationCount(),
-            'totalQuestions' => $totalQuestions,
         ];
     }
 }

@@ -28,11 +28,22 @@ class DashboardService
         // Get progress from the same source as Assessment page
         $progress = $this->assessmentRepository->getProgressSummary($userId);
 
-        // Build complete status map for all 4 assessments
+        // Build complete status map for all assessments
+        $slugMap = $this->dashboardRepository->getAssessmentSlugMap();
+        $totalAssessments = $this->dashboardRepository->getTotalAssessments();
+        $questionCountMap = $this->dashboardRepository->getQuestionCountsByAssessment();
+
+        // Map assessment IDs to slugs and build per-slug question counts
+        $slugToId = array_flip($slugMap);
+        $questionCounts = [];
+        foreach ($slugMap as $id => $slug) {
+            $questionCounts[$slug] = $questionCountMap[$id] ?? 0;
+        }
+
         $statusMap = [];
         $completedAssessments = 0;
 
-        foreach (self::ASSESSMENT_SLUGS as $slug) {
+        foreach ($slugMap as $slug) {
             $data = $progress[$slug] ?? null;
 
             if ($data && ($data['is_completed'] ?? false)) {
@@ -56,14 +67,14 @@ class DashboardService
         }
 
         $completedAssessments = 0;
-        foreach (self::ASSESSMENT_SLUGS as $slug) {
-            if (($statusMap[$slug]['status'] ?? '') === 'completed') {
+        foreach ($statusMap as $s) {
+            if (($s['status'] ?? '') === 'completed') {
                 $completedAssessments++;
             }
         }
 
-        $percentage = $completedAssessments > 0 ? round(($completedAssessments / 4) * 100) : 0;
-        $allCompleted = $completedAssessments >= 4;
+        $percentage = $totalAssessments > 0 ? round(($completedAssessments / $totalAssessments) * 100) : 0;
+        $allCompleted = $totalAssessments > 0 && $completedAssessments >= $totalAssessments;
 
         $recommendation = $this->dashboardRepository->getRecommendation($userId);
 
@@ -73,12 +84,13 @@ class DashboardService
         }
 
         return [
-            'totalAssessments' => 4,
+            'totalAssessments' => $totalAssessments,
             'completedAssessments' => $completedAssessments,
             'percentage' => $percentage,
             'allCompleted' => $allCompleted,
             'statusMap' => $statusMap,
             'recommendation' => $this->dashboardRepository->getRecommendation($userId),
+            'questionCounts' => $questionCounts,
         ];
     }
 }

@@ -203,11 +203,15 @@ public function apiStart(): void
 
         echo json_encode([
             'success' => true,
-            'result_id' => 1,
+            'attempt_id' => 1,
+            'assessment' => [
+                'id' => $assessmentId,
+                'name' => $assessment['title'] ?? 'Assessment',
+                'time_limit' => (int)($assessment['time_limit'] ?? 5),
+            ],
             'total_questions' => 5,
-            'answered' => 0,
+            'current_index' => 0,
             'started_at' => $startedAt,
-            'time_limit' => (int)($assessment['time_limit'] ?? 5)
         ]);
     }
 public function apiQuestion(): void
@@ -255,23 +259,23 @@ public function apiQuestion(): void
                 'id' => (int)$question['id'],
                 'number' => $index + 1,
                 'text' => $question['question'],
-
-               'options' => array_map(function($option){
-
-        return [
-            'value' => $option['value'],
-            'label' => $option['label']
-        ];
-
-    }, $question['options']),
             ],
 
-            'selected' => $selected,
+            'options' => array_map(function($option) {
+                return [
+                    'id' => (int)$option['id'],
+                    'text' => $option['label'],
+                    'value' => (float)$option['value'],
+                ];
+            }, $question['options']),
+
+            'selected_option_id' => $selected !== null ? (int)$selected : null,
 
             'progress' => [
                 'current' => $index + 1,
                 'total' => count($questions),
-                'answered' => count($_SESSION['guest_assessment']['answers'])
+                'answered' => count($_SESSION['guest_assessment']['answers']),
+                'percent' => count($questions) > 0 ? round((($index + 1) / count($questions)) * 100) : 0,
             ],
 
             'navigation' => [
@@ -297,64 +301,48 @@ public function apiSave(): void
 
     $input = json_decode(file_get_contents('php://input'), true);
 
-    $answer = $input['answer'] ?? null;
+    $optionId = (int)($input['option_id'] ?? 0);
+    $questionId = (int)($input['question_id'] ?? 0);
 
-    $current = $_SESSION['guest_assessment']['current'];
-
-    $assessmentId = $_SESSION['guest_assessment']['assessment_id'];
-
-    $questions = $this->assessmentService
-        ->getAssessmentQuestionsByAssessmentId($assessmentId, 5);
-
-    if (!isset($questions[$current])) {
-
+    if ($optionId <= 0 || $questionId <= 0) {
         echo json_encode([
             'success' => false
         ]);
-
         exit;
     }
 
-    $questionId = $questions[$current]['id'];
-
-    $_SESSION['guest_assessment']['answers'][$questionId] = $answer;
-
+    $_SESSION['guest_assessment']['answers'][$questionId] = $optionId;
     $_SESSION['guest_assessment']['current']++;
 
     echo json_encode([
-        'success' => true
+        'success' => true,
+        'answered_count' => count($_SESSION['guest_assessment']['answers'])
     ]);
 
     exit;
 }
 public function apiFinish(): void
-{
-    header('Content-Type: application/json');
+    {
+        header('Content-Type: application/json');
 
-    if (!isset($_SESSION['guest_assessment'])) {
-        echo json_encode([
-            'success' => false
-        ]);
-        exit;
-    }
+        if (!isset($_SESSION['guest_assessment'])) {
+            echo json_encode([
+                'success' => false
+            ]);
+            exit;
+        }
 
     $assessment = $_SESSION['guest_assessment'];
 
-    $score = count($assessment['answers']) * 20; // 5 questions = 100%
-
-    $_SESSION['guest_result'] = [
-        'assessment_id' => $assessment['assessment_id'],
-        'slug' => $assessment['slug'] ?? '',
-        'title' => $assessment['title'] ?? 'Assessment',
-        'score' => $score,
-        'answers' => $assessment['answers']
-    ];
+    $totalAnswered = count($assessment['answers']);
+    $title = $assessment['title'] ?? 'Assessment';
 
     unset($_SESSION['guest_assessment']);
 
     echo json_encode([
         'success' => true,
-        'redirect' => BASE_URL . '/index.php?page=guest-result'
+        'previewCompleted' => true,
+        'message' => 'Preview completed. Register to unlock full results.',
     ]);
 
 exit;

@@ -32,15 +32,11 @@ class QuestionRepository implements QuestionRepositoryInterface
         }
 
         try {
-            $sql = "SELECT question_id AS id, question_text AS question, question_type AS type, question_order AS `order`
-                    FROM questions
-                    WHERE assessment_id = :assessment_id";
-
-            if ($previewOnly) {
-                $sql .= " AND preview = 1";
-            }
-
-            $sql .= " ORDER BY question_order";
+            $sql = "SELECT aq.id, aq.question, aq.option_a, aq.option_b, aq.option_c, aq.option_d,
+                           aq.correct_answer, aq.weight
+                    FROM assessment_questions aq
+                    WHERE aq.assessment_id = :assessment_id
+                    ORDER BY aq.id ASC";
 
             $statement = $this->connection->prepare($sql);
             $statement->execute(['assessment_id' => $assessmentId]);
@@ -53,19 +49,19 @@ class QuestionRepository implements QuestionRepositoryInterface
             $questions = [];
             foreach ($rows as $row) {
                 $questionId = (int)$row['id'];
-                $options = $this->getOptionsForQuestion($questionId);
+                $options = $this->parseOptions($row);
 
                 $questions[] = [
                     'id' => $questionId,
                     'question' => $row['question'] ?? '',
-                    'type' => $row['type'] ?? 'single_choice',
-                    'order' => (int)($row['order'] ?? 0),
+                    'type' => 'single_choice',
+                    'order' => $questionId,
                     'options' => $options,
                 ];
             }
 
-            if (!$previewOnly) {
-                shuffle($questions);
+            if ($previewOnly && count($questions) > 5) {
+                $questions = array_slice($questions, 0, 5);
             }
 
             return $questions;
@@ -74,53 +70,45 @@ class QuestionRepository implements QuestionRepositoryInterface
         }
     }
 
-    
+    public function getQuestionsByAssessmentId(int $assessmentId, ?int $limit = null): array
+    {
+        try {
+            $sql = "SELECT aq.id, aq.question, aq.option_a, aq.option_b, aq.option_c, aq.option_d,
+                           aq.correct_answer, aq.weight
+                    FROM assessment_questions aq
+                    WHERE aq.assessment_id = :assessment_id
+                    ORDER BY aq.id ASC";
 
-    public function getQuestionsByAssessmentId(int $assessmentId): array
-{
-    try {
-        $statement = $this->connection->prepare("
-            SELECT
-                question_id AS id,
-                question_text AS question,
-                question_type AS type,
-                question_order AS `order`
-            FROM questions
-            WHERE assessment_id = :assessment_id
-            ORDER BY question_order
-        ");
+            if ($limit !== null) {
+                $sql .= " LIMIT " . (int)$limit;
+            }
 
-        $statement->execute([
-            'assessment_id' => $assessmentId
-        ]);
+            $statement = $this->connection->prepare($sql);
+            $statement->execute(['assessment_id' => $assessmentId]);
+            $rows = $statement->fetchAll();
 
-        $rows = $statement->fetchAll();
+            $questions = [];
+            foreach ($rows as $row) {
+                $questions[] = [
+                    'id' => (int)$row['id'],
+                    'question' => $row['question'] ?? '',
+                    'type' => 'single_choice',
+                    'order' => (int)$row['id'],
+                    'options' => $this->parseOptions($row),
+                ];
+            }
 
-        $questions = [];
-
-        foreach ($rows as $row) {
-
-            $questions[] = [
-                'id' => (int)$row['id'],
-                'question' => $row['question'],
-                'type' => $row['type'],
-                'order' => (int)$row['order'],
-                'options' => $this->getOptionsForQuestion((int)$row['id'])
-            ];
+            return $questions;
+        } catch (\Throwable) {
+            return [];
         }
-
-        return $questions;
-
-    } catch (\Throwable) {
-        return [];
     }
-}
 
     public function getTotalQuestionCount(int $assessmentId): int
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id"
+                "SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :assessment_id"
             );
             $statement->execute(['assessment_id' => $assessmentId]);
             return (int)$statement->fetchColumn();
@@ -133,10 +121,11 @@ class QuestionRepository implements QuestionRepositoryInterface
     {
         try {
             $statement = $this->connection->prepare(
-                "SELECT COUNT(*) FROM questions WHERE assessment_id = :assessment_id AND preview = 1"
+                "SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = :assessment_id"
             );
             $statement->execute(['assessment_id' => $assessmentId]);
-            return (int)$statement->fetchColumn();
+            $total = (int)$statement->fetchColumn();
+            return min(5, $total);
         } catch (\Throwable) {
             return 0;
         }
@@ -147,24 +136,23 @@ class QuestionRepository implements QuestionRepositoryInterface
         return $this->slugMap;
     }
 
-    private function getOptionsForQuestion(int $questionId): array
+    private function parseOptions(array $row): array
     {
-        try {
-            $statement = $this->connection->prepare(
-                "SELECT option_value, option_text
-                 FROM question_options
-                 WHERE question_id = :question_id
-                 ORDER BY option_order"
-            );
-            $statement->execute(['question_id' => $questionId]);
-            $rows = $statement->fetchAll();
+        $options = [];
+        $position = 1;
 
-            return array_map(fn(array $row): array => [
-                'value' => (int)$row['option_value'],
-                'label' => $row['option_text'] ?? '',
-            ], $rows);
-        } catch (\Throwable) {
-            return [];
+        foreach (['option_a', 'option_b', 'option_c', 'option_d'] as $col) {
+            $value = $row[$col] ?? null;
+            if ($value !== null && $value !== '') {
+                $options[] = [
+                    'id' => $position,
+                    'value' => $position,
+                    'label' => (string)$value,
+                ];
+            }
+            $position++;
         }
+
+        return $options;
     }
 }

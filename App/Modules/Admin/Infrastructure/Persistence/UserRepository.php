@@ -82,10 +82,10 @@ class UserRepository implements UserRepositoryInterface
                 GROUP BY sa.user_id
             ) astats ON astats.user_id = u.user_id
             LEFT JOIN (
-                SELECT cr.user_id, c.career_name
+                SELECT cr.user_id, MAX(c.career_name) AS career_name
                 FROM career_recommendations cr
                 JOIN careers c ON c.career_id = cr.career_id
-                GROUP BY cr.user_id, c.career_name
+                GROUP BY cr.user_id
             ) rec ON rec.user_id = u.user_id
             {$where}
             {$havingClause}
@@ -125,7 +125,8 @@ class UserRepository implements UserRepositoryInterface
                 'perPage' => $perPage,
                 'totalPages' => (int)ceil($total / $perPage),
             ];
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::listUsers failed: ' . $e->getMessage());
             return [
                 'users' => [],
                 'total' => 0,
@@ -141,7 +142,8 @@ class UserRepository implements UserRepositoryInterface
         try {
             $stmt = $this->connection->query('SELECT COUNT(*) FROM users WHERE user_role_id = 2');
             return (int)$stmt->fetchColumn();
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::getTotalUsers failed: ' . $e->getMessage());
             return 0;
         }
     }
@@ -161,40 +163,42 @@ class UserRepository implements UserRepositoryInterface
                 WHERE u.user_role_id = 2"
             );
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::getStudentSummaryStats failed: ' . $e->getMessage());
             return [];
         }
     }
-public function getRecentStudents(int $limit = 5): array
-{
-    $sql = "
-        SELECT
-            u.user_id,
-            u.username,
-            u.email,
-            u.created_at,
-            sp.profile_image,
-            m.label AS education_level
-        FROM users u
-        LEFT JOIN student_profiles sp
-            ON sp.user_id = u.user_id
-        LEFT JOIN master_data m
-            ON m.id = sp.education_level_id
-            AND m.category='education_level'
-        WHERE u.user_role_id = 2
-        ORDER BY u.created_at DESC
-        LIMIT :limit
-    ";
 
-    $stmt = $this->connection->prepare($sql);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->execute();
+    public function getRecentStudents(int $limit = 5): array
+    {
+        try {
+            $stmt = $this->connection->prepare("
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    u.created_at,
+                    sp.profile_image,
+                    m.label AS education_level
+                FROM users u
+                LEFT JOIN student_profiles sp
+                    ON sp.user_id = u.user_id
+                LEFT JOIN master_data m
+                    ON m.id = sp.education_level_id
+                    AND m.category='education_level'
+                WHERE u.user_role_id = 2
+                ORDER BY u.created_at DESC
+                LIMIT :limit
+            ");
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
 
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-   
-    return $rows;
-}
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('UserRepository::getRecentStudents failed: ' . $e->getMessage());
+            return [];
+        }
+    }
 
     public function getUserById(int $id): ?array
     {
@@ -217,38 +221,62 @@ public function getRecentStudents(int $limit = 5): array
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::getUserById failed for id=' . $id . ': ' . $e->getMessage());
             return null;
         }
     }
 
     public function getUserDetailForModal(int $id): ?array
     {
-        try {
-            $user = $this->getUserById($id);
-            if ($user === null) return null;
+        $user = $this->getUserById($id);
+        if ($user === null) {
+            return null;
+        }
 
+        $user['completed_count'] = 0;
+        $user['total_count'] = 0;
+        $user['interest_completed'] = 0;
+        $user['personality_completed'] = 0;
+        $user['aptitude_completed'] = 0;
+        $user['values_completed'] = 0;
+        $user['latest_assessment'] = null;
+        $user['latest_assessment_date'] = null;
+        $user['personality_score'] = null;
+        $user['interest_score'] = null;
+        $user['aptitude_score'] = null;
+        $user['values_score'] = null;
+        $user['top_career'] = null;
+        $user['match_score'] = null;
+
+        try {
             $stmt = $this->connection->prepare("
                 SELECT
                     COUNT(*) AS total_count,
-                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
-                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
-                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
-                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
-                    SUM(CASE WHEN status = 'completed' AND LOWER(a.title) = 'career values' THEN 1 ELSE 0 END) AS values_completed
+                    SUM(CASE WHEN sa.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+                    SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'interest' THEN 1 ELSE 0 END) AS interest_completed,
+                    SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'personality' THEN 1 ELSE 0 END) AS personality_completed,
+                    SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'aptitude' THEN 1 ELSE 0 END) AS aptitude_completed,
+                    SUM(CASE WHEN sa.status = 'completed' AND LOWER(a.title) = 'career values' THEN 1 ELSE 0 END) AS values_completed
                 FROM student_assessments sa
                 JOIN assessments a ON a.assessment_id = sa.assessment_id
                 WHERE sa.user_id = :id
             ");
             $stmt->execute([':id' => $id]);
             $progress = $stmt->fetch(PDO::FETCH_ASSOC);
-            $user['completed_count'] = (int)($progress['completed_count'] ?? 0);
-            $user['total_count'] = (int)($progress['total_count'] ?? 0);
-            $user['interest_completed'] = (int)($progress['interest_completed'] ?? 0);
-            $user['personality_completed'] = (int)($progress['personality_completed'] ?? 0);
-            $user['aptitude_completed'] = (int)($progress['aptitude_completed'] ?? 0);
-            $user['values_completed'] = (int)($progress['values_completed'] ?? 0);
+            if ($progress) {
+                $user['completed_count'] = (int)($progress['completed_count'] ?? 0);
+                $user['total_count'] = (int)($progress['total_count'] ?? 0);
+                $user['interest_completed'] = (int)($progress['interest_completed'] ?? 0);
+                $user['personality_completed'] = (int)($progress['personality_completed'] ?? 0);
+                $user['aptitude_completed'] = (int)($progress['aptitude_completed'] ?? 0);
+                $user['values_completed'] = (int)($progress['values_completed'] ?? 0);
+            }
+        } catch (PDOException $e) {
+            error_log('UserRepository::getUserDetailForModal assessment_progress failed for id=' . $id . ': ' . $e->getMessage());
+        }
 
+        try {
             $stmt = $this->connection->prepare("
                 SELECT a.title, sa.completed_at
                 FROM student_assessments sa
@@ -259,9 +287,15 @@ public function getRecentStudents(int $limit = 5): array
             ");
             $stmt->execute([':id' => $id]);
             $latest = $stmt->fetch(PDO::FETCH_ASSOC);
-            $user['latest_assessment'] = $latest['title'] ?? null;
-            $user['latest_assessment_date'] = $latest['completed_at'] ?? null;
+            if ($latest) {
+                $user['latest_assessment'] = $latest['title'] ?? null;
+                $user['latest_assessment_date'] = $latest['completed_at'] ?? null;
+            }
+        } catch (PDOException $e) {
+            error_log('UserRepository::getUserDetailForModal latest_assessment failed for id=' . $id . ': ' . $e->getMessage());
+        }
 
+        try {
             $stmt = $this->connection->prepare("
                 SELECT personality_score, interest_score, aptitude_score, values_score
                 FROM student_assessment_scores
@@ -271,28 +305,36 @@ public function getRecentStudents(int $limit = 5): array
             ");
             $stmt->execute([':id' => $id]);
             $scores = $stmt->fetch(PDO::FETCH_ASSOC);
-            $user['personality_score'] = $scores['personality_score'] ?? null;
-            $user['interest_score'] = $scores['interest_score'] ?? null;
-            $user['aptitude_score'] = $scores['aptitude_score'] ?? null;
-            $user['values_score'] = $scores['values_score'] ?? null;
+            if ($scores) {
+                $user['personality_score'] = $scores['personality_score'] ?? null;
+                $user['interest_score'] = $scores['interest_score'] ?? null;
+                $user['aptitude_score'] = $scores['aptitude_score'] ?? null;
+                $user['values_score'] = $scores['values_score'] ?? null;
+            }
+        } catch (PDOException $e) {
+            error_log('UserRepository::getUserDetailForModal scores failed for id=' . $id . ': ' . $e->getMessage());
+        }
 
+        try {
             $stmt = $this->connection->prepare("
-                SELECT c.career_name, cr.recommended_score
+                SELECT c.career_name, cr.match_score
                 FROM career_recommendations cr
                 JOIN careers c ON c.career_id = cr.career_id
                 WHERE cr.user_id = :id
-                ORDER BY cr.recommended_score DESC, cr.created_at DESC
+                ORDER BY cr.match_score DESC, cr.created_at DESC
                 LIMIT 1
             ");
             $stmt->execute([':id' => $id]);
             $rec = $stmt->fetch(PDO::FETCH_ASSOC);
-            $user['top_career'] = $rec['career_name'] ?? null;
-            $user['match_score'] = $rec['recommended_score'] ?? null;
-
-            return $user;
-        } catch (PDOException) {
-            return null;
+            if ($rec) {
+                $user['top_career'] = $rec['career_name'] ?? null;
+                $user['match_score'] = $rec['match_score'] ?? null;
+            }
+        } catch (PDOException $e) {
+            error_log('UserRepository::getUserDetailForModal career_rec failed for id=' . $id . ': ' . $e->getMessage());
         }
+
+        return $user;
     }
 
     public function updateUserStatus(int $id, int $statusId): bool
@@ -300,7 +342,8 @@ public function getRecentStudents(int $limit = 5): array
         try {
             $stmt = $this->connection->prepare('UPDATE users SET status_id = :status_id WHERE user_id = :id');
             return (bool)$stmt->execute([':status_id' => $statusId, ':id' => $id]);
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::updateUserStatus failed for id=' . $id . ': ' . $e->getMessage());
             return false;
         }
     }
@@ -309,16 +352,17 @@ public function getRecentStudents(int $limit = 5): array
     {
         try {
             $this->connection->beginTransaction();
-            $this->connection->prepare('DELETE FROM student_profiles WHERE user_id = :id')->execute([':id' => $id]);
             $this->connection->prepare('DELETE FROM student_answers WHERE student_assessment_id IN (SELECT student_assessment_id FROM student_assessments WHERE user_id = :id)')->execute([':id' => $id]);
             $this->connection->prepare('DELETE FROM student_assessments WHERE user_id = :id')->execute([':id' => $id]);
+            $this->connection->prepare('DELETE FROM student_profiles WHERE user_id = :id')->execute([':id' => $id]);
             $this->connection->prepare('DELETE FROM career_recommendations WHERE user_id = :id')->execute([':id' => $id]);
             $this->connection->prepare('DELETE FROM student_assessment_scores WHERE student_id = :id')->execute([':id' => $id]);
             $this->connection->prepare('DELETE FROM users WHERE user_id = :id')->execute([':id' => $id]);
             $this->connection->commit();
             return true;
-        } catch (PDOException) {
+        } catch (PDOException $e) {
             $this->connection->rollBack();
+            error_log('UserRepository::deleteUser failed for id=' . $id . ': ' . $e->getMessage());
             return false;
         }
     }
@@ -332,7 +376,8 @@ public function getRecentStudents(int $limit = 5): array
                 ORDER BY label
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('UserRepository::getEducationLevels failed: ' . $e->getMessage());
             return [];
         }
     }

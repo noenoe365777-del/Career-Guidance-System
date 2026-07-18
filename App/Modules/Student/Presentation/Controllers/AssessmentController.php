@@ -363,10 +363,27 @@ class AssessmentController extends Controller
             exit;
         }
 
-        $stmt = \App\Config\Database::getConnection()->prepare("SELECT option_value FROM question_options WHERE option_id = :oid");
-        $stmt->execute([':oid' => $optionId]);
-        $opt = $stmt->fetch();
-        $score = $opt ? (float)$opt['option_value'] : 0;
+        $stmt = \App\Config\Database::getConnection()->prepare("SELECT option_a, option_b, option_c, option_d, correct_answer FROM assessment_questions WHERE id = :qid");
+        $stmt->execute([':qid' => $questionId]);
+        $q = $stmt->fetch();
+        $score = 0.0;
+        if ($q) {
+            $position = 0;
+            $cols = ['option_a', 'option_b', 'option_c', 'option_d'];
+            $letters = ['A', 'B', 'C', 'D'];
+            for ($i = 0; $i < count($cols); $i++) {
+                if (($q[$cols[$i]] ?? null) !== null && ($q[$cols[$i]] ?? '') !== '') {
+                    $position++;
+                }
+                if ($position === $optionId) {
+                    $score = (float)$position;
+                    if ($q['correct_answer'] !== null && $letters[$i] === $q['correct_answer']) {
+                        $score = 5.0;
+                    }
+                    break;
+                }
+            }
+        }
 
         $this->engineRepo->saveAnswer($attemptId, $questionId, $optionId, $score);
 
@@ -458,6 +475,8 @@ class AssessmentController extends Controller
         $results = $this->newRepo->getResultsForUser($userId);
         $allDone = $this->newRepo->allAssessmentsCompleted($userId);
 
+        $educationLevel = $this->getUserEducationLevel($userId);
+
         $this->view(
             'Assessment/Presentation/Views/student/assessment_v2_dashboard',
             [
@@ -466,9 +485,25 @@ class AssessmentController extends Controller
                 'results' => $results,
                 'allDone' => $allDone,
                 'user' => $user,
+                'educationLevel' => $educationLevel,
                 'layout' => 'dashboard',
             ]
         );
+    }
+
+    private function getUserEducationLevel(int $userId): string
+    {
+        try {
+            $stmt = \App\Config\Database::getConnection()->prepare(
+                "SELECT education_level FROM users WHERE id = :uid LIMIT 1"
+            );
+            $stmt->execute([':uid' => $userId]);
+            $level = $stmt->fetchColumn();
+            return (string)($level ?? '');
+        } catch (\Throwable $e) {
+            error_log("Failed to fetch education level for user $userId: " . $e->getMessage());
+            return '';
+        }
     }
 
     public function v2ApiStart(): void
@@ -701,6 +736,21 @@ class AssessmentController extends Controller
                 'scoreData' => $scoreData,
                 'assessmentType' => $assessmentType,
                 'summary' => $summary,
+            ]
+        );
+    }
+
+    public function v2CompletionPage(): void
+    {
+        $user = $this->requireAuthenticatedUser();
+        $userId = (int)($user['id'] ?? 0);
+
+        $this->view(
+            'Assessment/Presentation/Views/student/assessment_complete',
+            [
+                'pageTitle' => 'Assessment Completed',
+                'user' => $user,
+                'layout' => 'dashboard',
             ]
         );
     }

@@ -104,7 +104,7 @@ function renderMenuItems(array $items, string $activeMenu, bool $settingsExpande
     }
 </style>
 
-<aside class="hidden md:flex md:flex-col justify-between w-64 h-screen sticky top-0 bg-white border-r border-slate-100 p-4 shrink-0">
+<aside class="hidden md:flex md:flex-col justify-between w-64 h-screen fixed top-0 left-0 bg-white border-r border-slate-100 p-4 shrink-0 z-30 overflow-y-auto">
     <div>
         <div class="flex items-center gap-3 px-2 mb-8">
             <div class="flex items-center justify-center w-10 h-10 bg-indigo-50 text-custom-indigo rounded-xl">

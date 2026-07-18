@@ -49,9 +49,9 @@ class AssessmentRepository implements AssessmentRepositoryInterface
 
             $sql = "
                 SELECT a.assessment_id, a.title, a.description, a.category, a.status, a.created_at,
-                       COUNT(q.question_id) AS total_questions
+                       COUNT(aq.id) AS total_questions
                 FROM assessments a
-                LEFT JOIN questions q ON q.assessment_id = a.assessment_id
+                LEFT JOIN assessment_questions aq ON aq.assessment_id = a.assessment_id
                 {$where}
                 GROUP BY a.assessment_id
                 ORDER BY {$order}
@@ -70,9 +70,9 @@ class AssessmentRepository implements AssessmentRepositoryInterface
         try {
             $sql = "
                 SELECT a.assessment_id, a.title, a.description, a.category, a.status, a.created_at,
-                       COUNT(q.question_id) AS total_questions
+                       COUNT(aq.id) AS total_questions
                 FROM assessments a
-                LEFT JOIN questions q ON q.assessment_id = a.assessment_id
+                LEFT JOIN assessment_questions aq ON aq.assessment_id = a.assessment_id
                 WHERE a.assessment_id = :id
                 GROUP BY a.assessment_id
                 LIMIT 1
@@ -110,7 +110,7 @@ class AssessmentRepository implements AssessmentRepositoryInterface
     public function getTotalQuestionsCount(): int
     {
         try {
-            $stmt = $this->connection->query('SELECT COUNT(*) FROM questions');
+            $stmt = $this->connection->query('SELECT COUNT(*) FROM assessment_questions');
             return (int)$stmt->fetchColumn();
         } catch (PDOException) {
             return 0;
@@ -267,7 +267,7 @@ class AssessmentRepository implements AssessmentRepositoryInterface
                 SELECT sa.student_assessment_id, sa.user_id, sa.assessment_id, sa.completed_at,
                        u.username AS student_name,
                        a.title AS assessment_title,
-                       (SELECT COUNT(*) FROM questions WHERE assessment_id = a.assessment_id) AS question_count,
+                        (SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = a.assessment_id) AS question_count,
                        CASE sa.assessment_id
                            WHEN 1 THEN sas.personality_score
                            WHEN 2 THEN sas.interest_score
@@ -376,23 +376,28 @@ class AssessmentRepository implements AssessmentRepositoryInterface
             $newId = (int)$this->connection->lastInsertId();
 
             $qStmt = $this->connection->prepare("
-                SELECT question_text, question_type, question_order
-                FROM questions WHERE assessment_id = :aid
+                SELECT question, option_a, option_b, option_c, option_d, correct_answer, weight, education_level_id
+                FROM assessment_questions WHERE assessment_id = :aid
             ");
             $qStmt->execute([':aid' => $id]);
             $questions = $qStmt->fetchAll(PDO::FETCH_ASSOC);
 
             if ($questions !== []) {
                 $insert = $this->connection->prepare("
-                    INSERT INTO questions (assessment_id, question_text, question_type, question_order)
-                    VALUES (:assessment_id, :question_text, :question_type, :question_order)
+                    INSERT INTO assessment_questions (assessment_id, question, option_a, option_b, option_c, option_d, correct_answer, weight, education_level_id)
+                    VALUES (:assessment_id, :question, :option_a, :option_b, :option_c, :option_d, :correct_answer, :weight, :education_level_id)
                 ");
                 foreach ($questions as $q) {
                     $insert->execute([
                         ':assessment_id' => $newId,
-                        ':question_text' => $q['question_text'],
-                        ':question_type' => $q['question_type'],
-                        ':question_order' => $q['question_order'],
+                        ':question' => $q['question'],
+                        ':option_a' => $q['option_a'] ?? '',
+                        ':option_b' => $q['option_b'] ?? '',
+                        ':option_c' => $q['option_c'] ?? '',
+                        ':option_d' => $q['option_d'] ?? '',
+                        ':correct_answer' => $q['correct_answer'] ?? null,
+                        ':weight' => $q['weight'] ?? null,
+                        ':education_level_id' => $q['education_level_id'] ?? null,
                     ]);
                 }
             }

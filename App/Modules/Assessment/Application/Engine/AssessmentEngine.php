@@ -28,8 +28,11 @@ class AssessmentEngine
         $attempt = $this->storage->getOrCreateAttempt($userId, $assessmentId);
 
         $totalQ = $this->repo->countAssessmentQuestions($assessmentId);
+        $isGuest = ($userId <= 0);
+        $questionLimit = $isGuest ? min(5, $totalQ) : $totalQ;
+
         $randomMode = (bool)($assessment['random_mode'] ?? false);
-        $questions = $this->repo->getQuestions($assessmentId, $randomMode, $totalQ);
+        $questions = $this->repo->getQuestions($assessmentId, $randomMode, $questionLimit);
 
         $questionIds = array_map(fn($q) => (int)$q['question_id'], $questions);
         $this->storage->setQuestionOrder((int)$attempt['student_assessment_id'], $questionIds);
