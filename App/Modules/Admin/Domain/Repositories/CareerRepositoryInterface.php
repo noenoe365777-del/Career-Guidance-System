@@ -37,6 +37,8 @@ interface CareerRepositoryInterface
 
     public function getDistinctStatuses(): array;
 
+    public function getDistinctCategories(): array;
+
     public function createCareer(array $data): ?int;
 
     public function updateCareer(int $id, array $data): bool;

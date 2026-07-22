@@ -141,6 +141,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // =====================================
+    // FORGOT PASSWORD
+    // =====================================
+
+    const forgotBtn = document.getElementById("forgotPasswordBtn");
+    const forgotForm = document.getElementById("forgotPasswordForm");
+    const forgotEmailInput = document.getElementById("forgotEmailInput");
+
+    if (forgotBtn && forgotForm && forgotEmailInput) {
+        forgotBtn.addEventListener("click", () => {
+            const emailValue = email.value.trim();
+            forgotEmailInput.value = emailValue;
+            forgotForm.submit();
+        });
+    }
+
+    // =====================================
     // FORM SUBMIT
     // =====================================
 

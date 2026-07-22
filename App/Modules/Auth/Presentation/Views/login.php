@@ -87,6 +87,16 @@ $pageTitle = "Login";
 
         <?php endif; ?>
 
+        <?php
+        $forgotErrors = $_SESSION['forgot_errors'] ?? null;
+        unset($_SESSION['forgot_errors']);
+        ?>
+        <?php if ($forgotErrors): ?>
+            <div class="mb-5 p-3 rounded-lg bg-red-100 text-red-700 border border-red-300">
+                <?= htmlspecialchars(is_array($forgotErrors) ? reset($forgotErrors) : $forgotErrors) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if ($success): ?>
 
             <div class="mb-5 p-3 rounded-lg bg-green-100 text-green-700 border border-green-300">
@@ -196,12 +206,13 @@ $pageTitle = "Login";
 
     </label>
 
-    <a href="<?= BASE_URL ?>/index.php?page=forgot-password"
-       class="text-indigo-600 hover:underline">
+    <button type="button"
+       id="forgotPasswordBtn"
+       class="text-indigo-600 hover:underline cursor-pointer bg-transparent border-none p-0">
 
         Forgot Password?
 
-    </a>
+    </button>
 
 </div>
 
@@ -222,6 +233,10 @@ $pageTitle = "Login";
 
 </button>
 
+</form>
+
+<form id="forgotPasswordForm" action="<?= BASE_URL ?>/index.php?page=forgot-password" method="post" class="hidden">
+    <input type="hidden" name="email" id="forgotEmailInput" value="">
 </form>
 
 <!-- ================= SOCIAL LOGIN ================= -->
@@ -281,6 +296,7 @@ href="<?= BASE_URL ?>/index.php?page=google-login"
 </div>
 
 </main>
+
 <?php
 $extraJs = "assets/js/login.js";
 ?>

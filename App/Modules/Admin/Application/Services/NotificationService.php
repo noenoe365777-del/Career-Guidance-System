@@ -16,44 +16,44 @@ class NotificationService
         $this->notificationRepository = $notificationRepository ?? new NotificationRepository();
     }
 
-    public function getAll(int $limit = 20, int $offset = 0, ?string $type = null, ?string $search = null): array
+    public function getAll(int $limit = 20, int $offset = 0, ?string $type = null, ?string $search = null, ?int $recipientId = null, ?string $recipientRole = null): array
     {
-        return $this->notificationRepository->getAll($limit, $offset, $type, $search);
+        return $this->notificationRepository->getAll($limit, $offset, $type, $search, $recipientId, $recipientRole);
     }
 
-    public function getUnread(int $limit = 20, int $offset = 0): array
+    public function getUnread(int $limit = 20, int $offset = 0, ?int $recipientId = null, ?string $recipientRole = null): array
     {
-        return $this->notificationRepository->getUnread($limit, $offset);
+        return $this->notificationRepository->getUnread($limit, $offset, $recipientId, $recipientRole);
     }
 
-    public function getUnreadCount(): int
+    public function getUnreadCount(?int $recipientId = null, ?string $recipientRole = null): int
     {
-        return $this->notificationRepository->getUnreadCount();
+        return $this->notificationRepository->getUnreadCount($recipientId, $recipientRole);
     }
 
-    public function getTotalCount(?string $type = null, ?string $search = null): int
+    public function getTotalCount(?string $type = null, ?string $search = null, ?int $recipientId = null, ?string $recipientRole = null): int
     {
-        return $this->notificationRepository->getTotalCount($type, $search);
+        return $this->notificationRepository->getTotalCount($type, $search, $recipientId, $recipientRole);
     }
 
-    public function getTodayCount(): int
+    public function getTodayCount(?int $recipientId = null, ?string $recipientRole = null): int
     {
-        return $this->notificationRepository->getTodayCount();
+        return $this->notificationRepository->getTodayCount($recipientId, $recipientRole);
     }
 
-    public function markAsRead(int $id): bool
+    public function markAsRead(int $id, ?int $recipientId = null): bool
     {
-        return $this->notificationRepository->markAsRead($id);
+        return $this->notificationRepository->markAsRead($id, $recipientId);
     }
 
-    public function markAllAsRead(): bool
+    public function markAllAsRead(?int $recipientId = null, ?string $recipientRole = null): bool
     {
-        return $this->notificationRepository->markAllAsRead();
+        return $this->notificationRepository->markAllAsRead($recipientId, $recipientRole);
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, ?int $recipientId = null): bool
     {
-        return $this->notificationRepository->delete($id);
+        return $this->notificationRepository->delete($id, $recipientId);
     }
 
     public function create(array $data): int

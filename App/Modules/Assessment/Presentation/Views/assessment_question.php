@@ -2,6 +2,8 @@
 $guestMode = $guestMode ?? false;
 $assessmentId = $assessmentId ?? 0;
 ?>
+
+
 <div class="assessment-question-page">
     <div class="mb-6 flex items-center justify-between">
         <button type="button" id="exitAssessmentBtn" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 active:scale-[0.97]">
@@ -44,9 +46,13 @@ $assessmentId = $assessmentId ?? 0;
         <button type="button" id="prevBtn" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.97]" disabled>
             <i class="bi bi-chevron-left"></i> Previous
         </button>
-        <button type="button" id="nextBtn" class="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed" style="background:linear-gradient(135deg,#5B5FEF,#7B7FF5)" disabled>
-            Next <i class="bi bi-chevron-right"></i>
-        </button>
+       <button
+    type="button"
+    id="nextBtn"
+    class="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-[#15479A] to-blue-700 text-white font-semibold shadow-md hover:scale-105 transition-all duration-200">
+    Next
+    <i class="bi bi-chevron-right"></i>
+</button>
     </div>
 </div>
 

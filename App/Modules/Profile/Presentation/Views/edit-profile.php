@@ -69,11 +69,11 @@ unset($_SESSION['errors'], $_SESSION['success']);
         <div class="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
             <!-- Avatar -->
             <div class="relative shrink-0">
-                <div class="h-[120px] w-[120px] overflow-hidden rounded-full border-4 border-slate-100 shadow-sm">
+                <div id="editAvatarContainer" class="h-[120px] w-[120px] overflow-hidden rounded-full border-4 border-slate-100 shadow-sm">
                     <?php if ($hasImage): ?>
-                        <img src="<?= $profileImageUrl ?>" alt="" class="h-full w-full object-cover" id="profilePreview">
+                        <img id="editAvatarImg" src="<?= $profileImageUrl ?>" alt="" class="h-full w-full object-cover">
                     <?php else: ?>
-                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white" id="profilePreview">
+                        <div id="editAvatarPlaceholder" class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
                             <span class="text-4xl font-bold"><?= $firstLetter ?></span>
                         </div>
                     <?php endif; ?>
@@ -101,12 +101,10 @@ unset($_SESSION['errors'], $_SESSION['success']);
                         <i class="fas fa-camera text-xs"></i>
                         Upload Photo
                     </label>
-                    <?php if ($hasImage): ?>
-                    <button type="button" id="removePhotoBtn" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-600 no-underline transition-all duration-200 hover:bg-red-50">
+                    <button type="button" id="removePhotoBtn" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-600 no-underline transition-all duration-200 hover:bg-red-50 <?= $hasImage ? '' : 'hidden' ?>">
                         <i class="fas fa-trash-can text-xs"></i>
                         Remove Photo
                     </button>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -259,29 +257,100 @@ document.addEventListener('DOMContentLoaded', function() {
         saveBtnSpinner.classList.remove('hidden');
     });
 
-    // Image upload via form submit
+    // Image upload via AJAX
     photoInput.addEventListener('change', function() {
-        const file = this.files[0];
+        var file = this.files[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
             alert('File size must be under 2MB.');
             this.value = '';
             return;
         }
-        this.closest('form').submit();
+        var form = this.closest('form');
+        var formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                updateEditAvatar(data.image_url, data.has_image);
+                if (typeof window.updateNavbarAvatar === 'function') {
+                    window.updateNavbarAvatar(data.has_image ? data.image_url : '');
+                }
+            } else {
+                alert(data.error || 'Upload failed.');
+            }
+        })
+        .catch(function() { alert('Upload failed.'); });
     });
 
-    // Remove photo
-    const removePhotoBtn = document.getElementById('removePhotoBtn');
+    function updateEditAvatar(imageUrl, hasImage) {
+        var container = document.getElementById('editAvatarContainer');
+        if (!container) return;
+        var existingImg = document.getElementById('editAvatarImg');
+        var existingPlaceholder = document.getElementById('editAvatarPlaceholder');
+        if (hasImage && imageUrl) {
+            var cacheBusted = imageUrl + '?v=' + Date.now();
+            if (existingImg) {
+                existingImg.src = cacheBusted;
+            } else {
+                if (existingPlaceholder) existingPlaceholder.remove();
+                var img = document.createElement('img');
+                img.id = 'editAvatarImg';
+                img.src = cacheBusted;
+                img.alt = '';
+                img.className = 'h-full w-full object-cover';
+                container.appendChild(img);
+            }
+        } else {
+            if (existingImg) {
+                existingImg.remove();
+                var letter = '<?= $firstLetter ?>';
+                if (!document.getElementById('editAvatarPlaceholder')) {
+                    var placeholder = document.createElement('div');
+                    placeholder.id = 'editAvatarPlaceholder';
+                    placeholder.className = 'flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white';
+                    var span = document.createElement('span');
+                    span.className = 'text-4xl font-bold';
+                    span.textContent = letter;
+                    placeholder.appendChild(span);
+                    container.appendChild(placeholder);
+                }
+            }
+        }
+        var removeBtn = document.getElementById('removePhotoBtn');
+        if (removeBtn) {
+            removeBtn.classList.toggle('hidden', !hasImage);
+        }
+    }
+
+    // Remove photo via AJAX
+    var removePhotoBtn = document.getElementById('removePhotoBtn');
     if (removePhotoBtn) {
         removePhotoBtn.addEventListener('click', function() {
             if (!confirm('Remove your profile photo?')) return;
-            const fd = new FormData();
+            var fd = new FormData();
             fd.append('remove', '1');
             fetch('<?= BASE_URL ?>/index.php?page=update-profile-image&redirect=edit-profile', {
                 method: 'POST',
-                body: fd
-            }).then(() => window.location.reload());
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    updateEditAvatar('', false);
+                    if (typeof window.updateNavbarAvatar === 'function') {
+                        window.updateNavbarAvatar('');
+                    }
+                } else {
+                    alert(data.error || 'Failed to remove photo.');
+                }
+            })
+            .catch(function() { alert('Failed to remove photo.'); });
         });
     }
 

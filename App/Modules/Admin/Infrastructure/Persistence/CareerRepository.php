@@ -51,7 +51,7 @@ class CareerRepository implements CareerRepositoryInterface
         }
 
         if ($categoryFilter !== null && $categoryFilter !== '') {
-            $conditions[] = 'LOWER(c.personality_type) = LOWER(:category)';
+            $conditions[] = 'LOWER(c.career_icon) = LOWER(:category)';
             $params[':category'] = $categoryFilter;
         }
 
@@ -353,6 +353,16 @@ class CareerRepository implements CareerRepositoryInterface
     {
         try {
             $stmt = $this->connection->query("SELECT DISTINCT status FROM careers WHERE status IS NOT NULL ORDER BY status ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getDistinctCategories(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT DISTINCT career_icon FROM careers WHERE career_icon IS NOT NULL AND career_icon != '' ORDER BY career_icon ASC");
             return $stmt->fetchAll(PDO::FETCH_COLUMN);
         } catch (PDOException) {
             return [];

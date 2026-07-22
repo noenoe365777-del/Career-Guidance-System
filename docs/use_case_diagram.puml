@@ -1,0 +1,107 @@
+@startuml
+left to right direction
+
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam defaultFontColor black
+skinparam backgroundColor white
+skinparam Shadowing false
+skinparam ActorBorderColor black
+skinparam ActorBackgroundColor white
+skinparam ActorStyle awesome
+skinparam RectangleBorderColor black
+skinparam RectangleBackgroundColor white
+skinparam RectangleFontSize 14
+skinparam RectangleFontStyle bold
+skinparam UseCaseBackgroundColor white
+skinparam UseCaseBorderColor black
+skinparam UseCaseFontSize 11
+skinparam UseCaseFontStyle normal
+skinparam ArrowColor black
+skinparam ArrowFontSize 10
+skinparam PackageBorderColor black
+skinparam PackageBackgroundColor white
+skinparam PackageFontSize 13
+skinparam PackageFontStyle bold
+skinparam HyperlinkColor black
+skinparam NoteBorderColor black
+skinparam NoteBackgroundColor white
+
+title **Figure (5.1) Use Case Diagram of the Career Guidance System**\n
+
+' ===== STUDENT SIDE =====
+package "Student Side" as StudentSide {
+    rectangle "Career Guidance System" as SysStudent {
+        :Student: as StudentActor
+
+        usecase "Register" as UC1
+        usecase "Login" as UC2
+        usecase "Manage Profile" as UC3
+        usecase "Take Assessments" as UC4
+        usecase "View Assessment\nResults" as UC5
+        usecase "View Career\nRecommendations" as UC6
+        usecase "View Career\nInformation" as UC7
+        usecase "View Notifications" as UC8
+        usecase "Logout" as UC9
+    }
+}
+
+StudentActor --> UC1
+StudentActor --> UC2
+StudentActor --> UC3
+StudentActor --> UC4
+StudentActor --> UC5
+StudentActor --> UC6
+StudentActor --> UC7
+StudentActor --> UC8
+StudentActor --> UC9
+
+UC2 ..> UC3 : <<include>>
+UC2 ..> UC4 : <<include>>
+UC2 ..> UC5 : <<include>>
+UC2 ..> UC6 : <<include>>
+UC2 ..> UC7 : <<include>>
+UC2 ..> UC8 : <<include>>
+UC2 ..> UC9 : <<include>>
+
+' ===== ADMIN SIDE =====
+package "Admin Side" as AdminSide {
+    rectangle "Career Guidance System" as SysAdmin {
+        :Admin: as AdminActor
+
+        usecase "Login" as UC10
+        usecase "Manage Students" as UC11
+        usecase "Manage Assessments" as UC12
+        usecase "Manage Questions" as UC13
+        usecase "Manage Careers" as UC14
+        usecase "Manage Reports" as UC15
+        usecase "Manage Notifications" as UC16
+        usecase "Manage Roles &\nPermissions" as UC17
+        usecase "Logout" as UC18
+    }
+}
+
+AdminActor --> UC10
+AdminActor --> UC11
+AdminActor --> UC12
+AdminActor --> UC13
+AdminActor --> UC14
+AdminActor --> UC15
+AdminActor --> UC16
+AdminActor --> UC17
+AdminActor --> UC18
+
+UC10 ..> UC11 : <<include>>
+UC10 ..> UC12 : <<include>>
+UC10 ..> UC13 : <<include>>
+UC10 ..> UC14 : <<include>>
+UC10 ..> UC15 : <<include>>
+UC10 ..> UC16 : <<include>>
+UC10 ..> UC17 : <<include>>
+UC10 ..> UC18 : <<include>>
+
+' Alignment hacks
+StudentSide -[hidden]right- AdminSide
+UC1 -[hidden]down- UC10
+
+@enduml

@@ -1,76 +1,60 @@
 <?php
 $error = $error ?? ($_SESSION['error'] ?? '');
 unset($_SESSION['error']);
+$pageTitle = 'Admin Login';
 ?>
-<style>
-    .bg-grid { background-image: radial-gradient(circle at 1px 1px, rgba(99,102,241,0.08) 1px, transparent 0); background-size: 40px 40px; }
-    .shape-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; pointer-events: none; }
-</style>
+<?php require BASE_PATH . '/App/Views/partials/header.php'; ?>
 
-<div class="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EEF2FF] via-white to-[#F5F3FF] p-4 sm:p-6 overflow-hidden">
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="shape-blob w-[400px] h-[400px] bg-[#6366F1] -top-20 -left-20"></div>
-        <div class="shape-blob w-[350px] h-[350px] bg-[#8B5CF6] bottom-10 -right-10"></div>
-        <div class="shape-blob w-[250px] h-[250px] bg-[#A78BFA] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-    </div>
-    <div class="fixed inset-0 bg-grid pointer-events-none"></div>
+<main class="flex flex-1 items-center justify-center px-4 py-12">
+    <div class="w-full max-w-[400px]">
 
-    <div class="relative z-10 w-full max-w-[420px] my-8">
-        <div class="rounded-[20px] bg-white shadow-[0_8px_40px_rgba(99,102,241,0.10)] border border-[#E5E7EB] p-8 sm:p-10">
-            <div class="text-center mb-7">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-200 mb-4">
-                    <i class="fas fa-graduation-cap text-xl"></i>
-                </div>
-                <h1 class="text-xl font-extrabold text-slate-900">Admin Portal</h1>
-                <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Welcome back. Sign in to manage students, careers, assessments, and recommendations.</p>
+       
+
+        <div class="rounded-xl border border-[#E5E7EB] bg-white px-8 py-10 shadow-sm">
+            <div class="mb-7 text-center">
+                <h2 class="text-xl font-bold text-[#111827]">Administrator Login</h2>
+                <p class="mt-2 text-sm leading-relaxed text-[#6B7280]">Sign in to manage students, assessments, career recommendations, and reports.</p>
             </div>
 
             <?php if (!empty($error)): ?>
-            <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700 flex items-center gap-2.5">
-                <i class="fas fa-circle-exclamation text-sm"></i>
+            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 <?= htmlspecialchars($error) ?>
             </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-login" class="space-y-4">
+            <form method="post" action="<?= BASE_URL ?>/index.php?page=admin-login" class="space-y-5">
                 <div>
-                    <label for="email" class="block text-xs font-semibold text-slate-700 mb-1.5">Email</label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fas fa-envelope"></i></span>
-                        <input type="email" id="email" name="email" required placeholder="Enter your email"
-                            class="w-full rounded-xl border border-[#E5E7EB] bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5B5CEB] focus:ring-2 focus:ring-[#5B5CEB]/20">
-                    </div>
+                    <label for="email" class="block text-sm font-medium text-[#111827]">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="you@example.com"
+                        class="mt-1.5 block w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] outline-none transition-colors focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15">
                 </div>
 
                 <div>
-                    <label for="password" class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fas fa-lock"></i></span>
-                        <input type="password" id="password" name="password" required placeholder="Enter your password"
-                            class="w-full rounded-xl border border-[#E5E7EB] bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#5B5CEB] focus:ring-2 focus:ring-[#5B5CEB]/20">
-                    </div>
+                    <label for="password" class="block text-sm font-medium text-[#111827]">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password"
+                        class="mt-1.5 block w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] outline-none transition-colors focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15">
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" name="remember" class="h-4 w-4 rounded border-slate-300 text-[#5B5CEB] accent-[#5B5CEB] outline-none">
-                        <span class="text-xs font-medium text-slate-600">Remember me</span>
+                    <label class="flex cursor-pointer items-center gap-2 select-none">
+                        <input type="checkbox" name="remember"
+                            class="h-4 w-4 rounded border-[#D1D5DB] text-[#4F46E5] outline-none transition-colors focus:ring-2 focus:ring-[#4F46E5]/15">
+                        <span class="text-sm text-[#6B7280]">Remember me</span>
                     </label>
-                    <a href="#" class="text-xs font-semibold text-[#5B5CEB] hover:text-[#4a4bd6] no-underline transition-colors duration-200">Forgot Password?</a>
+                    <a href="#" class="text-sm font-medium text-[#4F46E5] no-underline transition-colors hover:text-[#4338CA]">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-[#5B5CEB] to-[#6366F1] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:from-[#4a4bd6] hover:to-[#5B5CEB] hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.98]">
-                    <i class="fas fa-arrow-right-to-bracket mr-2"></i>
-                    Sign In
+                <button type="submit"
+                    class="w-full cursor-pointer rounded-lg bg-[#4F46E5] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#4338CA] active:bg-[#3730A3]">
+                    Sign in
                 </button>
             </form>
 
-            <div class="mt-7 pt-5 border-t border-slate-100 text-center">
-                <div class="inline-flex items-center gap-2 text-xs text-slate-400">
-                    <i class="fas fa-lock text-slate-300"></i>
-                    <span>Authorized Personnel Only</span>
-                </div>
+            <div class="mt-8 text-center text-xs text-[#9CA3AF]">
+                Authorized administrators only.
             </div>
         </div>
     </div>
-</div>
+</main>
+
+<?php require BASE_PATH . '/App/Views/partials/footer.php'; ?>

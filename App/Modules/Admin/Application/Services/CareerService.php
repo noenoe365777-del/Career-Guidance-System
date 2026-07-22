@@ -78,6 +78,11 @@ class CareerService
         return $this->careerRepository->getDistinctStatuses();
     }
 
+    public function getDistinctCategories(): array
+    {
+        return $this->careerRepository->getDistinctCategories();
+    }
+
     public function createCareer(array $data): ?int
     {
         return $this->careerRepository->createCareer($data);

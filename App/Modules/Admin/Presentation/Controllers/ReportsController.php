@@ -27,6 +27,11 @@ class ReportsController extends Controller
         $topCareers = $this->reportsService->getTopRecommendedCareers(5);
         $educationDistribution = $this->reportsService->getEducationLevelDistribution();
         $reportsGenerated = $this->reportsService->getReportsGeneratedCount();
+        $studentPerformance = $this->reportsService->getStudentPerformance(5);
+        $averageAssessmentScore = $this->reportsService->getAverageAssessmentScore();
+        $recentActivities = $this->reportsService->getRecentActivities(5);
+        $assessmentCompletionTrend = $this->reportsService->getAssessmentCompletionTrend();
+        $summaryStatsForRange = $this->reportsService->getSummaryStatsForRange();
 
         $this->view(
             'Admin/Presentation/Views/reports/index',
@@ -38,9 +43,14 @@ class ReportsController extends Controller
                 'assessmentCompletions' => (int)($summary['completed_assessments'] ?? 0),
                 'totalRecommendations' => (int)($summary['total_recommendations'] ?? 0),
                 'reportsGenerated' => $reportsGenerated,
+                'averageScore' => (float)($averageAssessmentScore ?? 0),
                 'assessmentStats' => $assessmentStats,
                 'topCareers' => $topCareers,
                 'educationDistribution' => $educationDistribution,
+                'studentPerformance' => $studentPerformance,
+                'recentActivities' => $recentActivities,
+                'assessmentCompletionTrend' => $assessmentCompletionTrend,
+                'summaryStatsForRange' => $summaryStatsForRange,
             ]
         );
     }

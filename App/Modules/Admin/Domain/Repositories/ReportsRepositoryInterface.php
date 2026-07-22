@@ -29,4 +29,12 @@ interface ReportsRepositoryInterface
     public function getReportsGeneratedCount(): int;
 
     public function getRecentActivities(int $limit = 10): array;
+
+    public function getAssessmentScoreComparison(?string $period = null): array;
+
+    public function getRecentAssessmentActivity(int $limit = 10): array;
+
+    public function getAssessmentCompletionStats(?string $period = null): array;
+
+    public function getStudentPerformanceSummary(): array;
 }

@@ -33,7 +33,7 @@ class CareerController extends Controller
         $result = $this->careerService->getAllCareers($page, 10, $search, $educationFilter, $growthFilter, $categoryFilter, $statusFilter, $sort);
         $educationLevels = $this->careerService->getDistinctEducationLevels();
         $growthRates = $this->careerService->getDistinctGrowthRates();
-        $personalityTypes = $this->careerService->getDistinctPersonalityTypes();
+        $categories = $this->careerService->getDistinctCategories();
         $statuses = $this->careerService->getDistinctStatuses();
         $summaryStats = $this->careerService->getSummaryStats();
         $allRecommendationStudents = $this->careerService->getAllRecommendationStudents();
@@ -63,7 +63,7 @@ class CareerController extends Controller
                 'sort' => $sort,
                 'educationLevels' => $educationLevels,
                 'growthRates' => $growthRates,
-                'personalityTypes' => $personalityTypes,
+                'personalityTypes' => $categories,
                 'statuses' => $statuses,
                 'summaryStats' => $summaryStats,
                 'allRecommendationStudents' => $allRecommendationStudents,
@@ -346,7 +346,7 @@ class CareerController extends Controller
                     'errors' => $errors,
                     'old' => array_merge($career, $data),
                     'educationLevels' => $educationLevels,
-                    'personalityTypes' => $personalityTypes,
+                'personalityTypes' => $categories,
                     'interestTypes' => $interestTypes,
                     'aptitudeTypes' => $aptitudeTypes,
                     'valuesTypes' => $valuesTypes,

@@ -134,12 +134,12 @@ if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
         <p style="font-size: 14px; color: #94a3b8; margin: 4px 0 0 0;"><?= date('l, F j, Y') ?></p>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 24px; margin-bottom: 36px;" class="sm-grid-2 xl-grid-4">
-        <?php renderAdminSummaryCard(['title' => 'Total Students', 'value' => '0', 'valueNumber' => (int)$totalStudents, 'counterId' => 'countStudents', 'icon' => 'bi-people-fill', 'iconBg' => '#eef2ff', 'iconColor' => '#5B5FEF', 'delayClass' => 'd1', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-users'", 'filter' => 'students']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Total Questions', 'value' => '0', 'valueNumber' => (int)$totalQuestions, 'counterId' => 'countQuestions', 'icon' => 'bi-patch-question-fill', 'iconBg' => '#eff6ff', 'iconColor' => '#2563eb', 'delayClass' => 'd2', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-questions'", 'filter' => 'questions']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Total Assessments', 'value' => '0', 'valueNumber' => (int)$totalAssessments, 'counterId' => 'countAssessments', 'icon' => 'bi-journal-text', 'iconBg' => '#ecfdf5', 'iconColor' => '#059669', 'delayClass' => 'd3', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-assessments'", 'filter' => 'assessments']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Total Careers', 'value' => '0', 'valueNumber' => (int)$totalCareers, 'counterId' => 'countCareers', 'icon' => 'bi-briefcase-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'delayClass' => 'd4', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-careers'", 'filter' => 'careers']); ?>
-        <?php renderAdminSummaryCard(['title' => 'Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'countRecommendations', 'icon' => 'bi-stars', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'delayClass' => 'd5', 'onclick' => "location.href='" . BASE_URL . "/index.php?page=admin-reports'", 'filter' => 'recommendations']); ?>
+    <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 20px; margin-bottom: 32px;" class="sm-g-2 md-g-3 lg-g-5">
+        <?php renderAdminSummaryCard(['title' => 'Total Students', 'value' => '0', 'valueNumber' => (int)$totalStudents, 'counterId' => 'countStudents', 'icon' => 'bi-people-fill', 'iconBg' => '#eef2ff', 'iconColor' => '#5B5FEF', 'delayClass' => 'd1', 'filter' => 'students', 'extraClass' => 'summary-stat-card']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Questions', 'value' => '0', 'valueNumber' => (int)$totalQuestions, 'counterId' => 'countQuestions', 'icon' => 'bi-patch-question-fill', 'iconBg' => '#eff6ff', 'iconColor' => '#2563eb', 'delayClass' => 'd2', 'filter' => 'questions', 'extraClass' => 'summary-stat-card']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Assessments', 'value' => '0', 'valueNumber' => (int)$totalAssessments, 'counterId' => 'countAssessments', 'icon' => 'bi-journal-text', 'iconBg' => '#ecfdf5', 'iconColor' => '#059669', 'delayClass' => 'd3', 'filter' => 'assessments', 'extraClass' => 'summary-stat-card']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Careers', 'value' => '0', 'valueNumber' => (int)$totalCareers, 'counterId' => 'countCareers', 'icon' => 'bi-briefcase-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'delayClass' => 'd4', 'filter' => 'careers', 'extraClass' => 'summary-stat-card']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'countRecommendations', 'icon' => 'bi-stars', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'delayClass' => 'd5', 'filter' => 'recommendations', 'extraClass' => 'summary-stat-card']); ?>
     </div>
 
     <div class="dashboard-two-col">
@@ -250,13 +250,14 @@ if (file_exists(__DIR__ . '/partials/summary_stat_card.php')) {
 </div>
 <style>
     @media (min-width: 640px) {
-        .sm-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+        .sm-g-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (min-width: 768px) {
+        .md-g-3 { grid-template-columns: repeat(3, 1fr) !important; }
     }
     @media (min-width: 992px) {
         .dashboard-two-col { grid-template-columns: 65% 35%; }
-    }
-    @media (min-width: 1280px) {
-        .xl-grid-4 { grid-template-columns: repeat(5, 1fr) !important; }
+        .lg-g-5 { grid-template-columns: repeat(5, 1fr) !important; }
     }
 </style>
 

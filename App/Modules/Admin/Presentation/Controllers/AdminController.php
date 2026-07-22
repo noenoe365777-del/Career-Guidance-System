@@ -72,7 +72,7 @@ class AdminController extends Controller
             'Admin/Presentation/Views/login',
             [
                 'pageTitle' => 'Admin Login',
-                'layout' => 'app',
+                'layout' => 'none',
                 'error' => $error,
             ]
         );

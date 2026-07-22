@@ -124,7 +124,7 @@ class AssessmentController extends Controller
         ];
 
         $this->view(
-            'Assessment/Presentation/Views/public/guest-question',
+            'Assessment/Presentation/Views/guest-question',
             [
                 'pageTitle' => $pageTitle,
                 'accentClass' => $colors['accent'],
@@ -154,7 +154,7 @@ class AssessmentController extends Controller
         ];
 
         $this->view(
-            'Assessment/Presentation/Views/public/guest-question',
+            'Assessment/Presentation/Views/guest-question',
             [
                 'pageTitle' => $pageTitle,
                 'accentClass' => $accentClass,

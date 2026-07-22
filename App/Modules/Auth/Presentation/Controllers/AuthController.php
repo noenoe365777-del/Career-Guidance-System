@@ -150,16 +150,15 @@ class AuthController extends Controller
                 exit;
             }
 
-            $_SESSION['errors'] = $result['errors'] ?? ['email' => $result['message'] ?? 'Unable to process request.'];
-            $_SESSION['old'] = $_POST;
-            header('Location: ' . BASE_URL . '/index.php?page=forgot-password');
+            $errors = $result['errors'] ?? [];
+            $errorMsg = $result['message'] ?? (!empty($errors) ? reset($errors) : 'Unable to process request.');
+            $_SESSION['forgot_errors'] = $errorMsg;
+            header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
         }
 
-        $this->view(
-            'Auth/Presentation/Views/forgot-password',
-            ['pageTitle' => 'Forgot Password']
-        );
+        header('Location: ' . BASE_URL . '/index.php?page=login');
+        exit;
     }
 
     public function verifyResetCode(): void

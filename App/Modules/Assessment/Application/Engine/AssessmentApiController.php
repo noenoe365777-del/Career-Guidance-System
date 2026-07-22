@@ -115,7 +115,8 @@ class AssessmentApiController extends Controller
                     \App\Shared\NotificationHelper::assessmentCompleted(
                         (string)($row['username'] ?? 'Student'),
                         (string)($row['title'] ?? 'Assessment'),
-                        $score
+                        $score,
+                        $userId
                     );
                 }
             } catch (\Throwable) {

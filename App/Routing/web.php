@@ -65,7 +65,7 @@ $router->match(['GET', 'POST'], '/register', [AuthController::class, 'register']
 $router->match(['GET', 'POST'], '/forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
 $router->match(['GET', 'POST'], '/verify-reset-code', [AuthController::class, 'verifyResetCode'])->name('verify-reset-code');
 $router->match(['GET', 'POST'], '/reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
-$router->get('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify-email');
+
 $router->get('/resend-verification', [AuthController::class, 'resendVerification'])->name('resend-verification');
 $router->get('/google-login', [AuthController::class, 'googleLogin'])->name('google-login');
 $router->get('/google-callback', [AuthController::class, 'googleCallback'])->name('google-callback');
@@ -89,6 +89,11 @@ $router->middleware(['auth', 'student'], function ($router) {
     $router->get('/student-change-password', [ProfileController::class, 'studentChangePassword'])->name('student-change-password');
     $router->post('/update-password', [ProfileController::class, 'updatePassword'])->name('update-password');
     $router->get('/notifications', [ProfileController::class, 'notifications'])->name('notifications');
+    $router->get('/notifications/api-list', [ProfileController::class, 'apiNotifications']);
+    $router->post('/notifications/api-mark-read', [ProfileController::class, 'apiMarkAsRead']);
+    $router->post('/notifications/api-mark-all-read', [ProfileController::class, 'apiMarkAllAsRead']);
+    $router->get('/notifications/api-unread-count', [ProfileController::class, 'apiUnreadCount']);
+    $router->post('/notifications/api-delete', [ProfileController::class, 'apiDelete']);
 
     $router->get('/student-assessments', [StudentAssessmentController::class, 'index'])->name('student-assessments');
     $router->get('/student-assessments-v2', [StudentAssessmentController::class, 'v2Index'])->name('student-assessments-v2');

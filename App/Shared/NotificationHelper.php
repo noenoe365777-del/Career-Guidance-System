@@ -26,7 +26,7 @@ class NotificationHelper
         return (int)(($_SESSION['admin']['id'] ?? $_SESSION['admin_id'] ?? 0));
     }
 
-    public static function notify(string $type, string $title, string $message, ?string $link = null, ?string $entityType = null, ?int $entityId = null): int
+    public static function notify(string $type, string $title, string $message, ?string $link = null, ?string $entityType = null, ?int $entityId = null, ?int $recipientId = null, ?string $recipientRole = null): int
     {
         $data = [
             'type' => $type,
@@ -35,6 +35,14 @@ class NotificationHelper
             'link' => $link,
             'is_read' => 0,
         ];
+        if ($recipientId !== null) {
+            $data['recipient_id'] = $recipientId;
+        }
+        if ($recipientRole !== null) {
+            $data['recipient_role'] = $recipientRole;
+        } else {
+            $data['recipient_role'] = 'admin';
+        }
         return self::getService()->create($data);
     }
 
@@ -125,12 +133,17 @@ class NotificationHelper
         );
     }
 
-    public static function assessmentCompleted(string $studentName, string $assessmentTitle, int $score): void
+    public static function assessmentCompleted(string $studentName, string $assessmentTitle, int $score, ?int $studentId = null): void
     {
         self::notify(
             'assessment',
             'Assessment Completed',
-            "{$studentName} completed {$assessmentTitle} with score {$score}%."
+            "{$studentName} completed {$assessmentTitle} with score {$score}%.",
+            null,
+            null,
+            null,
+            $studentId,
+            $studentId !== null ? 'student' : null
         );
     }
 
@@ -144,12 +157,17 @@ class NotificationHelper
         );
     }
 
-    public static function recommendationGenerated(string $studentName, string $careerName): void
+    public static function recommendationGenerated(string $studentName, string $careerName, ?int $studentId = null): void
     {
         self::notify(
             'career',
             'Recommendation Generated',
-            "Career recommendation generated for {$studentName}: {$careerName}."
+            "Career recommendation generated for {$studentName}: {$careerName}.",
+            null,
+            null,
+            null,
+            $studentId,
+            $studentId !== null ? 'student' : null
         );
     }
 

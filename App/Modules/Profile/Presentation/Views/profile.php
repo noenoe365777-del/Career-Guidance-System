@@ -96,11 +96,11 @@ if ($recommendation && isset($careerIconMap[$recommendation['career_name']])) {
         <div class="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
             <!-- Avatar with camera overlay -->
             <div class="relative shrink-0">
-                <div class="h-[120px] w-[120px] overflow-hidden rounded-full border-4 border-slate-100 shadow-sm">
+                <div id="profileAvatarContainer" class="h-[120px] w-[120px] overflow-hidden rounded-full border-4 border-slate-100 shadow-sm">
                     <?php if ($profileImageUrl): ?>
-                        <img src="<?= $profileImageUrl ?>" alt="" class="h-full w-full object-cover">
+                        <img id="profileAvatarImg" src="<?= $profileImageUrl ?>" alt="" class="h-full w-full object-cover">
                     <?php else: ?>
-                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                        <div id="profileAvatarPlaceholder" class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
                             <span class="text-4xl font-bold"><?= $firstLetter ?></span>
                         </div>
                     <?php endif; ?>
@@ -229,18 +229,52 @@ if ($recommendation && isset($careerIconMap[$recommendation['career_name']])) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const input = document.getElementById('profileImageInput');
-    const label = document.querySelector('label[for="profileImageInput"]');
+    var input = document.getElementById('profileImageInput');
     if (input) {
         input.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                if (this.files[0].size > 2 * 1024 * 1024) {
-                    alert('File size must be under 2MB.');
-                    this.value = '';
-                    return;
-                }
-                this.closest('form').submit();
+            var file = this.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be under 2MB.');
+                this.value = '';
+                return;
             }
+            var form = this.closest('form');
+            var formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var container = document.getElementById('profileAvatarContainer');
+                    if (!container) return;
+                    if (data.has_image) {
+                        var cacheBusted = data.image_url + '?v=' + Date.now();
+                        var existingImg = document.getElementById('profileAvatarImg');
+                        var existingPlaceholder = document.getElementById('profileAvatarPlaceholder');
+                        if (existingImg) {
+                            existingImg.src = cacheBusted;
+                        } else {
+                            if (existingPlaceholder) existingPlaceholder.remove();
+                            var img = document.createElement('img');
+                            img.id = 'profileAvatarImg';
+                            img.src = cacheBusted;
+                            img.alt = '';
+                            img.className = 'h-full w-full object-cover';
+                            container.appendChild(img);
+                        }
+                    }
+                    if (typeof window.updateNavbarAvatar === 'function') {
+                        window.updateNavbarAvatar(data.has_image ? data.image_url : '');
+                    }
+                } else {
+                    alert(data.error || 'Upload failed.');
+                }
+            })
+            .catch(function() { alert('Upload failed.'); });
         });
     }
 });

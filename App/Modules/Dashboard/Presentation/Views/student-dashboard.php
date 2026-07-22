@@ -93,214 +93,166 @@ function dashboardFormatDate(?string $value): string
     return $ts ? date('M j, Y', $ts) : '—';
 }
 ?>
-<div class="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
+<div class="mx-auto w-full max-w-5xl overflow-x-hidden px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
 
-    <!-- Welcome Card -->
-    <section class="relative overflow-hidden rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
-        <div class="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-100/60 to-violet-100/60 blur-3xl"></div>
-        <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="min-w-0">
-                <div class="flex items-center gap-2.5">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">Welcome back, <?= $studentName ?>!👋</h1>
-                        <p class="mt-0.5 text-sm text-slate-500">Complete your assessments to unlock personalized career recommendations.</p>
-                    </div>
-                </div>
-            </div>
-            <?php if ($allCompleted): ?>
-                
-            <?php else: ?>
-                
-            <?php endif; ?>
-        </div>
-    </section>
-
-    <!-- Quick Statistics -->
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4" x-data="statCounters()" x-init="initCounters()">
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 0ms;">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Completed</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-500 stat-icon">
-                    <i class="fas fa-check text-xs"></i>
-                </div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= (int)$completedAssessments ?>" data-suffix="">0</p>
-            <p class="text-xs text-slate-400">Assessments</p>
-        </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 100ms;">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 stat-icon">
-                    <i class="fas fa-list-check text-xs"></i>
-                </div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= (int)$totalAssessments ?>" data-suffix="">0</p>
-            <p class="text-xs text-slate-400">Assessments</p>
-        </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 200ms;">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Education</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-500 stat-icon">
-                    <i class="fas fa-graduation-cap text-xs"></i>
-                </div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900"><?= htmlspecialchars($recommendation['education_required'] ?? '—') ?></p>
-            <p class="text-xs text-slate-400">Level</p>
-        </div>
-        <div class="rounded-[20px] border border-slate-200/70 bg-white p-5 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 300ms;">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Top Match</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 stat-icon">
-                    <i class="fas fa-trophy text-xs"></i>
-                </div>
-            </div>
-            <p class="mt-3 text-2xl font-bold text-slate-900 counter" data-target="<?= $recommendation ? (int)$recommendation['match_score'] : 0 ?>" data-suffix="%">0%</p>
-            <p class="text-xs text-slate-400">Score</p>
-        </div>
-    </div>
-    
-    <!-- Progress + Next Assessment -->
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-
-        <!-- Circular Progress -->
-        <section class="flex w-full min-w-0 flex-col items-center rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm">
-            <div class="flex w-full items-center justify-between">
-                <h2 class="text-sm font-semibold text-slate-900">Progress</h2>
-                <i class="fas fa-chart-pie text-slate-400"></i>
-            </div>
-            <div class="relative mt-6 h-32 w-32">
-                <svg class="h-32 w-32 -rotate-90" viewBox="0 0 144 144">
-                    <circle cx="72" cy="72" r="58" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-                    <circle cx="72" cy="72" r="58" fill="none" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" stroke-dasharray="<?= $dash ?>" stroke-dashoffset="<?= $offset ?>" class="transition-all duration-1000 ease-out"/>
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span class="text-2xl font-bold text-slate-900"><?= round($percentage) ?>%</span>
-                    <span class="text-xs font-medium text-slate-400"><?= (int)$completedAssessments ?> / <?= (int)$totalAssessments ?></span>
-                </div>
-            </div>
-            <p class="mt-3 text-xs text-slate-400"><?= $allCompleted ? 'All assessments complete!' : 'Keep going to unlock your career path.' ?></p>
-        </section>
-
-        <!-- Next Assessment or All Completed -->
-        <section class="flex w-full min-w-0 flex-col rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm">
-            <?php if ($nextSlug !== null): ?>
-                <?php
-                $slug = $nextSlug;
-                $s = $statusMap[$slug] ?? ['status' => 'Locked', 'completed_at' => null];
-                $status = $s['status'];
-                $c = $assessmentColors[$slug];
-                $icon = $faIcons[$slug];
-                $label = $assessmentLabels[$slug];
-                $qCount = $questionCounts[$slug] ?? 0;
-                $isInProgress = in_array(strtolower($status), ['in_progress', 'in progress']);
-                $btnLabel = $isInProgress ? 'Continue' : 'Start';
-                ?>
-                <div class="flex w-full flex-col gap-4">
-                    <h2 class="text-sm font-semibold text-slate-900">Next Assessment</h2>
-                    <div class="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="flex items-center gap-4 min-w-0">
-                            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl <?= $c['bg'] ?>">
-                                <i class="fas <?= $icon ?> text-xl <?= $c['icon'] ?>"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="truncate text-base font-semibold text-slate-900"><?= htmlspecialchars($label) ?></h3>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <span class="text-xs text-slate-400"><?= $qCount ?> Questions</span>
-                                    <span class="text-slate-300">·</span>
-                                    <?= dashboardStatusBadge($status) ?>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="inline-flex shrink-0 items-center gap-2 self-start rounded-xl <?= $c['btn'] ?> px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200">
-                            <i class="fas fa-play text-xs"></i>
-                            <?= $btnLabel ?>
-                        </a>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="flex h-full flex-col items-center justify-center gap-3 py-4 text-center">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
-                        <i class="fas fa-check-circle text-2xl text-emerald-500"></i>
-                    </div>
-                    <h3 class="text-base font-semibold text-slate-900">All assessments completed</h3>
-                    <p class="text-sm text-slate-500">You've finished all four assessments. View your career recommendations now.</p>
-                    <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700">
-                        View Recommendations
-                        <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-            <?php endif; ?>
-        </section>
+    <!-- Welcome Section -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-bold text-slate-900 leading-tight">Welcome back, <?= $studentName ?>! 👋</h1>
+        <p class="text-sm text-slate-400 mt-1"><?= date('l, F j, Y') ?></p>
+        <p class="text-base text-slate-500 mt-2">Continue your career journey.</p>
     </div>
 
-    <!-- Top Career Recommendation -->
-    <section class="rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 gap-4 mb-8 sm:grid-cols-4" x-data="statCounters()" x-init="initCounters()">
+        <div class="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 0ms;">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Completed</span>
+                <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-500 stat-icon">
+                    <i class="fas fa-check text-[10px]"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-xl font-bold text-slate-900 counter" data-target="<?= (int)$completedAssessments ?>" data-suffix="">0</p>
+            <p class="text-[11px] text-slate-400">Assessments</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 100ms;">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Total</span>
+                <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 stat-icon">
+                    <i class="fas fa-list-check text-[10px]"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-xl font-bold text-slate-900 counter" data-target="<?= (int)$totalAssessments ?>" data-suffix="">0</p>
+            <p class="text-[11px] text-slate-400">Assessments</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 200ms;">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Education</span>
+                <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-500 stat-icon">
+                    <i class="fas fa-graduation-cap text-[10px]"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-xl font-bold text-slate-900"><?= htmlspecialchars($recommendation['education_required'] ?? '—') ?></p>
+            <p class="text-[11px] text-slate-400">Level</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm stat-card hover-lift hover-shadow float-icon" style="animation-delay: 300ms;">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Best Match</span>
+                <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-500 stat-icon">
+                    <i class="fas fa-trophy text-[10px]"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-xl font-bold text-slate-900 counter" data-target="<?= $recommendation ? (int)$recommendation['match_score'] : 0 ?>" data-suffix="%">0%</p>
+            <p class="text-[11px] text-slate-400">Score</p>
+        </div>
+    </div>
+
+    <!-- Featured Career Recommendation -->
+    <div class="rounded-xl border border-slate-200/70 bg-white p-6 shadow-sm mb-8">
         <?php if ($recommendation): ?>
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-4 min-w-0">
-                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md">
-                        <i class="fas <?= $recommendationIcon ?> text-xl"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.15em] text-indigo-600">Top Recommendation</p>
-                        <h2 class="truncate text-lg font-bold text-slate-900"><?= htmlspecialchars($recommendation['career_name']) ?></h2>
-                        <p class="mt-1 text-sm leading-relaxed text-slate-500"><?= htmlspecialchars(mb_substr($recommendation['description'], 0, 150)) ?><?= mb_strlen($recommendation['description']) > 150 ? '...' : '' ?></p>
-                    </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+            <div class="flex items-start gap-4 min-w-0">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
+                    <i class="fas fa-star text-lg"></i>
                 </div>
-                <div class="flex shrink-0 flex-col items-center gap-3 sm:items-end">
-                    <div class="flex flex-col items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-600">Your Best Career Match</p>
+                    <h2 class="text-xl font-bold text-slate-900 mt-1"><?= htmlspecialchars($recommendation['career_name']) ?></h2>
+                    <div class="flex items-center gap-2 mt-1.5">
                         <span class="text-2xl font-extrabold text-emerald-600"><?= (int)$recommendation['match_score'] ?>%</span>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Match</span>
+                        <span class="text-xs font-medium text-slate-400">Match</span>
                     </div>
-                    <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 no-underline transition-all duration-200 hover:border-slate-300 hover:bg-slate-50">
-                        View Details
-                        <i class="fas fa-arrow-right text-[10px]"></i>
-                    </a>
+                    <p class="mt-1.5 text-sm text-slate-500 leading-relaxed max-w-lg"><?= htmlspecialchars(mb_substr($recommendation['description'], 0, 120)) ?><?= mb_strlen($recommendation['description']) > 120 ? '...' : '' ?></p>
                 </div>
             </div>
+            <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700 shadow-sm self-start sm:self-center">
+                View Career Maps
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
         <?php elseif ($allCompleted): ?>
-            <div class="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:text-left">
-                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-100 bg-amber-50 text-amber-500">
-                    <i class="fas fa-clipboard-list text-xl"></i>
-                </div>
-                <div class="min-w-0">
-                    <h2 class="text-base font-semibold text-slate-900">Complete All Assessments</h2>
-                    <p class="mt-0.5 text-sm text-slate-500">Finish all four assessments to unlock your personalized career recommendations.</p>
-                </div>
-                <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm no-underline transition-all duration-200 hover:bg-amber-700 sm:ml-auto">
-                    Go to Assessments
-                    <i class="fas fa-arrow-right text-xs"></i>
-                </a>
-            </div>
-        <?php else: ?>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-4">
-                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400">
-                    <i class="fas fa-lock text-xl"></i>
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
+                    <i class="fas fa-check-circle text-lg"></i>
                 </div>
-                <div class="min-w-0">
-                    <h2 class="text-base font-semibold text-slate-900">Career Recommendation</h2>
-                    <p class="mt-0.5 text-sm text-slate-500">Complete all <?= (int)$totalAssessments ?> assessments to unlock your personalized career recommendation.</p>
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-600">All Assessments Complete</p>
+                    <h2 class="text-base font-semibold text-slate-900 mt-0.5">Your career recommendations are ready</h2>
                 </div>
-                <span class="ml-auto hidden shrink-0 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-300 sm:inline-flex">
-                    <i class="fas fa-lock text-xs"></i>
-                    Locked
-                </span>
             </div>
+            <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:from-indigo-700 hover:to-violet-700 shadow-sm self-start sm:self-center">
+                View Career Maps
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+        <?php else: ?>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                    <i class="fas fa-lock text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Career Match Locked</p>
+                    <h2 class="text-base font-semibold text-slate-900 mt-0.5">Complete assessments to unlock your match</h2>
+                </div>
+            </div>
+            <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-slate-600 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:bg-slate-700 shadow-sm self-start sm:self-center">
+                Take Assessments
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
         <?php endif; ?>
-    </section>
+    </div>
 
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-2 gap-4 mb-8 sm:grid-cols-4">
+        <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="flex flex-col items-center gap-2 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm no-underline transition-all duration-200 hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5 group">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                <i class="fas fa-pencil"></i>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-slate-800">Assessments</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Continue or retake</p>
+            </div>
+        </a>
+        <a href="<?= BASE_URL ?>/index.php?page=career-recommendation" class="flex flex-col items-center gap-2 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm no-underline transition-all duration-200 hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                <i class="fas fa-map"></i>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-slate-800">Career Maps</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">View recommendations</p>
+            </div>
+        </a>
+        <a href="<?= BASE_URL ?>/index.php?page=notifications" class="flex flex-col items-center gap-2 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm no-underline transition-all duration-200 hover:border-amber-200 hover:shadow-md hover:-translate-y-0.5 group">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-slate-800">Notifications</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Check latest updates</p>
+            </div>
+        </a>
+        <a href="<?= BASE_URL ?>/index.php?page=profile" class="flex flex-col items-center gap-2 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm no-underline transition-all duration-200 hover:border-sky-200 hover:shadow-md hover:-translate-y-0.5 group">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 group-hover:bg-sky-100 transition-colors">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-slate-800">Profile</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Manage account</p>
+            </div>
+        </a>
+    </div>
 
     <!-- Recent Activity -->
-    <section class="rounded-[20px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
-        <div class="flex items-center justify-between">
+    <section class="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-slate-900">Recent Activity</h2>
-            <i class="fas fa-clock-rotate-left text-slate-400"></i>
+            <a href="<?= BASE_URL ?>/index.php?page=student-assessments-v2" class="text-xs font-medium text-indigo-600 hover:text-indigo-700 no-underline transition-colors">View All &rarr;</a>
         </div>
-        <div class="mt-4 divide-y divide-slate-100">
-            <?php foreach ($assessmentSlugs as $slug):
+        <div class="divide-y divide-slate-100">
+            <?php $displayed = 0; foreach ($assessmentSlugs as $slug):
+                if ($displayed >= 3) break;
                 $s = $statusMap[$slug] ?? ['status' => 'Locked', 'completed_at' => null];
                 $statusRaw = $s['status'];
                 $completedAt = $s['completed_at'] ?? null;
@@ -314,17 +266,15 @@ function dashboardFormatDate(?string $value): string
                 };
                 $icon = $faIcons[$slug];
                 $label = $assessmentLabels[$slug];
+                $displayed++;
             ?>
             <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl <?= $isComplete ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-400' ?>">
-                    <i class="fas <?= $icon ?> text-sm"></i>
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg <?= $isComplete ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-400' ?>">
+                    <i class="fas <?= $icon ?> text-xs"></i>
                 </div>
                 <div class="flex min-w-0 flex-1 items-center justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="truncate text-sm font-medium text-slate-800"><?= htmlspecialchars($label) ?></p>
-                        <p class="text-xs text-slate-400"><?= $statusDisplay ?></p>
-                    </div>
-                    <span class="shrink-0 text-xs text-slate-400"><?= $isComplete ? dashboardFormatDate($completedAt) : '—' ?></span>
+                    <p class="truncate text-sm font-medium text-slate-800"><?= htmlspecialchars($label) ?></p>
+                    <span class="shrink-0 text-xs <?= $isComplete ? 'text-emerald-600 font-medium' : 'text-slate-400' ?>"><?= $isComplete ? dashboardFormatDate($completedAt) : $statusDisplay ?></span>
                 </div>
             </div>
             <?php endforeach; ?>

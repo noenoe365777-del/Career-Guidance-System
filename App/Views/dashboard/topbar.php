@@ -15,10 +15,19 @@ $user = $_SESSION['user'] ?? [];
 $studentName = trim((string)($user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Student'));
 $userId = (int)($user['id'] ?? $user['user_id'] ?? 0);
 $profileImage = null;
+$profileImageUrl = '';
 $firstLetter = $studentName !== '' ? mb_strtoupper(mb_substr($studentName, 0, 1)) : 'S';
 
-if (!empty($user['profile_image'])) {
-    $profileImage = $user['profile_image'];
+$profileImageRaw = $user['profile_image'] ?? '';
+if ($profileImageRaw !== '') {
+    $profileImage = $profileImageRaw;
+    $newPath = BASE_PATH . '/public/uploads/profile/' . $profileImageRaw;
+    $legacyPath = BASE_PATH . '/Public/assets/images/' . $profileImageRaw;
+    if (file_exists($newPath)) {
+        $profileImageUrl = BASE_URL . '/uploads/profile/' . rawurlencode($profileImageRaw);
+    } elseif (file_exists($legacyPath)) {
+        $profileImageUrl = BASE_URL . '/assets/images/' . rawurlencode($profileImageRaw);
+    }
 } elseif ($userId > 0) {
     try {
         $pdo = \App\Config\Database::getConnection();
@@ -27,113 +36,95 @@ if (!empty($user['profile_image'])) {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row && !empty($row['profile_image'])) {
             $profileImage = $row['profile_image'];
+            $newPath = BASE_PATH . '/public/uploads/profile/' . $row['profile_image'];
+            $legacyPath = BASE_PATH . '/Public/assets/images/' . $row['profile_image'];
+            if (file_exists($newPath)) {
+                $profileImageUrl = BASE_URL . '/uploads/profile/' . rawurlencode($row['profile_image']);
+            } elseif (file_exists($legacyPath)) {
+                $profileImageUrl = BASE_URL . '/assets/images/' . rawurlencode($row['profile_image']);
+            }
         }
-    } catch (\Throwable $e) {
-        // Silently fail
-    }
+    } catch (\Throwable $e) {}
 }
 
-// Mock notifications (frontend-only demo)
-$notifications = [
-    [
-        'id' => 1,
-        'type' => 'assessment',
-        'icon' => 'fa-brain',
-        'title' => 'Assessment Completed',
-        'message' => 'Your Personality Assessment has been completed.',
-        'time' => '2 minutes ago',
-        'read' => false,
-    ],
-    [
-        'id' => 2,
-        'type' => 'recommendation',
-        'icon' => 'fa-bullseye',
-        'title' => 'Career Recommendation Ready',
-        'message' => 'Your personalized career recommendation is available.',
-        'time' => 'Yesterday',
-        'read' => false,
-    ],
-    [
-        'id' => 3,
-        'type' => 'profile',
-        'icon' => 'fa-user-check',
-        'title' => 'Profile Updated',
-        'message' => 'Your profile has been updated successfully.',
-        'time' => '3 days ago',
-        'read' => true,
-    ],
-];
-$unreadCount = count(array_filter($notifications, fn($n) => !$n['read']));
+$notifUnreadCount = 0;
+try {
+    $pdo = \App\Config\Database::getConnection();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE is_read = 0 AND recipient_id = :rid AND recipient_role = 'student'");
+    $stmt->execute([':rid' => $userId]);
+    $notifUnreadCount = (int)$stmt->fetchColumn();
+} catch (\Throwable $e) {}
 ?>
+<style>
+    @keyframes notifPop { from { opacity: 0; transform: translateY(-8px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes dropFade { from { opacity: 0; transform: translateY(-6px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    #userDropdownMenu:not(.hidden) { animation: dropFade 0.18s ease-out both; }
+    .notif-item { transition: background-color 0.15s ease; }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: #f5f7ff; }
+    .notif-item.unread .notif-title { color: #1e1b4b; font-weight: 700; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 9999px; background: #3B82F6; flex-shrink: 0; }
+    .notif-scroll::-webkit-scrollbar { width: 6px; }
+    .notif-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 9999px; }
+    .icon-hover { transition: all 0.2s ease; }
+    .icon-hover:hover { transform: scale(1.12); }
+    .icon-hover:active { transform: scale(0.95); }
+    .profile-btn { transition: all 0.2s ease; }
+    .profile-btn:hover { transform: scale(1.03); }
+    .profile-btn:active { transform: scale(0.97); }
+</style>
+
 <nav class="sticky top-0 z-40 border-b border-slate-100 bg-white">
     <div class="flex h-16 items-center justify-between px-6 lg:px-8">
         <div class="flex items-center gap-3">
-            <button id="open-sidebar-btn" class="inline-flex items-center justify-center rounded-xl border-0 bg-transparent p-2 text-slate-500 outline-none transition-colors duration-200 hover:bg-slate-50 hover:text-indigo-600 lg:hidden" type="button" aria-label="Toggle sidebar">
+            <button id="open-sidebar-btn" class="inline-flex items-center justify-center rounded-xl border-0 bg-transparent p-2 text-slate-500 outline-none transition-colors duration-200 hover:bg-slate-50 hover:text-blue-600 lg:hidden" type="button" aria-label="Toggle sidebar">
                 <i class="fas fa-bars text-xl"></i>
             </button>
-
             <h1 class="m-0 hidden text-base font-bold tracking-tight text-slate-800 md:block"><?= htmlspecialchars($currentPageLabel) ?></h1>
         </div>
 
         <div class="flex items-center gap-3 sm:gap-4">
-            <!-- Notifications -->
-            <div class="relative" id="notifContainer">
-                <button type="button" id="notifBtn" aria-label="Notifications" class="group relative rounded-xl border-0 bg-transparent p-2 text-slate-400 outline-none transition-all duration-200 hover:bg-slate-50 hover:text-slate-600">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 transition-transform duration-200 group-hover:scale-105">
-                        <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-                        <path d="M9 17a3 3 0 0 0 6 0"></path>
-                    </svg>
-                    <?php if ($unreadCount > 0): ?>
-                    <span id="notifBadge" class="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-[#5B5CEB] px-1 text-[10px] font-bold leading-[18px] text-white ring-2 ring-white"><?= $unreadCount ?></span>
-                    <?php endif; ?>
+            <div class="relative" id="notifWrapper">
+                <button type="button"
+                        class="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 no-underline outline-none inline-flex items-center justify-center icon-hover"
+                        id="notifBell"
+                        aria-label="Notifications"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+                    <i class="bi bi-bell text-xl"></i>
+                    <span id="notifBadge" class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold leading-none shadow-sm ring-2 ring-white <?= $notifUnreadCount > 0 ? '' : 'hidden' ?>"><?= $notifUnreadCount ?></span>
                 </button>
 
-                <div id="notifDropdown" class="absolute right-0 z-50 mt-2 hidden w-[360px] origin-top-right rounded-2xl border border-slate-100 bg-white shadow-xl">
-                    <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                        <h3 class="text-sm font-bold text-slate-900">Notifications</h3>
-                        <?php if ($unreadCount > 0): ?>
-                        <button type="button" id="markAllReadBtn" class="text-xs font-semibold text-[#5B5CEB] hover:text-[#4a4bd6]">Mark all as read</button>
-                        <?php endif; ?>
+                <div id="notifPanel"
+                     class="absolute right-0 mt-3 w-[420px] max-w-[calc(100vw-2rem)] bg-white rounded-[20px] shadow-2xl border border-[#E5E7EB] overflow-hidden z-50 origin-top-right"
+                     style="display:none; animation: notifPop 0.22s cubic-bezier(0.16,1,0.3,1) both;">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                        <h3 class="text-base font-bold text-slate-800 m-0">Notifications</h3>
+                        <button type="button" id="notifMarkAll"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors <?= $notifUnreadCount === 0 ? 'opacity-40 pointer-events-none' : '' ?>">
+                            <i class="bi bi-check2-all"></i> Mark all as read
+                        </button>
                     </div>
-                    <div id="notifList" class="max-h-[350px] overflow-y-auto">
-                        <?php if (empty($notifications)): ?>
-                        <div class="flex flex-col items-center justify-center px-5 py-12 text-center">
-                            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-300">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
-                                    <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-                                    <path d="M9 17a3 3 0 0 0 6 0"></path>
-                                </svg>
-                            </div>
-                            <p class="text-sm font-semibold text-slate-500">No notifications yet.</p>
+
+                    <div id="notifList" class="notif-scroll max-h-[380px] overflow-y-auto divide-y divide-slate-50">
+                        <div class="px-5 py-10 text-center text-sm text-slate-400">
+                            <i class="bi bi-arrow-repeat animate-spin block text-lg mb-2"></i> Loading&hellip;
                         </div>
-                        <?php else: ?>
-                        <?php foreach ($notifications as $n): ?>
-                        <div class="notif-item <?= $n['read'] ? '' : 'bg-indigo-50/40' ?> flex cursor-pointer items-start gap-3 border-b border-slate-50 px-5 py-3.5 transition-colors duration-150 hover:bg-slate-50" data-id="<?= $n['id'] ?>" data-read="<?= $n['read'] ? '1' : '0' ?>">
-                            <div class="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                                <i class="fas <?= htmlspecialchars($n['icon']) ?> text-xs"></i>
-                                <?php if (!$n['read']): ?>
-                                <span class="notif-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#5B5CEB] ring-2 ring-white"></span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold text-slate-900"><?= htmlspecialchars($n['title']) ?></p>
-                                <p class="mt-0.5 text-xs text-slate-500"><?= htmlspecialchars($n['message']) ?></p>
-                                <p class="mt-1 text-[10px] font-medium text-slate-400"><?= htmlspecialchars($n['time']) ?></p>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
                     </div>
+
+                    <a href="<?= BASE_URL ?>/index.php?page=notifications"
+                       class="block text-center px-5 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50/60 transition-colors border-t border-slate-100 no-underline">
+                        View all notifications
+                    </a>
                 </div>
             </div>
 
-            <!-- User Dropdown -->
             <div class="relative">
-                <button type="button" id="userDropdownBtn" aria-expanded="false" class="flex h-12 cursor-pointer items-center gap-2.5 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 outline-none transition-all duration-200 hover:bg-slate-50">
-                    <?php if ($profileImage): ?>
-                        <img src="<?= BASE_URL ?>/assets/images/<?= htmlspecialchars($profileImage) ?>" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
+                <button type="button" id="userDropdownBtn" aria-expanded="false" class="profile-btn flex h-12 cursor-pointer items-center gap-2.5 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 outline-none transition-all duration-200 hover:bg-slate-50">
+                    <?php if ($profileImageUrl): ?>
+                        <img id="navbarAvatarImg" src="<?= $profileImageUrl ?>?v=<?= time() ?>" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
                     <?php else: ?>
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#6366F1] text-sm font-semibold text-white"><?= htmlspecialchars($firstLetter) ?></span>
+                        <span id="navbarAvatarPlaceholder" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-sm font-semibold text-white"><?= htmlspecialchars($firstLetter) ?></span>
                     <?php endif; ?>
                     <span class="hidden select-none items-center gap-1.5 sm:flex">
                         <span class="max-w-[120px] truncate text-sm font-semibold text-[#1F2937]"><?= htmlspecialchars($studentName) ?></span>
@@ -142,11 +133,11 @@ $unreadCount = count(array_filter($notifications, fn($n) => !$n['read']));
                 </button>
 
                 <div id="userDropdownMenu" class="absolute right-0 z-50 mt-2 hidden w-48 rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl">
-                    <a href="<?= BASE_URL ?>/index.php?page=profile" class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-50 hover:text-indigo-600 no-underline">
+                    <a href="<?= BASE_URL ?>/index.php?page=profile" class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-50 hover:text-blue-600 no-underline">
                         <i class="fas fa-user text-sm text-slate-400"></i>
                         <span>My Profile</span>
                     </a>
-                    <a href="<?= BASE_URL ?>/index.php?page=home" class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-50 hover:text-indigo-600 no-underline">
+                    <a href="<?= BASE_URL ?>/index.php?page=home" class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-50 hover:text-blue-600 no-underline">
                         <i class="fas fa-home text-sm text-slate-400"></i>
                         <span>Dashboard</span>
                     </a>
@@ -162,114 +153,249 @@ $unreadCount = count(array_filter($notifications, fn($n) => !$n['read']));
 </nav>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // User Dropdown
-    const dropdownBtn = document.getElementById('userDropdownBtn');
-    const dropdownMenu = document.getElementById('userDropdownMenu');
-    const chevron = document.getElementById('userDropdownChevron');
+(function() {
+    var baseUrl = '<?= BASE_URL ?>/index.php?page=notifications-';
+    var wrapper = document.getElementById('notifWrapper');
+    var bell = document.getElementById('notifBell');
+    var panel = document.getElementById('notifPanel');
+    var list = document.getElementById('notifList');
+    var badge = document.getElementById('notifBadge');
+    var markAll = document.getElementById('notifMarkAll');
+    var isOpen = false;
+
+    var typeIcons = {
+        system: 'bi-megaphone',
+        assessment: 'bi-clipboard-check',
+        user: 'bi-person-circle',
+        career: 'bi-briefcase',
+        profile: 'bi-person-check',
+        question: 'bi-question-circle'
+    };
+
+    function setBadge(count) {
+        count = parseInt(count, 10) || 0;
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function refreshBadge() {
+        fetch(baseUrl + 'api-unread-count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) { setBadge(data.unread_count); })
+            .catch(function() {});
+    }
+
+    function escapeHtml(str) {
+        var d = document.createElement('div');
+        d.textContent = str == null ? '' : String(str);
+        return d.innerHTML;
+    }
+
+    function renderItem(n) {
+        var unread = parseInt(n.is_read, 10) === 0;
+        var icon = typeIcons[n.type] || 'bi-bell';
+        var inner = ''
+            + '<div class="flex gap-3 px-5 py-3.5 ' + (unread ? 'unread' : '') + '">'
+            + '<div class="mt-0.5 flex-shrink-0 w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-base">'
+            + '<i class="bi ' + icon + '"></i></div>'
+            + '<div class="min-w-0 flex-1">'
+            + '<div class="flex items-start justify-between gap-2">'
+            + '<p class="notif-title text-sm text-slate-700 leading-snug m-0">' + escapeHtml(n.title) + '</p>'
+            + (unread ? '<span class="notif-dot mt-1.5"></span>' : '')
+            + '</div>'
+            + (n.message ? '<p class="text-xs text-slate-500 mt-0.5 line-clamp-2 m-0">' + escapeHtml(n.message) + '</p>' : '')
+            + '<p class="text-[11px] text-slate-400 mt-1 m-0">' + escapeHtml(n.time_ago) + '</p>'
+            + '</div></div>';
+        var wrap = document.createElement('div');
+        wrap.className = 'notif-item cursor-pointer';
+        wrap.setAttribute('data-id', n.id);
+        wrap.setAttribute('data-read', unread ? '0' : '1');
+        wrap.innerHTML = inner;
+        return wrap;
+    }
+
+    function renderList(notifications) {
+        list.innerHTML = '';
+        if (!notifications.length) {
+            list.innerHTML = '<div class="px-5 py-12 text-center text-sm text-slate-400">'
+                + '<i class="bi bi-bell-slash block text-2xl mb-2 opacity-60"></i> No notifications yet</div>';
+            return;
+        }
+        notifications.forEach(function(n) {
+            var el = renderItem(n);
+            list.appendChild(el);
+        });
+    }
+
+    function loadList() {
+        list.innerHTML = '<div class="px-5 py-10 text-center text-sm text-slate-400">'
+            + '<i class="bi bi-arrow-repeat animate-spin block text-lg mb-2"></i> Loading&hellip;</div>';
+        fetch(baseUrl + 'api-list&limit=5', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                renderList(data.notifications || []);
+                setBadge(data.unread_count);
+            })
+            .catch(function() {
+                list.innerHTML = '<div class="px-5 py-10 text-center text-sm text-slate-400">Failed to load.</div>';
+            });
+    }
+
+    function openPanel() {
+        isOpen = true;
+        panel.style.display = 'block';
+        bell.setAttribute('aria-expanded', 'true');
+        loadList();
+    }
+
+    function closePanel() {
+        isOpen = false;
+        panel.style.display = 'none';
+        bell.setAttribute('aria-expanded', 'false');
+    }
+
+    var dropdownBtn = document.getElementById('userDropdownBtn');
+    var dropdownMenu = document.getElementById('userDropdownMenu');
+    var chevron = document.getElementById('userDropdownChevron');
+    var userDropdownOpen = false;
+
+    function closeUserDropdown() {
+        userDropdownOpen = false;
+        dropdownMenu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+
+    function openUserDropdown() {
+        userDropdownOpen = true;
+        dropdownMenu.classList.remove('hidden');
+        if (chevron) chevron.classList.add('rotate-180');
+    }
+
+    function toggleUserDropdown() {
+        if (userDropdownOpen) {
+            closeUserDropdown();
+        } else {
+            if (isOpen) closePanel();
+            openUserDropdown();
+        }
+    }
 
     if (dropdownBtn && dropdownMenu) {
         dropdownBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            dropdownMenu.classList.toggle('hidden');
-            if (chevron) chevron.classList.toggle('rotate-180');
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.add('hidden');
-                if (chevron) chevron.classList.remove('rotate-180');
-            }
+            toggleUserDropdown();
         });
     }
 
-    // Notification Dropdown
-    const notifBtn = document.getElementById('notifBtn');
-    const notifDropdown = document.getElementById('notifDropdown');
-    const notifContainer = document.getElementById('notifContainer');
-
-    if (notifBtn && notifDropdown) {
-        notifBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isHidden = notifDropdown.classList.contains('hidden');
-            // Close user dropdown if open
-            if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
-                dropdownMenu.classList.add('hidden');
-                if (chevron) chevron.classList.remove('rotate-180');
-            }
-            if (isHidden) {
-                notifDropdown.classList.remove('hidden');
-                notifDropdown.classList.add('animate-notif-in');
-            } else {
-                notifDropdown.classList.add('hidden');
-                notifDropdown.classList.remove('animate-notif-in');
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (notifContainer && !notifContainer.contains(e.target)) {
-                notifDropdown.classList.add('hidden');
-                notifDropdown.classList.remove('animate-notif-in');
-            }
-        });
-    }
-
-    // Mark individual notification as read on click
-    document.querySelectorAll('.notif-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-            const isRead = this.dataset.read === '1';
-            if (isRead) return;
-            this.dataset.read = '1';
-            this.classList.remove('bg-indigo-50/40');
-            const dot = this.querySelector('.notif-dot');
-            if (dot) dot.remove();
-            updateUnreadCount();
-        });
+    bell.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (userDropdownOpen) closeUserDropdown();
+        isOpen ? closePanel() : openPanel();
     });
 
-    // Mark all as read
-    const markAllBtn = document.getElementById('markAllReadBtn');
-    if (markAllBtn) {
-        markAllBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.querySelectorAll('.notif-item').forEach(function(item) {
-                item.dataset.read = '1';
-                item.classList.remove('bg-indigo-50/40');
-                const dot = item.querySelector('.notif-dot');
+    document.addEventListener('click', function(e) {
+        if (isOpen && wrapper && !wrapper.contains(e.target)) {
+            closePanel();
+        }
+        if (userDropdownOpen && dropdownBtn && dropdownMenu && !dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            closeUserDropdown();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (isOpen) closePanel();
+            if (userDropdownOpen) closeUserDropdown();
+        }
+    });
+
+    list.addEventListener('click', function(e) {
+        var item = e.target.closest('.notif-item');
+        if (!item) return;
+        if (item.getAttribute('data-read') !== '0') return;
+        var id = item.getAttribute('data-id');
+        fetch(baseUrl + 'api-mark-read', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + encodeURIComponent(id)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                item.classList.remove('unread');
+                var dot = item.querySelector('.notif-dot');
                 if (dot) dot.remove();
-            });
-            updateUnreadCount();
-            this.remove();
+                item.setAttribute('data-read', '1');
+                var title = item.querySelector('.notif-title');
+                if (title) title.style.fontWeight = '500';
+                setBadge(data.unread_count);
+                refreshBadge();
+            }
+        })
+        .catch(function() {});
+    });
+
+    if (markAll) {
+        markAll.addEventListener('click', function() {
+            fetch(baseUrl + 'api-mark-all-read', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function() {
+                list.querySelectorAll('.notif-item.unread').forEach(function(el) {
+                    el.classList.remove('unread');
+                    var dot = el.querySelector('.notif-dot');
+                    if (dot) dot.remove();
+                    el.setAttribute('data-read', '1');
+                    var title = el.querySelector('.notif-title');
+                    if (title) title.style.fontWeight = '500';
+                });
+                setBadge(0);
+                refreshBadge();
+            })
+            .catch(function() {});
         });
     }
 
-    function updateUnreadCount() {
-        const unread = document.querySelectorAll('.notif-item[data-read="0"]').length;
-        const badge = document.getElementById('notifBadge');
-        if (badge) {
-            if (unread > 0) {
-                badge.textContent = unread;
+    refreshBadge();
+
+    window.updateNavbarAvatar = function(imageUrl) {
+        var btn = document.getElementById('userDropdownBtn');
+        if (!btn) return;
+        var existingImg = document.getElementById('navbarAvatarImg');
+        var existingPlaceholder = document.getElementById('navbarAvatarPlaceholder');
+        if (imageUrl) {
+            var cacheBusted = imageUrl + '?v=' + Date.now();
+            if (existingImg) {
+                existingImg.src = cacheBusted;
             } else {
-                badge.remove();
+                if (existingPlaceholder) existingPlaceholder.remove();
+                var img = document.createElement('img');
+                img.id = 'navbarAvatarImg';
+                img.src = cacheBusted;
+                img.alt = '';
+                img.className = 'h-9 w-9 shrink-0 rounded-full object-cover';
+                btn.insertBefore(img, btn.firstChild);
+            }
+        } else {
+            if (existingImg) {
+                existingImg.remove();
+                var letter = '<?= $firstLetter ?>';
+                if (!document.getElementById('navbarAvatarPlaceholder')) {
+                    var span = document.createElement('span');
+                    span.id = 'navbarAvatarPlaceholder';
+                    span.className = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-sm font-semibold text-white';
+                    span.textContent = letter;
+                    btn.insertBefore(span, btn.firstChild);
+                }
             }
         }
-        // Remove mark-all button if no unread left
-        if (unread === 0 && markAllBtn) {
-            markAllBtn.remove();
-        }
-    }
-});
+    };
+})();
 </script>
-
-<style>
-@keyframes notifFadeSlide {
-    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.animate-notif-in {
-    animation: notifFadeSlide 0.2s ease-out forwards;
-}
-#notifDropdown {
-    transform-origin: top right;
-}
-</style>

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $pageTitle = $pageTitle ?? 'Reports';
 $activeMenu = $activeMenu ?? 'reports';
 $totalStudents = $totalStudents ?? 0;
@@ -74,18 +74,6 @@ ob_start();
         border-color: rgba(99,102,241,0.2);
     }
     .kpi-card:active { transform: scale(0.98); }
-
-    .kpi-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-        transition: transform 0.3s ease;
-    }
-    .kpi-card:hover .kpi-icon { transform: scale(1.1) rotate(-3deg); }
 
     .donut-ring-bg { fill: none; stroke: #f1f5f9; stroke-width: 7; }
     .donut-ring-fg {
@@ -281,7 +269,6 @@ ob_start();
     }
 
     @media (max-width: 640px) {
-        .kpi-card { padding: 1.25rem !important; }
         .assess-card { padding: 1.25rem !important; }
         .filter-row { flex-direction: column; align-items: stretch !important; }
     }
@@ -331,31 +318,18 @@ ob_start();
     </div>
 
     <!-- ============================================================ -->
-    <!-- KPI Cards                                                     -->
+    <!-- Summary Cards (shared component - shorter height)              -->
     <!-- ============================================================ -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <?php
-        $kpis = [
-            ['key' => 'students', 'label' => 'Total Students', 'value' => $totalStudents, 'icon' => 'bi-people', 'bg' => 'var(--indigo-light)', 'color' => 'var(--indigo)'],
-            ['key' => 'completed', 'label' => 'Completed Assessments', 'value' => $assessmentCompletions, 'icon' => 'bi-check-circle', 'bg' => 'var(--emerald-light)', 'color' => 'var(--emerald)'],
-            ['key' => 'recommendations', 'label' => 'Total Recommendations', 'value' => $totalRecommendations, 'icon' => 'bi-star', 'bg' => 'var(--amber-light)', 'color' => 'var(--amber)'],
-            ['key' => 'reports', 'label' => 'Reports Generated', 'value' => $reportsGenerated, 'icon' => 'bi-file-text', 'bg' => 'var(--purple-light)', 'color' => 'var(--purple)'],
-        ];
-        foreach ($kpis as $i => $kpi):
-            $aid = 'kpiCount' . ucfirst($kpi['key']);
-        ?>
-        <div class="kpi-card p-5 flex flex-col anim-card anim-delay-<?= $i + 1 ?>">
-            <div class="flex items-start justify-between mb-4">
-                <div class="kpi-icon" style="background: <?= $kpi['bg'] ?>; color: <?= $kpi['color'] ?>;">
-                    <i class="bi <?= $kpi['icon'] ?>"></i>
-                </div>
-            </div>
-            <div class="mt-auto">
-                <p id="<?= $aid ?>" class="text-3xl font-bold text-slate-900 tracking-tight" data-target="<?= (int)$kpi['value'] ?>">0</p>
-                <p class="text-sm font-medium text-slate-500 mt-1"><?= htmlspecialchars($kpi['label']) ?></p>
-            </div>
-        </div>
-        <?php endforeach; ?>
+    <?php
+    if (file_exists(__DIR__ . '/../partials/summary_stat_card.php')) {
+        include __DIR__ . '/../partials/summary_stat_card.php';
+    }
+    ?>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <?php renderAdminSummaryCard(['title' => 'Total Students', 'value' => '0', 'valueNumber' => (int)$totalStudents, 'counterId' => 'kpiCountStudents', 'icon' => 'bi-people-fill', 'iconBg' => '#eef2ff', 'iconColor' => '#5B5FEF', 'hint' => 'Registered Students', 'delayClass' => 'd1']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Completed Assessments', 'value' => '0', 'valueNumber' => (int)$assessmentCompletions, 'counterId' => 'kpiCountCompleted', 'icon' => 'bi-check-circle-fill', 'iconBg' => '#ecfdf5', 'iconColor' => '#059669', 'hint' => 'Finished Assessments', 'delayClass' => 'd2']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Total Recommendations', 'value' => '0', 'valueNumber' => (int)$totalRecommendations, 'counterId' => 'kpiCountRecommendations', 'icon' => 'bi-star-fill', 'iconBg' => '#fffbeb', 'iconColor' => '#d97706', 'hint' => 'Generated Recommendations', 'delayClass' => 'd3']); ?>
+        <?php renderAdminSummaryCard(['title' => 'Reports Generated', 'value' => '0', 'valueNumber' => (int)$reportsGenerated, 'counterId' => 'kpiCountReports', 'icon' => 'bi-file-text-fill', 'iconBg' => '#f3e8ff', 'iconColor' => '#9333ea', 'hint' => 'Exported Reports', 'delayClass' => 'd4']); ?>
     </div>
 
     <!-- ============================================================ -->
@@ -454,151 +428,36 @@ ob_start();
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- Analytics: Two-Column Layout                                  -->
-    <!-- ============================================================ -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-        <!-- Top Recommended Careers -->
-        <div class="section-card p-5 sm:p-6 anim-card anim-delay-6">
-            <div class="mb-5">
-                <h2 class="text-base sm:text-lg font-semibold text-slate-800">Top Recommended Careers</h2>
-                <p class="text-sm text-slate-400 mt-0.5">Top 5 careers by recommendation count</p>
-            </div>
-            <?php if (empty($topCareers)): ?>
-            <div class="flex flex-col items-center justify-center py-10">
-                <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
-                    <i class="bi bi-briefcase text-2xl text-slate-300"></i>
-                </div>
-                <p class="text-sm text-slate-400">No career recommendations yet.</p>
-            </div>
-            <?php else:
-                $maxRec = max(array_map(fn($c) => (int)($c['recommendation_count'] ?? 0), $topCareers));
-                $barColors = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
-            ?>
-            <div class="space-y-1">
-                <?php foreach ($topCareers as $i => $tc):
-                    $name = htmlspecialchars((string)($tc['career_name'] ?? ''));
-                    $count = (int)($tc['recommendation_count'] ?? 0);
-                    $score = (float)($tc['avg_score'] ?? 0);
-                    $barWidth = $maxRec > 0 ? round(($count / $maxRec) * 100) : 0;
-                ?>
-                <div class="bar-chart-row">
-                    <span class="text-xs font-bold shrink-0" style="color: <?= $barColors[$i % count($barColors)] ?>; width: 24px;">#<?= $i + 1 ?></span>
-                    <span class="text-sm font-medium text-slate-700 truncate shrink-0" style="width: 110px;"><?= $name ?></span>
-                    <div class="bar-track">
-                        <div class="bar-fill bar-anim" style="width: 0; background: <?= $barColors[$i % count($barColors)] ?>;" data-width="<?= $barWidth ?>"></div>
-                    </div>
-                    <span class="text-xs font-semibold text-indigo-600 shrink-0 text-right" style="width: 56px;"><?= $count ?></span>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Education Level Distribution -->
-        <div class="section-card p-5 sm:p-6 anim-card anim-delay-7">
-            <div class="mb-5">
-                <h2 class="text-base sm:text-lg font-semibold text-slate-800">Education Level Distribution</h2>
-                <p class="text-sm text-slate-400 mt-0.5">Students by education level</p>
-            </div>
-            <?php if (empty($educationDistribution)): ?>
-            <div class="flex flex-col items-center justify-center py-10">
-                <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
-                    <i class="bi bi-mortarboard text-2xl text-slate-300"></i>
-                </div>
-                <p class="text-sm text-slate-400">No student profile data available.</p>
-            </div>
-            <?php else:
-                $maxEdu = max(array_map(fn($e) => (int)($e['count'] ?? 0), $educationDistribution));
-                $eduColors = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
-            ?>
-            <div class="space-y-2.5">
-                <?php foreach ($educationDistribution as $ei => $ed):
-                    $level = htmlspecialchars((string)($ed['education_level'] ?? 'Unknown'));
-                    $count = (int)($ed['count'] ?? 0);
-                    $pct = $maxEdu > 0 ? round(($count / $maxEdu) * 100) : 0;
-                    $ec = $eduColors[$ei % count($eduColors)];
-                ?>
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-slate-700 truncate shrink-0" style="width: 120px;"><?= $level ?></span>
-                    <div class="bar-track flex-1 h-6">
-                        <div class="bar-fill bar-anim flex items-center justify-end px-2" style="width: 0; background: <?= $ec ?>;" data-width="<?= $pct ?>">
-                        </div>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-800 shrink-0 text-right" style="width: 48px;"><?= number_format($count) ?></span>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- Recent Reports Table                                          -->
-    <!-- ============================================================ -->
-    <div class="section-card anim-card anim-delay-8 mb-8">
-        <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-slate-100">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-base sm:text-lg font-semibold text-slate-800">Recent Reports</h2>
-                    <p class="text-sm text-slate-400 mt-0.5">Latest assessment reports and recommendations</p>
-                </div>
-            </div>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="reports-table">
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Career</th>
-                        <th>Assessment</th>
-                        <th>Date</th>
-                        <th>Score</th>
-                        <th>Status</th>
-                        <th class="text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $hasReportData = false; // controller does not pass individual report data
-                    if (!$hasReportData):
-                    ?>
-                    <tr>
-                        <td colspan="7" class="text-center py-12">
-                            <div class="flex flex-col items-center">
-                                <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
-                                    <i class="bi bi-file-earmark-bar-graph text-2xl text-slate-300"></i>
-                                </div>
-                                <p class="text-sm text-slate-400">No reports generated yet.</p>
-                                <p class="text-xs text-slate-300 mt-1">Reports will appear here once students complete assessments.</p>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php if ($hasReportData): ?>
-        <div class="px-5 sm:px-6 py-3 border-t border-slate-100 flex justify-between items-center">
-            <span class="text-xs text-slate-400">Showing 1-5 of 24 reports</span>
-            <div class="flex gap-1">
-                <button class="btn-action text-xs px-3 py-1.5"><i class="bi bi-chevron-left"></i></button>
-                <button class="btn-action text-xs px-3 py-1.5 bg-indigo-50 border-indigo-200 text-indigo-600">1</button>
-                <button class="btn-action text-xs px-3 py-1.5">2</button>
-                <button class="btn-action text-xs px-3 py-1.5">3</button>
-                <button class="btn-action text-xs px-3 py-1.5"><i class="bi bi-chevron-right"></i></button>
-            </div>
-        </div>
-        <?php endif; ?>
-    </div>
-
-</div>
-
+    
+   
 <script>
 (function() {
     'use strict';
+
+    function animateCounter(el, target, done) {
+        if (!el) return;
+        var current = 0;
+        var steps = 40;
+        var inc = Math.max(1, Math.ceil(target / steps));
+        var timer = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+                if (done) done();
+            }
+            el.textContent = current.toLocaleString();
+        }, 25);
+    }
+
+    setTimeout(function() {
+        document.querySelectorAll('.stat-card[data-value]').forEach(function(card) {
+            var el = card.querySelector('.card-number');
+            var target = parseInt(card.getAttribute('data-value') || '0', 10);
+            if (!el) return;
+            animateCounter(el, target);
+        });
+    }, 300);
 
     // ---- Export Dropdown ----
     window.toggleExportMenu = function() {

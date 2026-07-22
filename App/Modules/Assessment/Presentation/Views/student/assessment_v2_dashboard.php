@@ -184,19 +184,19 @@ $allDone = $total > 0 && $completed === $total;
             </div>
         </div>
 
-        <!-- Navigation Buttons -->
-        <div class="mt-8 flex items-center justify-between gap-4">
-            <button type="button" @click="prevQuestion" :disabled="currentIndex === 0"
-                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200 transition-all duration-200">
-                <i class="bi bi-chevron-left text-base"></i>
-                <span>Previous</span>
-            </button>
-            <button type="button" @click="nextQuestion"
-                    class="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.97]"
-                    :class="isLast ? 'bg-gradient-to-r from-[#6366F1] to-[#4F46E5] shadow-md hover:shadow-lg hover:from-[#5558E6] hover:to-[#4338CA]' : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600'"
-                    x-text="isLast ? 'Finish' : 'Next'">
-            </button>
-        </div>
+            <!-- Navigation Buttons -->
+            <div class="mt-8 flex items-center justify-between gap-4">
+                <button type="button" @click="prevQuestion" :disabled="currentIndex === 0"
+                        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200 transition-all duration-200">
+                    <i class="bi bi-chevron-left text-base"></i>
+                    <span>Previous</span>
+                </button>
+                <button type="button" @click="nextQuestion"
+        class="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all active:scale-[0.97]"
+        :class="isLast ? 'bg-gradient-to-r from-[#15479A] to-blue-700 hover:from-[#134186] hover:to-blue-800' : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600'"
+        x-text="isLast ? 'Finish' : 'Next'">
+</button>
+            </div>
     </div>
 
     <!-- ========== COMPLETED VIEW ========== -->

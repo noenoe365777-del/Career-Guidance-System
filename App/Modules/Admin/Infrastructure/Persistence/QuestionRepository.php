@@ -33,6 +33,7 @@ class QuestionRepository implements QuestionRepositoryInterface
 
     private function rowToArray(array $row): array
     {
+        $optionCount = (int)($row['option_count'] ?? 0);
         return [
             'question_id'        => (int)($row['question_id'] ?? $row['id'] ?? 0),
             'question_text'      => (string)($row['question_text'] ?? $row['question'] ?? ''),
@@ -42,6 +43,8 @@ class QuestionRepository implements QuestionRepositoryInterface
             'created_at'         => $row['created_at'] ?? null,
             'assessment_title'   => $row['assessment_title'] ?? '',
             'assessment_category'=> $row['assessment_category'] ?? '',
+            'option_count'       => $optionCount,
+            'status'             => $optionCount >= 2 ? 'active' : 'incomplete',
         ];
     }
 
@@ -53,7 +56,11 @@ class QuestionRepository implements QuestionRepositoryInterface
             {$alias}.assessment_id,
             {$alias}.created_at,
             a.title AS assessment_title,
-            a.category AS assessment_category
+            a.category AS assessment_category,
+            (CASE WHEN {$alias}.option_a IS NOT NULL AND {$alias}.option_a != '' THEN 1 ELSE 0 END) +
+            (CASE WHEN {$alias}.option_b IS NOT NULL AND {$alias}.option_b != '' THEN 1 ELSE 0 END) +
+            (CASE WHEN {$alias}.option_c IS NOT NULL AND {$alias}.option_c != '' THEN 1 ELSE 0 END) +
+            (CASE WHEN {$alias}.option_d IS NOT NULL AND {$alias}.option_d != '' THEN 1 ELSE 0 END) AS option_count
         ";
     }
 

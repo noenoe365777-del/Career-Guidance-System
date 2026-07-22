@@ -1,4 +1,12 @@
 <style>
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInScale {
+        0% { opacity: 0; transform: scale(0.96); }
+        100% { opacity: 1; transform: scale(1); }
+    }
     .filter-pill.active {
         background: linear-gradient(to right, var(--brand-start, #6366f1), var(--brand-mid, #8b5cf6), var(--brand-end, #a855f7));
         color: #fff;
@@ -34,15 +42,42 @@
         background: #eef2ff;
         border-color: #a5b4fc;
     }
+    .anim-search {
+        opacity: 0;
+        animation: fadeInScale 0.5s ease-out 0.1s both;
+    }
+    .anim-filters {
+        opacity: 0;
+        animation: fadeInUp 0.5s ease-out 0.2s both;
+    }
+    .anim-heading {
+        opacity: 0;
+        animation: fadeInUp 0.5s ease-out 0.15s both;
+    }
+    .anim-card-init {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+        transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    }
+    .anim-card-init.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    .anim-card-init:nth-child(1) { transition-delay: 0ms; }
+    .anim-card-init:nth-child(2) { transition-delay: 50ms; }
+    .anim-card-init:nth-child(3) { transition-delay: 100ms; }
+    .anim-card-init:nth-child(4) { transition-delay: 150ms; }
+    .anim-card-init:nth-child(5) { transition-delay: 200ms; }
+    .anim-card-init:nth-child(6) { transition-delay: 250ms; }
+    .anim-card-init:nth-child(7) { transition-delay: 300ms; }
+    .anim-card-init:nth-child(8) { transition-delay: 350ms; }
 </style>
-
-
 
 <section class="bg-gradient-to-b from-slate-50 to-white pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="pt-8 sm:pt-10 mb-8">
-            <div class="max-w-xl mx-auto">
+            <div class="max-w-xl mx-auto anim-search">
                 <div class="relative">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                     <input type="text" id="searchInput" placeholder="Search careers..." class="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 text-sm font-medium shadow-lg shadow-slate-200/50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
@@ -50,7 +85,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10 anim-filters">
             <div class="hidden sm:flex flex-wrap items-center gap-2" id="filterPills">
                 <button class="filter-pill active px-4 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200" data-category="">All</button>
                 <button class="filter-pill px-4 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200" data-category="Technology">Technology</button>
@@ -79,7 +114,7 @@
         </div>
 
         <div>
-            <div class="flex items-center gap-3 mb-6">
+            <div class="flex items-center gap-3 mb-6 anim-heading">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
                     <i class="fas fa-th-large text-white text-xs"></i>
                 </div>
@@ -119,7 +154,7 @@
                     $c = $colorMap[$career['color']];
                     $slug = strtolower(str_replace(' ', '-', $career['name']));
                 ?>
-                    <div class="career-card group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:border-<?= $c['bg'] ?>-200 transition-all duration-300 flex flex-col overflow-hidden relative" data-category="<?= htmlspecialchars($career['category']) ?>" data-index="<?= $idx ?>">
+                    <div class="career-card anim-card-init group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:border-<?= $c['bg'] ?>-200 transition-all duration-300 flex flex-col overflow-hidden relative" data-category="<?= htmlspecialchars($career['category']) ?>" data-index="<?= $idx ?>">
                         <div class="absolute top-0 right-0 w-32 h-32 bg-<?= $c['bg'] ?>-50/50 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none group-hover:opacity-100 opacity-0 transition-opacity duration-300"></div>
                         <div class="p-4 sm:p-5 flex flex-col flex-1 relative">
                             <div class="flex items-center justify-between mb-3">
@@ -186,6 +221,19 @@
 
         let currentPage = 1;
         let isAnimating = false;
+        let initialLoad = true;
+
+        function animateInitialCards() {
+            const firstBatch = Array.from(careerCards).slice(0, PER_PAGE);
+            firstBatch.forEach(function(card, i) {
+                card.style.transitionDelay = (i * 60) + 'ms';
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        card.classList.add('visible');
+                    });
+                });
+            });
+        }
 
         function getFilteredIndices() {
             const query = (searchInput.value || '').toLowerCase().trim();
@@ -245,13 +293,17 @@
                     card.dataset.visible = 'true';
                     card.style.display = '';
                     if (animate) {
+                        card.classList.remove('anim-card-init');
                         card.classList.add('page-enter');
+                        card.style.transitionDelay = '';
                         requestAnimationFrame(function() {
-                            card.classList.remove('page-enter');
-                            card.classList.add('page-enter-active');
-                            setTimeout(function() {
-                                card.classList.remove('page-enter-active');
-                            }, 350);
+                            requestAnimationFrame(function() {
+                                card.classList.remove('page-enter');
+                                card.classList.add('page-enter-active');
+                                setTimeout(function() {
+                                    card.classList.remove('page-enter-active');
+                                }, 350);
+                            });
                         });
                     }
                 } else {
@@ -321,5 +373,6 @@
         });
 
         renderView(false);
+        setTimeout(animateInitialCards, 50);
     })();
 </script>

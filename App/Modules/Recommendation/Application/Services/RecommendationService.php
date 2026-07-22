@@ -124,7 +124,7 @@ class RecommendationService
         $topCareerName = !empty($recommendations) ? $recommendations[0]->careerName : 'a career path';
         $userData = $this->getUserData($userId);
         $studentName = $userData['name'] ?? "User #{$userId}";
-        NotificationHelper::recommendationGenerated($studentName, $topCareerName);
+        NotificationHelper::recommendationGenerated($studentName, $topCareerName, $userId);
 
         return $recommendations;
     }

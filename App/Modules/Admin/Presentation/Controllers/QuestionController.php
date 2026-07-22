@@ -33,16 +33,8 @@ class QuestionController extends Controller
 
         $slugMap = $this->questionService->getAssessmentSlugMap();
 
-        if ($isPartial || $categorySlug !== '') {
-            $result = $this->questionService->getQuestionsByCategorySlug($page, 100, $search, $categorySlug, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
-            $questions = $result['questions'];
-        } else {
-            $questions = [];
-            $result = [
-                'currentPage' => 1,
-                'totalPages' => 1,
-            ];
-        }
+        $result = $this->questionService->getQuestionsByCategorySlug($page, 100, $search, $categorySlug, $questionTypeFilter, $difficultyFilter, $statusFilter, $sort);
+        $questions = $result['questions'];
 
         $assessments = $this->questionService->getAssessments();
         $questionTypes = $this->questionService->getQuestionTypes();

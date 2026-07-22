@@ -79,4 +79,24 @@ class ReportsService
     {
         return $this->reportsRepository->getRecentActivities($limit);
     }
+
+    public function getAssessmentScoreComparison(?string $period = null): array
+    {
+        return $this->reportsRepository->getAssessmentScoreComparison($period);
+    }
+
+    public function getRecentAssessmentActivity(int $limit = 10): array
+    {
+        return $this->reportsRepository->getRecentAssessmentActivity($limit);
+    }
+
+    public function getAssessmentCompletionStats(?string $period = null): array
+    {
+        return $this->reportsRepository->getAssessmentCompletionStats($period);
+    }
+
+    public function getStudentPerformanceSummary(): array
+    {
+        return $this->reportsRepository->getStudentPerformanceSummary();
+    }
 }

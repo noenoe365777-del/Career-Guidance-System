@@ -211,6 +211,85 @@ class ReportsRepository implements ReportsRepositoryInterface
         }
     }
 
+    public function getAssessmentScoreComparison(?string $period = null): array
+    {
+        try {
+            $periodFilter = $this->periodFilter('sa.completed_at', $period);
+
+            $sql = "
+                SELECT
+                    u.username AS student_name,
+                    a.title AS assessment_title,
+                    sa.total_score AS assessment_score,
+                    COALESCE(cr.match_score, 0) AS career_match_score,
+                    CASE
+                        WHEN cr.match_score >= 90 THEN 'Excellent'
+                        WHEN cr.match_score >= 80 THEN 'Good'
+                        WHEN cr.match_score >= 70 THEN 'Average'
+                        ELSE 'Needs Improvement'
+                    END AS comparison_level,
+                    sa.completed_at
+                FROM student_assessments sa
+                JOIN users u ON u.user_id = sa.user_id
+                JOIN assessments a ON a.assessment_id = sa.assessment_id
+                LEFT JOIN career_recommendations cr ON cr.user_id = sa.user_id
+                WHERE sa.status = 'completed'
+                {$periodFilter}
+                ORDER BY sa.completed_at DESC
+                LIMIT 20
+            ";
+
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getRecentAssessmentActivity(int $limit = 10): array
+    {
+        return $this->getRecentActivities($limit);
+    }
+
+    public function getAssessmentCompletionStats(?string $period = null): array
+    {
+        $periodFilter = $this->periodFilter('sa.completed_at', $period);
+
+        $sql = "
+            SELECT
+                a.title AS assessment_title,
+                a.category AS assessment_type,
+                COUNT(DISTINCT sa.user_id) AS students_assessed,
+                COUNT(DISTINCT CASE WHEN sa.status = 'completed' THEN sa.user_id END) AS completed_assessments,
+                ROUND(COUNT(DISTINCT CASE WHEN sa.status = 'completed' THEN sa.user_id END) * 100.0 / COUNT(DISTINCT sa.user_id), 1) AS completion_rate
+            FROM assessments a
+            LEFT JOIN student_assessments sa ON sa.assessment_id = a.assessment_id AND sa.status = 'completed'
+            {$periodFilter}
+            GROUP BY a.assessment_id, a.title, a.category
+            ORDER BY students_assessed DESC
+        ";
+
+        try {
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
+    public function getStudentPerformanceSummary(): array
+    {
+        try {
+            $stmt = $this->connection->query("SELECT user_id, username, email, created_at, status_id FROM users WHERE user_role_id = 2 ORDER BY created_at DESC LIMIT 20");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException) {
+            return [];
+        }
+    }
+
     public function getAverageAssessmentScore(): float
     {
         try {

@@ -126,12 +126,7 @@ $colorMap = [
 
                         <?php else: ?>
                             <!-- Guest: preview badge -->
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold uppercase tracking-wider w-fit">
-                                <i class="fas fa-eye text-[8px]"></i>
-                                Free Preview
-                                <span class="w-px h-2.5 bg-indigo-200"></span>
-                                <?= $previewCount ?> Questions
-                            </span>
+                           
 
                     
 

@@ -160,9 +160,14 @@ unset(
             placeholder="Enter password"
             class="w-full h-12 px-4 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
 
-        <i
-            class="fa fa-eye toggle-password absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
-            data-target="password"></i>
+<button
+    type="button"
+    id="togglePassword"
+    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600">
+
+    <i class="far fa-eye"></i>
+
+</button>
 
     </div>
 
@@ -189,9 +194,14 @@ unset(
             placeholder="Confirm password"
             class="w-full h-12 px-4 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#15479A] focus:border-[#15479A] outline-none">
 
-        <i
-            class="fa fa-eye toggle-password absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
-            data-target="confirm-password"></i>
+      <button
+    type="button"
+    id="toggleConfirmPassword"
+    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600">
+
+    <i class="far fa-eye"></i>
+
+</button>
 
     </div>
 
@@ -411,5 +421,5 @@ unset(
 </main>
 
 <?php
-$extraJs = BASE_URL . "/assets/js/register.js";
+$extraJs = "assets/js/register.js";
 ?>

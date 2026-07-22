@@ -66,7 +66,7 @@ $navItems = [
     'home' => 'Home',
     $assessmentsPage => 'Assessments',
     'careers' => 'Careers',
-    'about-us' => 'About Us',
+    'about-us' => 'About ',
     'contact' => 'Contact'
 ];
 ?>
@@ -150,12 +150,13 @@ $navItems = [
                     </div>
                 </div>
             <?php else: ?>
-                <!-- Guest View Actions (Admin access intentionally omitted from public header) -->
-                <a href="<?= BASE_URL ?>/index.php?page=login" class="hidden lg:inline-flex items-center text-slate-600 px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors">
-                    Log In
-                </a>
+<a href="<?= BASE_URL ?>/index.php?page=login"
+   class="hidden lg:inline-flex items-center text-blue-600 px-4 py-2.5 rounded-xl font-semibold text-sm border-2 border-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300">
+    Log In
+</a>
                 <a href="<?= BASE_URL ?>/index.php?page=register" class="hidden lg:inline-flex items-center bg-gradient-to-r from-brand-start to-brand-mid text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md hover:scale-105 transition-all duration-200">
-                    Register <i class="fas fa-arrow-right text-[11px] ml-2 opacity-80"></i>
+                   <i class="fas fa-user-plus mr-2"></i>
+Register
                 </a>
             <?php endif; ?>
 
